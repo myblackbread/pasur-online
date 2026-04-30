@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
 import { UserProfile, GameRoom, RuleSet } from '../types';
 
-// Адаптеры для преобразования snake_case (Postgres) в camelCase (Frontend)
 const mapUser = (data: any): UserProfile => ({
     uid: data.id,
     displayName: data.display_name,
@@ -20,12 +19,13 @@ const mapRoom = (data: any): GameRoom => ({
     maxPlayers: data.max_players,
     betAmount: data.bet_amount,
     ruleSet: data.rule_set,
-    isStrict: data.is_strict ?? true, // 🟢 ДОБАВИТЬ ЭТУ СТРОКУ
+    isStrict: data.is_strict ?? true,
     isPrivate: data.is_private,
     joinCode: data.join_code,
     players: data.players || [],
     gameState: data.game_state,
     turnDeadline: data.turn_deadline,
+    readyDeadline: data.ready_deadline,
     pauseProposals: data.pause_proposals || [],
     adminMessage: data.admin_message,
     createdAt: data.created_at
@@ -33,7 +33,6 @@ const mapRoom = (data: any): GameRoom => ({
 
 class SupabaseManager {
     
-    // Единый метод для вызова нашего бэкенда (Deno Edge Function)
     private async callApi(action: string, data: any = {}) {
         const { data: result, error } = await supabase.functions.invoke('game-api', {
             body: { action, data }
@@ -52,7 +51,7 @@ class SupabaseManager {
         if (provider === 'google') {
             authResult = await supabase.auth.signInWithOAuth({ provider: 'google' });
             if (authResult.error) throw authResult.error;
-            return ""; // OAuth делает редирект, так что дальше код не пойдет
+            return ""; 
         } else if (provider === 'guest') {
             authResult = await supabase.auth.signInAnonymously();
         } else if (provider === 'email' && email && password) {
@@ -68,7 +67,6 @@ class SupabaseManager {
         const user = authResult.data?.user;
         if (!user) throw new Error("Ошибка авторизации");
 
-        // Проверяем, есть ли юзер в таблице
         const { data: userDoc } = await supabase.from('users').select('*').eq('id', user.id).single();
 
         if (!userDoc) {
@@ -94,13 +92,12 @@ class SupabaseManager {
         if (error) throw new Error("Этот аккаунт Google уже привязан.");
     }
 
-    /* ================= REALTIME ПАПКА ================= */
+    /* ================= REALTIME ================= */
 
     subscribeToUser(uid: string, callback: (user: UserProfile | null) => void) {
         const fetchAndEnsureUser = async () => {
             const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
             
-            // Если профиль не найден, пробуем создать
             if (error && error.code === 'PGRST116') {
                 const { data: { user: authUser } } = await supabase.auth.getUser();
                 
@@ -120,7 +117,6 @@ class SupabaseManager {
                 const { error: insertErr } = await supabase.from('users').insert(newProfile);
                 
                 if (insertErr) {
-                    // МАГИЯ ЗДЕСЬ: Если профиль уже создался в фоне, просто загружаем его
                     if (insertErr.code === '23505') {
                         const { data: existingData } = await supabase.from('users').select('*').eq('id', uid).single();
                         if (existingData) callback(mapUser(existingData));
@@ -152,7 +148,7 @@ class SupabaseManager {
     }
 
     subscribeToPublicRooms(callback: (rooms: GameRoom[]) => void) {
-        let currentRooms: GameRoom[] = []; // Локальный кэш
+        let currentRooms: GameRoom[] = []; 
 
         const fetchRooms = async () => {
             const { data } = await supabase.from('rooms')
@@ -168,7 +164,6 @@ class SupabaseManager {
 
         const channel = supabase.channel(`public_rooms_${Math.random().toString(36).substring(7)}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: 'is_private=eq.false' }, (payload) => {
-                // ОБНОВЛЯЕМ ЛОКАЛЬНО БЕЗ ЗАПРОСОВ В БАЗУ
                 if (payload.eventType === 'INSERT') {
                     currentRooms = [mapRoom(payload.new), ...currentRooms];
                 } else if (payload.eventType === 'UPDATE') {
@@ -212,7 +207,7 @@ class SupabaseManager {
         return () => { supabase.removeChannel(channel); };
     }
 
-    /* ================= API ВЫЗОВЫ (Edge Functions) ================= */
+    /* ================= API ВЫЗОВЫ ================= */
 
     async createRoom(creator: UserProfile, bet: number, ruleSet: RuleSet, isPrivate: boolean = false, isStrict: boolean = true): Promise<string> {
         if (creator.balance < bet) throw new Error("Недостаточно средств");
@@ -258,6 +253,19 @@ class SupabaseManager {
 
     async proposePause(roomId: string): Promise<void> {
         await this.callApi('secureProposePause', { roomId });
+    }
+    
+    // 🟢 НОВЫЕ МЕТОДЫ
+    async answerPauseRequest(roomId: string, accept: boolean): Promise<void> {
+        await this.callApi('secureAnswerPauseRequest', { roomId, accept });
+    }
+    
+    async resolvePauseTimeout(roomId: string): Promise<void> {
+        try { await this.callApi('secureResolvePauseTimeout', { roomId }); } catch (e) {}
+    }
+
+    async rematch(roomId: string): Promise<void> {
+        await this.callApi('secureRematch', { roomId });
     }
 }
 

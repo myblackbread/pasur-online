@@ -1,33 +1,15 @@
 import React, { useState } from 'react';
 import { UserProfile } from '@/src/types';
 import { fbManager } from '@/src/lib/supabaseManager';
-import { supabase } from '@/src/lib/supabase'; // 🟢 ДОБАВЛЯЕМ SUPABASE
-import { useAlert } from '@/src/components/AlertProvider';
-
 
 const EMOJIS = ['😎', '👽', '🤖', '🦊', '🐯', '👻', '🤡', '🤠'];
 
 export default function ProfileView({ user }: { user: UserProfile }) {
     const [isEditingEmoji, setIsEditingEmoji] = useState(false);
-    const { showAlert } = useAlert();
 
     const changeEmoji = async (emoji: string) => {
         await fbManager.updateUserEmoji(user.uid, emoji);
         setIsEditingEmoji(false);
-    };
-
-    const handlePing = async () => {
-        try {
-            // 🟢 ВЫЗОВ SUPABASE EDGE FUNCTION (если у тебя нет pingTest в бэкенде, 
-            // можешь просто удалить эту кнопку, либо оставь так на будущее)
-            const { data, error } = await supabase.functions.invoke('game-api', {
-                body: { action: 'pingTest', data: { hello: "from frontend" } }
-            });
-            if (error) throw error;
-            showAlert(`Успех!\nОтвет сервера: OK`);
-        } catch (error: any) {
-            showAlert(`Ошибка вызова функции:\n${error.message}`);
-        }
     };
     
     return (
@@ -58,14 +40,6 @@ export default function ProfileView({ user }: { user: UserProfile }) {
             </div>
 
             <div className="flex flex-col gap-3">
-                <button
-                    onClick={handlePing}
-                    className="bg-theme-primary text-white p-5 rounded-2xl flex justify-between items-center hover:opacity-80 transition-opacity font-bold shadow-lg"
-                >
-                    <span>🚀 Тест Cloud Function</span>
-                    <span>❯</span>
-                </button>
-                {/* ... (остальные кнопки без изменений) */}
                 <button className="bg-theme-panel border-4 border-theme-border p-5 rounded-2xl flex justify-between items-center hover:bg-theme-main transition-colors font-bold">
                     <span>📜 Правила игры</span>
                     <span className="opacity-50">❯</span>

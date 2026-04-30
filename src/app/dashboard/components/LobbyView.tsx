@@ -78,10 +78,16 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                             <div key={room.id} className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-primary flex justify-between items-center hover:shadow-md transition-shadow">
                                 <div>
                                     <div className="font-bold text-lg text-theme-primary">Ваш стол ({room.betAmount} 💰)</div>
-                                    <div className="text-xs opacity-70 font-medium">{room.status === 'paused' ? 'На паузе' : 'Игра идет / Ожидание'}</div>
+                                    <div className="text-xs opacity-70 font-medium">
+                                        {room.status === 'paused' ? 'На паузе' :
+                                            room.status === 'pause_requested' ? 'Запрос паузы' :
+                                                room.status === 'finished' ? 'Матч окончен' : 'Игра идет / Ожидание'}
+                                    </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => handleSurrenderActive(room.id!)} disabled={isSurrendering} className="bg-red-500/20 text-red-500 px-3 py-2 rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors">Сдаться</button>
+                                    <button onClick={() => handleSurrenderActive(room.id!)} disabled={isSurrendering} className="bg-red-500/20 text-red-500 px-3 py-2 rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors">
+                                        {room.status === 'finished' || room.status === 'waiting' ? 'Выйти' : 'Сдаться'}
+                                    </button>
                                     <button onClick={() => router.push(`/game/${room.id}`)} className="bg-theme-primary text-white px-4 py-2 rounded-lg font-bold hover:opacity-80 transition-opacity">Войти</button>
                                 </div>
                             </div>
@@ -107,10 +113,10 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 <div>
                                     <div className="font-bold text-lg">{room.players[0]?.name || "Пустой стол"}</div>
                                     <div className="text-xs opacity-70 font-medium">
-                            {room.ruleSet === 'classic' ? 'Классика' : 'Локальные'}
-                            {room.isStrict && <span className="ml-2 text-red-500 font-black">СТРОГИЙ</span>}
-                            <span className="ml-2 text-theme-primary font-black">({room.players.length}/{room.maxPlayers} мест)</span>
-                        </div>
+                                        {room.ruleSet === 'classic' ? 'Классика' : 'Локальные'}
+                                        {room.isStrict && <span className="ml-2 text-red-500 font-black">СТРОГИЙ</span>}
+                                        <span className="ml-2 text-theme-primary font-black">({room.players.length}/{room.maxPlayers} мест)</span>
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">

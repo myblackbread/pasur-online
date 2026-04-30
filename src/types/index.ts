@@ -1,5 +1,6 @@
 export type RuleSet = 'local' | 'classic';
-export type RoomStatus = 'waiting' | 'ready_check' | 'playing' | 'finished' | 'paused' | 'ready_check_resume';
+// 🟢 ДОБАВЛЕН СТАТУС pause_requested
+export type RoomStatus = 'waiting' | 'ready_check' | 'playing' | 'finished' | 'paused' | 'ready_check_resume' | 'pause_requested';
 
 export interface UserProfile {
     uid: string;
@@ -39,7 +40,6 @@ export interface GameState {
     dealerReservedJacks: Card[];     
     lastCapturerTeamId: number | null;   
     
-    // 🟢 ДОБАВЛЕНО: Для анимаций на фронтенде
     lastAction?: {
         playerId: string;
         playedCard: Card;

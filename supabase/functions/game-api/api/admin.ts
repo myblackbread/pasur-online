@@ -4,10 +4,19 @@ export async function adminDeleteUser(data: any, user: any, adminDb: any) {
 
     const { uidToKill } = data;
     if (!uidToKill) throw new Error("Не указан UID");
+
+    // 🟢 ФИКС: Сначала получаем юзера, чтобы узнать, в каких комнатах он сидит
+    const { data: targetUser } = await adminDb.from('users').select('active_rooms').eq('id', uidToKill).single();
     
     await adminDb.from("users").update({ is_deleted: true }).eq("id", uidToKill);
 
-    const { data: rooms } = await adminDb.from("rooms").select("*");
+    // Если активных комнат нет, нам не нужно ничего перебирать
+    if (!targetUser || !targetUser.active_rooms || targetUser.active_rooms.length === 0) {
+        return { success: true };
+    }
+
+    // 🟢 ФИКС: Выгружаем ТОЛЬКО те комнаты, где числится этот игрок
+    const { data: rooms } = await adminDb.from("rooms").select("*").in('id', targetUser.active_rooms);
     if (!rooms) return { success: true };
 
     for (const room of rooms) {
@@ -24,7 +33,6 @@ export async function adminDeleteUser(data: any, user: any, adminDb: any) {
                     const pot = room.bet_amount * room.max_players;
 
                     if (innocentRealId) {
-                        // Безопасное начисление компенсации
                         await adminDb.rpc('increment_balance', { user_id: innocentRealId, amount: pot });
                         await adminDb.rpc('remove_active_room', { user_id: innocentRealId, room_id: room.id });
                     }

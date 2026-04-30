@@ -189,17 +189,24 @@ export default function GameRoomPage() {
         finally { setTimeout(() => { isProcessing.current = false; }, 2000); }
     }, [roomId]);
 
-
     useEffect(() => {
         let timeout: NodeJS.Timeout;
         let interval: NodeJS.Timeout;
+
+        // Timeout победы только если статус 'playing'
         if (roomData?.status === 'playing' && !isMyTurnSafe && !isSpectatorSafe && turnTimeLeft === 0) {
             const attemptKick = () => { if (!isProcessing.current) claimTimeoutVictory(); };
             timeout = setTimeout(attemptKick, 6000);
             interval = setInterval(attemptKick, 3000);
         }
+
+        // Timeout авто-отклонения паузы
+        if (roomData?.status === 'pause_requested' && turnTimeLeft === 0) {
+            fbManager.resolvePauseTimeout(roomId);
+        }
+
         return () => { if (timeout) clearTimeout(timeout); if (interval) clearInterval(interval); };
-    }, [roomData?.status, isMyTurnSafe, isSpectatorSafe, turnTimeLeft, claimTimeoutVictory]);
+    }, [roomData?.status, isMyTurnSafe, isSpectatorSafe, turnTimeLeft, claimTimeoutVictory, roomId]);
 
     useEffect(() => {
         let timeout: NodeJS.Timeout;
@@ -223,12 +230,13 @@ export default function GameRoomPage() {
     };
 
     const handleLeaveOrSurrender = () => {
-        const isPlaying = roomData?.status === 'playing' || roomData?.status === 'paused';
+        // Уходим с потерей ставки если игра в процессе или на паузе
+        const isPlaying = roomData?.status === 'playing' || roomData?.status === 'pause_requested' || roomData?.status === 'paused' || roomData?.status === 'ready_check_resume';
         showConfirm(isPlaying ? "Уверены? Вы потеряете ставку!" : "Покинуть стол?", async () => {
             isProcessing.current = true;
             try {
                 const { error } = await supabase.functions.invoke('game-api', {
-                    body: { action: 'secureLeaveRoom', data: { roomId, reason: roomData?.status === 'waiting' ? 'leave' : 'surrender' } }
+                    body: { action: 'secureLeaveRoom', data: { roomId, reason: isPlaying ? 'surrender' : 'leave' } }
                 });
                 if (error) throw error;
 
@@ -242,7 +250,6 @@ export default function GameRoomPage() {
     const handlePlayerMove = async (card: Card) => {
         if (!roomData || isProcessing.current || animatingAction) return;
 
-        // Оставляем только мгновенные визуальные проверки (чтобы не спамить базу)
         if (selectedTableCards.length > 0 && game) {
             const targets = game.table.filter(c => selectedTableCards.includes(c.id));
             if (card.rank === 'J' && targets.some(c => c.rank === 'Q' || c.rank === 'K')) {
@@ -258,24 +265,24 @@ export default function GameRoomPage() {
 
         setPendingMove({ card, isMe: true });
         isProcessing.current = true;
-        
+
         try {
             const { data, error } = await supabase.functions.invoke('game-api', {
                 body: { action: 'securePlayCard', data: { roomId, cardId: card.id, targetCardIds: selectedTableCards } }
             });
-            
+
             if (error) throw error;
             if (data?.error) throw new Error(data.error);
 
             setSelectedTableCards([]);
-        } catch (e: any) { 
-            showAlert(e.message); // 🟢 Сюда прилетит ошибка "Строгий режим: вы обязаны забрать карты!"
-            setPendingMove(null); 
-        } finally { 
-            isProcessing.current = false; 
+        } catch (e: any) {
+            showAlert(e.message);
+            setPendingMove(null);
+        } finally {
+            isProcessing.current = false;
         }
     };
-    
+
     const toggleTableCardSelection = (cardId: string) => {
         if (!isMyTurnSafe || animatingAction) return;
         setSelectedTableCards(prev => prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]);
@@ -287,6 +294,7 @@ export default function GameRoomPage() {
     const isAnon = (id: string | null | undefined) => id?.startsWith('anon_');
     const renderAvatar = (id: string | null | undefined) => isAnon(id) ? '👤' : '😎';
 
+    // ЭКРАНЫ ЛОББИ И ОЖИДАНИЯ
     if (roomData.status === 'waiting' || roomData.status === 'ready_check' || roomData.status === 'ready_check_resume' || roomData.status === 'paused') {
         const isFull = roomData.players.length === roomData.maxPlayers;
         const isPaused = roomData.status === 'paused';
@@ -327,8 +335,12 @@ export default function GameRoomPage() {
 
                     {!isSpectatorSafe ? (
                         <div className="flex flex-col gap-3">
-                            <button onClick={() => fbManager.toggleReady(roomId, !meLobbyInfo?.isReady)} disabled={!isFull && !meLobbyInfo?.isReady} className={`w-full py-4 rounded-xl font-black transition-all shadow-lg text-lg text-white border-2 border-transparent ${meLobbyInfo?.isReady ? 'bg-theme-main border-theme-border text-theme-text' : 'bg-theme-primary hover:opacity-80'} ${(!isFull && !meLobbyInfo?.isReady) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                {meLobbyInfo?.isReady ? 'ОТМЕНИТЬ ГОТОВНОСТЬ' : (isPaused ? '▶ ПРОДОЛЖИТЬ ИГРУ' : '🔥 Я ГОТОВ')}
+                            <button
+                                onClick={() => fbManager.toggleReady(roomId, true).catch(e => showAlert(e.message))}
+                                disabled={!isFull || meLobbyInfo?.isReady}
+                                className={`w-full py-4 rounded-xl font-black transition-all shadow-lg text-lg text-white border-2 border-transparent ${meLobbyInfo?.isReady ? 'bg-theme-main border-theme-border text-theme-text opacity-70 cursor-not-allowed' : 'bg-theme-primary hover:opacity-80'}`}
+                            >
+                                {meLobbyInfo?.isReady ? 'ОЖИДАЕМ СОПЕРНИКА...' : (isPaused ? '▶ ПРОДОЛЖИТЬ ИГРУ' : '🔥 Я ГОТОВ')}
                             </button>
                             {(roomData.status !== 'ready_check' && roomData.status !== 'ready_check_resume') && <button onClick={handleLeaveOrSurrender} disabled={isProcessing.current} className="text-red-500 hover:text-red-600 text-sm py-2 font-bold">{isProcessing.current ? "Выходим..." : (isPaused ? "Сдаться" : "Покинуть стол")}</button>}
                         </div>
@@ -371,12 +383,12 @@ export default function GameRoomPage() {
                         </>
                     )}
                     <button onClick={isSpectatorSafe ? () => router.push('/dashboard') : handleLeaveOrSurrender} className="bg-theme-main border-2 border-theme-border px-2 py-1 sm:px-3 sm:py-1 text-xs sm:text-sm rounded-xl hover:bg-red-500 hover:text-white hover:border-red-500 text-theme-text font-bold transition-colors">
-                        {isSpectatorSafe ? "Выйти" : "Сдаться"}
+                        {isSpectatorSafe ? "Выйти" : (roomData.status === 'finished' ? "Уйти" : "Сдаться")}
                     </button>
                 </div>
             </div>
 
-            {/* ВЕРХНИЙ ИГРОК: Взятки + Карты + Слот хода */}
+            {/* ВЕРХНИЙ ИГРОК */}
             <div className={`flex-shrink-0 w-full max-w-4xl mx-auto p-2 sm:p-4 rounded-2xl flex justify-between items-center transition-all duration-300 border-4 ${!isMyTurnSafe && roomData.status === 'playing' ? 'bg-theme-main border-blue-500 shadow-[0_10px_20px_rgba(59,130,246,0.1)]' : 'bg-theme-panel/50 border-theme-border'}`}>
                 <div className="flex flex-col items-center gap-1 w-14 sm:w-24">
                     <CardBack count={opponent.captured.length || 0} label="Взятки" isEmpty={!opponent.captured.length} />
@@ -398,7 +410,6 @@ export default function GameRoomPage() {
                     </div>
                 </div>
                 <div className="flex flex-col items-center gap-1 w-14 sm:w-24">
-                    {/* СЛОТ ПОД ХОД ОППОНЕНТА */}
                     <div className={`h-20 w-14 sm:h-24 sm:w-16 md:h-28 md:w-20 relative flex items-center justify-center border-2 border-dashed rounded-xl transition-colors ${!isMyTurnSafe && roomData.status === 'playing' ? 'border-blue-500/50 bg-blue-500/5' : 'border-theme-border/30'}`}>
                         {animatingAction && animatingAction.playerId === opponent.id && (
                             <div className="absolute animate-in slide-in-from-top-10 fade-in zoom-in duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-50">
@@ -409,7 +420,7 @@ export default function GameRoomPage() {
                 </div>
             </div>
 
-            {/* ИГРОВОЙ СТОЛ: Только карты, свободный скроллинг X и Y */}
+            {/* ИГРОВОЙ СТОЛ */}
             <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto border-4 border-theme-border rounded-[2rem] sm:rounded-[3rem] bg-theme-panel shadow-inner overflow-auto p-4 sm:p-6">
                 {game.table.length === 0 ? (
                     <div className="w-full h-full flex items-center justify-center opacity-40 text-lg sm:text-2xl font-black uppercase tracking-widest text-theme-text">
@@ -434,7 +445,7 @@ export default function GameRoomPage() {
                 )}
             </div>
 
-            {/* НИЖНИЙ ИГРОК: Взятки + Карты + Колода/Валеты */}
+            {/* НИЖНИЙ ИГРОК */}
             {!isSpectatorSafe && (
                 <div className={`flex-shrink-0 w-full max-w-4xl mx-auto p-2 sm:p-4 rounded-[2rem] flex justify-between items-center transition-all duration-300 border-4 ${isMyTurnSafe ? 'bg-theme-main border-theme-primary shadow-[0_-10px_20px_rgba(0,0,0,0.05)]' : 'bg-theme-panel border-theme-border'}`}>
                     <div className="flex flex-col items-center gap-1 w-14 sm:w-24">
@@ -450,7 +461,6 @@ export default function GameRoomPage() {
                         </div>
                     </div>
                     <div className="flex flex-col items-center gap-1 w-14 sm:w-24">
-                        {/* СЛОТ ПОД КОЛОДУ ИЛИ ВАЛЕТОВ */}
                         <div className="h-20 w-14 sm:h-24 sm:w-16 md:h-28 md:w-20 relative flex items-center justify-center">
                             {game.dealerReservedJacks && game.dealerReservedJacks.length > 0 ? (
                                 <div className="relative">
@@ -469,23 +479,57 @@ export default function GameRoomPage() {
                 </div>
             )}
 
-            {/* МОДАЛКА ОКОНЧАНИЯ */}
-            {(game.isRoundOver || game.isMatchOver) && !isSpectatorSafe && !animatingAction && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            {/* 🟢 МОДАЛКА ОКОНЧАНИЯ МАТЧА ИЛИ РАУНДА */}
+            {(game.isRoundOver || game.isMatchOver) && !isSpectatorSafe && !animatingAction && roomData.status !== 'pause_requested' && (
+                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-theme-panel p-6 sm:p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-300">
                         {game.isMatchOver ? (
                             <>
                                 <h2 className="text-3xl sm:text-4xl font-black mb-2 text-theme-primary tracking-wider">{game.matchWinnerTeamId === me.teamId ? "ПОБЕДА!" : "ПОРАЖЕНИЕ"}</h2>
-                                <button onClick={() => router.push('/dashboard')} className="w-full mt-4 bg-theme-primary text-white py-4 rounded-xl font-black">Вернуться в лобби</button>
+                                <p className="opacity-70 mb-6 font-bold">Счет: {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
+
+                                {meLobbyInfo?.isReady ? (
+                                    <div className="w-full mt-4 bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black opacity-70">Ожидаем соперника...</div>
+                                ) : (
+                                    <div className="flex flex-col gap-3 mt-4">
+                                        <button onClick={() => fbManager.rematch(roomId)} className="w-full bg-theme-primary text-white py-4 rounded-xl font-black shadow-lg">🔄 Реванш ({roomData.betAmount} 💰)</button>
+                                        <button onClick={handleLeaveOrSurrender} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black hover:bg-theme-border transition-colors">Вернуться в лобби</button>
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <>
                                 <h2 className="text-2xl sm:text-3xl font-black mb-2 text-theme-text">Раунд {game.roundNumber} завершен</h2>
                                 <p className="text-theme-primary mb-6 font-mono font-black text-2xl">Счет: {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
-                                {roomData.pauseProposals?.includes(opponent.id) && !roomData.pauseProposals?.includes(me.id) ? <div className="mb-4 text-amber-500 font-bold border-2 border-amber-500 p-3 rounded-xl text-sm sm:text-base bg-theme-main">⚠️ Оппонент предлагает сделать перерыв</div> : null}
                                 <div className="flex flex-col gap-3">
                                     {isPlayer0 ? <button onClick={() => supabase.functions.invoke('game-api', { body: { action: 'secureNextRound', data: { roomId } } })} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">Раздать карты</button> : <div className="opacity-70 font-black py-2 text-theme-text">Ожидаем раздачу...</div>}
-                                    {!roomData.pauseProposals?.includes(me.id) ? <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border hover:text-white transition-colors">⏸ Отложить игру (Пауза)</button> : <div className="text-sm opacity-60 font-bold text-theme-text">Вы предложили перерыв. Ожидание ответа...</div>}
+
+                                    {/* Кнопка запроса паузы доступна только если раунд окончен, но матч еще нет */}
+                                    {roomData.status === 'playing' && (
+                                        <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">
+                                            ⏸ Отложить игру (Пауза)
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* 🟢 МОДАЛКА: ЗАПРОС НА ПАУЗУ */}
+            {roomData.status === 'pause_requested' && !isSpectatorSafe && (
+                <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-theme-panel p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-200">
+                        <h2 className="text-2xl font-black mb-4">Запрос на паузу ⏱️</h2>
+                        {roomData.pauseProposals?.includes(safeMyId) ? (
+                            <p className="opacity-80 mb-4 font-bold">Ожидаем ответа соперника... ({turnTimeLeft}с)</p>
+                        ) : (
+                            <>
+                                <p className="opacity-80 mb-6 font-bold">Оппонент хочет отложить игру. Согласны? ({turnTimeLeft}с)</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => fbManager.answerPauseRequest(roomId, false)} className="flex-1 bg-theme-main border-2 border-theme-border py-3 rounded-xl font-bold hover:bg-theme-border transition-colors">Продолжить</button>
+                                    <button onClick={() => fbManager.answerPauseRequest(roomId, true)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">Согласиться</button>
                                 </div>
                             </>
                         )}
