@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation';
 import { fbManager } from '@/lib/supabaseManager';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/types';
-
 import LobbyView from './components/LobbyView';
 import ProfileView from './components/ProfileView';
 import SettingsView from './components/SettingsView';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'lobby' | 'profile' | 'settings';
 
 export default function MainAppPage() {
+    const { t } = useTranslation();
     const router = useRouter();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [activeTab, setActiveTab] = useState<Tab>('lobby');
@@ -64,7 +65,7 @@ export default function MainAppPage() {
     }, [user?.gender]);
 
     if (isLoading || !user) {
-        return <div className="min-h-screen flex items-center justify-center font-bold">Загрузка профиля...</div>;
+        return <div className="min-h-screen flex items-center justify-center font-bold">{t('loading_profile')}</div>;
     }
 
     return (
@@ -79,15 +80,15 @@ export default function MainAppPage() {
                 <div className="flex justify-around items-center h-16 max-w-md mx-auto">
                     <button onClick={() => setActiveTab('lobby')} className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'lobby' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
                         <span className="text-xl">🎲</span>
-                        <span className="text-xs font-black mt-1">Игра</span>
+                        <span className="text-xs font-black mt-1">{t('nav_game')}</span>
                     </button>
                     <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'profile' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
                         <span className="text-xl">👤</span>
-                        <span className="text-xs font-black mt-1">Профиль</span>
+                        <span className="text-xs font-black mt-1">{t('nav_profile')}</span>
                     </button>
                     <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'settings' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
                         <span className="text-xl">⚙️</span>
-                        <span className="text-xs font-black mt-1">Настройки</span>
+                        <span className="text-xs font-black mt-1">{t('nav_settings')}</span>
                     </button>
                 </div>
             </nav>

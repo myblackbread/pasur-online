@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type AlertType = 'alert' | 'confirm';
 
@@ -18,6 +19,7 @@ interface AlertContextType {
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
 
 export function AlertProvider({ children }: { children: ReactNode }) {
+    const { t } = useTranslation();
     const [alertState, setAlertState] = useState<AlertState | null>(null);
 
     const showAlert = useCallback((message: string) => {
@@ -49,7 +51,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
                             {alertState.type === 'confirm' ? '🤔' : '⚠️'}
                         </div>
                         <h3 className="text-2xl font-black mb-2 text-theme-text">
-                            {alertState.type === 'confirm' ? 'Подтверждение' : 'Внимание'}
+                            {alertState.type === 'confirm' ? t('alert_confirm') : t('alert_warning')}
                         </h3>
                         <p className="text-theme-text font-bold mb-8 opacity-90 whitespace-pre-line text-lg leading-tight">
                             {alertState.message}
@@ -60,7 +62,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
                                 onClick={close} 
                                 className="w-full bg-theme-primary text-white font-black py-4 rounded-xl hover:opacity-80 transition-opacity shadow-lg"
                             >
-                                ПОНЯТНО
+                                {t('alert_ok')}
                             </button>
                         ) : (
                             <div className="flex gap-3">
@@ -68,13 +70,13 @@ export function AlertProvider({ children }: { children: ReactNode }) {
                                     onClick={close} 
                                     className="flex-1 bg-theme-main border-2 border-theme-border text-theme-text font-black py-4 rounded-xl hover:opacity-80 transition-opacity"
                                 >
-                                    ОТМЕНА
+                                    {t('alert_cancel')}
                                 </button>
                                 <button 
                                     onClick={handleConfirm} 
                                     className="flex-1 bg-red-500 text-white font-black py-4 rounded-xl hover:opacity-80 transition-opacity shadow-lg"
                                 >
-                                    ДА
+                                    {t('alert_yes')}
                                 </button>
                             </div>
                         )}

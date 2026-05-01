@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { UserProfile } from '@/types';
 import { fbManager } from '@/lib/supabaseManager';
+import { useTranslation } from 'react-i18next';
 
 const EMOJIS = ['😎', '👽', '🤖', '🦊', '🐯', '👻', '🤡', '🤠'];
 
 export default function ProfileView({ user }: { user: UserProfile }) {
+    const { t } = useTranslation();
     const [isEditingEmoji, setIsEditingEmoji] = useState(false);
 
     const changeEmoji = async (emoji: string) => {
@@ -14,7 +16,7 @@ export default function ProfileView({ user }: { user: UserProfile }) {
     
     return (
         <div className="p-6 max-w-md mx-auto">
-            <h1 className="text-3xl font-black mb-6">Профиль</h1>
+            <h1 className="text-3xl font-black mb-6">{t('profile_title')}</h1>
 
             <div className="bg-theme-panel p-6 rounded-3xl border-4 border-theme-border mb-6 text-center relative shadow-sm">
                 <div
@@ -41,7 +43,7 @@ export default function ProfileView({ user }: { user: UserProfile }) {
 
             <div className="flex flex-col gap-3">
                 <button className="bg-theme-panel border-4 border-theme-border p-5 rounded-2xl flex justify-between items-center hover:bg-theme-main transition-colors font-bold">
-                    <span>📜 Правила игры</span>
+                    <span>📜 {t('profile_rules')}</span>
                     <span className="opacity-50">❯</span>
                 </button>
             </div>

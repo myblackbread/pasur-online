@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/types';
 import { useAlert } from '@/components/AlertProvider';
 import { fbManager } from '@/lib/supabaseManager';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminPage() {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const { showAlert, showConfirm } = useAlert();
+    const { t } = useTranslation();
 
     const fetchUsers = async () => {
         const { data } = await supabase.from('users').select('*').eq('is_deleted', false);
@@ -38,13 +40,13 @@ export default function AdminPage() {
     }, []);
 
     const handleDeleteUser = (userToKill: UserProfile) => {
-        showConfirm(`Точно удалить пользователя ${userToKill.displayName}?`, async () => {
+        showConfirm(`${t('admin_confirm_delete')} ${userToKill.displayName}?`, async () => {
             try {
                 await fbManager.adminDeleteUser(userToKill.uid);
 
-                showAlert(`Пользователь ${userToKill.displayName} успешно удален сервером.`);
+                showAlert(`${userToKill.displayName} ${t('admin_user_deleted')}`);
             } catch (error: any) {
-                showAlert("Ошибка удаления: " + error.message);
+                showAlert(`${t('admin_delete_error')} ${error.message}`);
             }
         });
     };
@@ -52,16 +54,15 @@ export default function AdminPage() {
     return (
         <div className="min-h-screen bg-theme-main text-white p-8">
             <div className="max-w-4xl mx-auto">
-                <h1 className="text-3xl font-bold mb-8 text-red-500">🛡️ Панель управления (Admin)</h1>
+                <h1 className="text-3xl font-bold mb-8 text-red-500">🛡️ {t('admin_title')}</h1>
                 <div className="bg-theme-panel rounded-xl overflow-hidden border border-theme-border">
                     <table className="w-full text-left">
                         <thead className="bg-theme-main border-b border-theme-border">
                             <tr>
-                                <th className="p-4">UID</th>
-                                <th className="p-4">Имя</th>
-                                <th className="p-4">Баланс</th>
-                                <th className="p-4">Действия</th>
-                            </tr>
+                                <th className="p-4">{t('admin_uid')}</th>
+                                <th className="p-4">{t('admin_name')}</th>
+                                <th className="p-4">{t('admin_balance')}</th>
+                                <th className="p-4">{t('admin_actions')}</th>                            </tr>
                         </thead>
                         <tbody>
                             {users.map(user => (
@@ -74,7 +75,7 @@ export default function AdminPage() {
                                             onClick={() => handleDeleteUser(user)}
                                             className="bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1 rounded transition-colors text-sm font-bold"
                                         >
-                                            УДАЛИТЬ (KICK)
+                                            {t('admin_btn_kick')}
                                         </button>
                                     </td>
                                 </tr>

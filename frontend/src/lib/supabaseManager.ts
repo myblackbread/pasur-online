@@ -1,23 +1,23 @@
 import { supabase } from './supabase';
 import { UserProfile, GameRoom, RuleSet } from '../types';
 
-export const ErrorTranslations: Record<string, string> = {
-    'ERR_UNAUTHORIZED': 'Ошибка авторизации. Пожалуйста, войдите заново.',
-    'ERR_NOT_ADMIN': 'У вас нет прав администратора.',
-    'ERR_USER_NOT_FOUND': 'Пользователь не найден.',
-    'ERR_INVALID_REQUEST': 'Неверный запрос.',
-    'ERR_ROOM_NOT_FOUND': 'Стол не найден или уже закрыт.',
-    'ERR_ROOM_FULL': 'Этот стол уже заполнен.',
-    'ERR_NOT_ENOUGH_MONEY': 'Недостаточно монет на балансе!',
-    'ERR_NOT_IN_ROOM': 'Вы не находитесь за этим столом.',
-    'ERR_ALREADY_IN_ROOM': 'Вы уже за столом.',
-    'ERR_ROOM_ALREADY_STARTED': 'Игра за этим столом уже началась.',
-    'ERR_NOT_YOUR_TURN': 'Сейчас не ваш ход!',
-    'ERR_INVALID_MOVE': 'Недопустимое действие.',
-    'ERR_WRONG_ROUND_STATE': 'Действие недоступно в данный момент игры.',
-    'ERR_PAUSE_ALREADY_ACTIVE': 'Пауза уже запрошена или активна.',
-    'ERR_INTERNAL_SERVER_ERROR': 'Внутренняя ошибка сервера. Повторите попытку позже.'
-};
+// export const ErrorTranslations: Record<string, string> = {
+//     'ERR_UNAUTHORIZED': 'Ошибка авторизации. Пожалуйста, войдите заново.',
+//     'ERR_NOT_ADMIN': 'У вас нет прав администратора.',
+//     'ERR_USER_NOT_FOUND': 'Пользователь не найден.',
+//     'ERR_INVALID_REQUEST': 'Неверный запрос.',
+//     'ERR_ROOM_NOT_FOUND': 'Стол не найден или уже закрыт.',
+//     'ERR_ROOM_FULL': 'Этот стол уже заполнен.',
+//     'ERR_NOT_ENOUGH_MONEY': 'Недостаточно монет на балансе!',
+//     'ERR_NOT_IN_ROOM': 'Вы не находитесь за этим столом.',
+//     'ERR_ALREADY_IN_ROOM': 'Вы уже за столом.',
+//     'ERR_ROOM_ALREADY_STARTED': 'Игра за этим столом уже началась.',
+//     'ERR_NOT_YOUR_TURN': 'Сейчас не ваш ход!',
+//     'ERR_INVALID_MOVE': 'Недопустимое действие.',
+//     'ERR_WRONG_ROUND_STATE': 'Действие недоступно в данный момент игры.',
+//     'ERR_PAUSE_ALREADY_ACTIVE': 'Пауза уже запрошена или активна.',
+//     'ERR_INTERNAL_SERVER_ERROR': 'Внутренняя ошибка сервера. Повторите попытку позже.'
+// };
 
 const mapUser = (data: any): UserProfile => ({
     uid: data.id,
@@ -58,8 +58,7 @@ class SupabaseManager {
 
         if (error) throw new Error("Ошибка сети: " + error.message);
         if (result?.error) {
-            const translatedMessage = ErrorTranslations[result.error] || result.error;
-            throw new Error(translatedMessage);
+            throw new Error(result.error);
         }
         return result;
     }

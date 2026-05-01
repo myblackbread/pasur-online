@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { fbManager } from '@/lib/supabaseManager'; // 🟢 Убран ErrorTranslations
 import { GameRoom, UserProfile, Card, GameState } from '@/types';
 import { useAlert } from '@/components/AlertProvider';
+import { useTranslation } from 'react-i18next';
 
 function useCountdown(deadline: number | null | undefined) {
     const [timeLeft, setTimeLeft] = useState(0);
@@ -40,9 +41,10 @@ const PlayingCard = ({ card, onClick, disabled, isPending, isSelected, isCapture
 };
 
 const CardBack = ({ count, label, isAnimating, isEmpty }: any) => {
+    const { t } = useTranslation();
     if (isEmpty) return (
         <div className="relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl border-4 border-dashed border-theme-border opacity-50 flex flex-col items-center justify-center text-theme-text select-none">
-            <span className="text-[10px] sm:text-xs font-bold">Пусто</span>
+            <span className="text-[10px] sm:text-xs font-bold">{t('game_empty')}</span>
             {label && <span className="absolute -bottom-5 sm:-bottom-6 text-[10px] sm:text-xs whitespace-nowrap font-bold opacity-70">{label}</span>}
         </div>
     );
@@ -55,6 +57,7 @@ const CardBack = ({ count, label, isAnimating, isEmpty }: any) => {
 };
 
 export default function GameRoomPage() {
+    const { t } = useTranslation();
     const params = useParams();
     const router = useRouter();
     const roomId = params.roomId as string;
@@ -230,7 +233,7 @@ export default function GameRoomPage() {
     const handleLeaveOrSurrender = () => {
         // Уходим с потерей ставки если игра в процессе или на паузе
         const isPlaying = roomData?.status === 'playing' || roomData?.status === 'pause_requested' || roomData?.status === 'paused' || roomData?.status === 'ready_check_resume';
-        showConfirm(isPlaying ? "Уверены? Вы потеряете ставку!" : "Покинуть стол?", async () => {
+        showConfirm(isPlaying ? t('game_surrender_confirm') : t('game_leave_table'), async () => {
             isProcessing.current = true;
             try {
                 await fbManager.leaveRoom(roomId, isPlaying ? 'surrender' : 'leave');
@@ -248,13 +251,13 @@ export default function GameRoomPage() {
         if (selectedTableCards.length > 0 && game) {
             const targets = game.table.filter(c => selectedTableCards.includes(c.id));
             if (card.rank === 'J' && targets.some(c => c.rank === 'Q' || c.rank === 'K')) {
-                return showAlert("Валет не может забрать Даму или Короля!");
+                return showAlert(t('game_err_jack'));
             }
             if ((card.rank === 'Q' || card.rank === 'K') && (targets.length !== 1 || targets[0].rank !== card.rank)) {
-                return showAlert(`Можно взять только одну такую же картинку (${card.rank})!`);
+                return showAlert(t('game_err_picture'));
             }
             if (card.rank !== 'J' && card.rank !== 'Q' && card.rank !== 'K' && targets.some(c => c.value === 0)) {
-                return showAlert("Нельзя использовать картинки для суммы 11!");
+                return showAlert(t('game_err_sum11'));
             }
         }
 
@@ -278,7 +281,7 @@ export default function GameRoomPage() {
         setSelectedTableCards(prev => prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]);
     };
 
-    if (!user || !roomData || !safeMyId) return <div className="min-h-screen flex items-center justify-center font-bold">Загрузка...</div>;
+    if (!user || !roomData || !safeMyId) return <div className="min-h-screen flex items-center justify-center font-bold">{t('game_loading')}</div>;
 
     const meLobbyInfo = roomData.players.find(p => p.id === safeMyId);
     const isAnon = (id: string | null | undefined) => id?.startsWith('anon_');
@@ -292,25 +295,25 @@ export default function GameRoomPage() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-theme-main">
                 {(roomData.status === 'waiting' || isPaused) && (
-                    <button onClick={() => router.push('/dashboard')} className="absolute top-6 left-6 opacity-60 hover:opacity-100 transition font-bold text-theme-text">◀ Назад в Лобби</button>
+                    <button onClick={() => router.push('/dashboard')} className="absolute top-6 left-6 opacity-60 hover:opacity-100 transition font-bold text-theme-text">{t('game_back_lobby')}</button>
                 )}
 
                 <div className="bg-theme-panel p-8 rounded-3xl max-w-md w-full border-4 border-theme-border text-center shadow-2xl">
-                    {isPaused && <div className="bg-theme-primary text-white text-xs font-black uppercase tracking-widest py-1 px-3 rounded-full inline-block mb-4 animate-pulse">ИГРА НА ПАУЗЕ</div>}
+                    {isPaused && <div className="bg-theme-primary text-white text-xs font-black uppercase tracking-widest py-1 px-3 rounded-full inline-block mb-4 animate-pulse">{t('game_paused_banner')}</div>}
 
                     <h2 className="text-3xl font-black mb-2 flex items-center justify-center gap-2 text-theme-text">
                         <span>{renderAvatar(roomData.players[0]?.id)}</span>
-                        <span>Стол {roomData.players[0]?.name || "Игрока"}</span>
+                        <span>{t('game_table')} {roomData.players[0]?.name || t('game_player')}</span>
                     </h2>
-                    <p className="mb-6 text-amber-500 font-black text-xl">Ставка: {roomData.betAmount} 💰</p>
+                    <p className="mb-6 text-amber-500 font-black text-xl">{t('game_bet')} {roomData.betAmount} 💰</p>
 
                     <div className="space-y-3 mb-6 text-left">
                         {Array.from({ length: roomData.maxPlayers }).map((_, i) => {
                             const p = roomData.players[i];
                             return (
                                 <div key={i} className="flex justify-between items-center bg-theme-main p-4 rounded-xl border-2 border-theme-border">
-                                    <span className="font-bold text-theme-text">{p ? p.name : <span className="opacity-50 italic">Ожидание игрока...</span>}{p?.id === safeMyId && " (Вы)"}</span>
-                                    {p && !isPaused && <span className={`text-sm font-black px-3 py-1 rounded-lg ${p.isReady ? 'bg-theme-primary text-white' : 'bg-theme-panel text-theme-text opacity-60 border-2 border-theme-border'}`}>{p.isReady ? 'ГОТОВ' : 'Думает...'}</span>}
+                                    <span className="font-bold text-theme-text">{p ? p.name : <span className="opacity-50 italic">{t('game_waiting_player')}</span>}{p?.id === safeMyId && t('game_you_suffix')}</span>
+                                    {p && !isPaused && <span className={`text-sm font-black px-3 py-1 rounded-lg ${p.isReady ? 'bg-theme-primary text-white' : 'bg-theme-panel text-theme-text opacity-60 border-2 border-theme-border'}`}>{p.isReady ? t('game_ready') : t('game_thinking')}</span>}
                                 </div>
                             );
                         })}
@@ -318,7 +321,7 @@ export default function GameRoomPage() {
 
                     {(roomData.status === 'ready_check' || roomData.status === 'ready_check_resume') && (
                         <div className="mb-6 animate-pulse">
-                            <div className="text-sm text-theme-primary font-black uppercase tracking-widest mb-1">Игра начинается через</div>
+                            <div className="text-sm text-theme-primary font-black uppercase tracking-widest mb-1">{t('game_starts_in')}</div>
                             <div className="text-6xl font-black text-theme-text">{readyTimeLeft}</div>
                         </div>
                     )}
@@ -330,12 +333,12 @@ export default function GameRoomPage() {
                                 disabled={!isFull || meLobbyInfo?.isReady}
                                 className={`w-full py-4 rounded-xl font-black transition-all shadow-lg text-lg text-white border-2 border-transparent ${meLobbyInfo?.isReady ? 'bg-theme-main border-theme-border text-theme-text opacity-70 cursor-not-allowed' : 'bg-theme-primary hover:opacity-80'}`}
                             >
-                                {meLobbyInfo?.isReady ? 'ОЖИДАЕМ СОПЕРНИКА...' : (isPaused ? '▶ ПРОДОЛЖИТЬ ИГРУ' : '🔥 Я ГОТОВ')}
+                                {meLobbyInfo?.isReady ? t('game_waiting_opponent') : (isPaused ? t('game_resume') : t('game_i_am_ready'))}
                             </button>
-                            {(roomData.status !== 'ready_check' && roomData.status !== 'ready_check_resume') && <button onClick={handleLeaveOrSurrender} disabled={isProcessing.current} className="text-red-500 hover:text-red-600 text-sm py-2 font-bold">{isProcessing.current ? "Выходим..." : (isPaused ? "Сдаться" : "Покинуть стол")}</button>}
+                            {(roomData.status !== 'ready_check' && roomData.status !== 'ready_check_resume') && <button onClick={handleLeaveOrSurrender} disabled={isProcessing.current} className="text-red-500 hover:text-red-600 text-sm py-2 font-bold">{isProcessing.current ? t('game_leaving') : (isPaused ? t('btn_surrender') : t('game_leave_table'))}</button>}
                         </div>
                     ) : (
-                        <button onClick={handleJoinClick} disabled={isJoining || isFull} className="w-full bg-theme-primary text-white hover:opacity-80 py-4 rounded-xl font-black disabled:opacity-50 transition-colors">{isFull ? 'Стол заполнен' : (isJoining ? 'Садимся...' : 'Сесть за стол')}</button>
+                        <button onClick={handleJoinClick} disabled={isJoining || isFull} className="w-full bg-theme-primary text-white hover:opacity-80 py-4 rounded-xl font-black disabled:opacity-50 transition-colors">{isFull ? t('game_table_full') : (isJoining ? t('game_sitting') : t('game_sit_table'))}</button>
                     )}
                 </div>
             </div>
@@ -355,25 +358,25 @@ export default function GameRoomPage() {
             {/* ТОП-БАР */}
             <div className="flex-shrink-0 w-full max-w-4xl mx-auto bg-theme-panel border-4 border-theme-border p-3 sm:p-4 rounded-2xl flex justify-between items-center shadow-sm">
                 <div className="font-mono font-black text-sm sm:text-xl text-theme-text">
-                    <span className="opacity-70 text-[10px] sm:text-sm mr-1 sm:mr-2">{isSpectatorSafe ? "ИГРОК 1" : "ВЫ"}</span>
+                    <span className="opacity-70 text-[10px] sm:text-sm mr-1 sm:mr-2">{isSpectatorSafe ? t('game_player_1') : t('game_you')}</span>
                     <span className="text-theme-primary">{game.matchScores[me.teamId] || 0}</span>
                     <span className="mx-1 sm:mx-2 opacity-50">:</span>
                     <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
-                    <span className="opacity-70 text-[10px] sm:text-sm ml-1 sm:ml-2">{isSpectatorSafe ? "ИГРОК 2" : "ОПП"}</span>
+                    <span className="opacity-70 text-[10px] sm:text-sm ml-1 sm:ml-2">{isSpectatorSafe ? t('game_player_2') : t('game_opp')}</span>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
                     {!isSpectatorSafe && (
                         <>
                             <div className={`px-2 py-1 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black ${isMyTurnSafe ? 'bg-amber-500 text-white shadow-md' : 'bg-theme-main border-2 border-theme-border text-theme-text opacity-70'}`}>
-                                {isMyTurnSafe ? 'ВАШ ХОД' : 'ЖДЕМ...'} ({turnTimeLeft}с)
+                                {isMyTurnSafe ? t('game_your_turn') : t('game_wait')} ({turnTimeLeft}с)
                             </div>
                             {!isMyTurnSafe && turnTimeLeft === 0 && roomData.status === 'playing' && (
-                                <div className="bg-red-500 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black shadow-lg animate-pulse">Время вышло!</div>
+                                <div className="bg-red-500 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black shadow-lg animate-pulse">{t('game_time_up')}</div>
                             )}
                         </>
                     )}
                     <button onClick={isSpectatorSafe ? () => router.push('/dashboard') : handleLeaveOrSurrender} className="bg-theme-main border-2 border-theme-border px-2 py-1 sm:px-3 sm:py-1 text-xs sm:text-sm rounded-xl hover:bg-red-500 hover:text-white hover:border-red-500 text-theme-text font-bold transition-colors">
-                        {isSpectatorSafe ? "Выйти" : (roomData.status === 'finished' ? "Уйти" : "Сдаться")}
+                        {isSpectatorSafe ? t('btn_leave') : (roomData.status === 'finished' ? t('game_leave') : t('btn_surrender'))}
                     </button>
                 </div>
             </div>
@@ -381,7 +384,7 @@ export default function GameRoomPage() {
             {/* ВЕРХНИЙ ИГРОК */}
             <div className={`flex-shrink-0 w-full max-w-4xl mx-auto p-2 sm:p-4 rounded-2xl flex justify-between items-center transition-all duration-300 border-4 ${!isMyTurnSafe && roomData.status === 'playing' ? 'bg-theme-main border-blue-500 shadow-[0_10px_20px_rgba(59,130,246,0.1)]' : 'bg-theme-panel/50 border-theme-border'}`}>
                 <div className="flex flex-col items-center gap-1 w-14 sm:w-24">
-                    <CardBack count={opponent.captured.length || 0} label="Взятки" isEmpty={!opponent.captured.length} />
+                    <CardBack count={opponent.captured.length || 0} label={t('game_captured')} isEmpty={!opponent.captured.length} />
                 </div>
                 <div className="flex-1 flex flex-col items-center">
                     <div className="text-xs sm:text-sm mb-1 sm:mb-2 font-black flex items-center gap-2 text-theme-text">
@@ -389,10 +392,10 @@ export default function GameRoomPage() {
                             {renderAvatar(opponent.id)}
                         </span>
                         <span className={!isMyTurnSafe && roomData.status === 'playing' ? 'text-blue-500' : 'opacity-80'}>
-                            {roomData.players.find(p => p.id === opponent.id)?.name || "Оппонент"}
+                            {roomData.players.find(p => p.id === opponent.id)?.name || t('game_opponent')}
                         </span>
                         {!isMyTurnSafe && roomData.status === 'playing' && (
-                            <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full ml-2 animate-pulse">⏳ Ходит</span>
+                            <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full ml-2 animate-pulse">⏳ {t('game_is_moving')}</span>
                         )}
                     </div>
                     <div className="flex justify-center -space-x-6 sm:-space-x-8 md:-space-x-12">
@@ -414,7 +417,7 @@ export default function GameRoomPage() {
             <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto border-4 border-theme-border rounded-[2rem] sm:rounded-[3rem] bg-theme-panel shadow-inner overflow-auto p-4 sm:p-6">
                 {game.table.length === 0 ? (
                     <div className="w-full h-full flex items-center justify-center opacity-40 text-lg sm:text-2xl font-black uppercase tracking-widest text-theme-text">
-                        Стол пуст
+                        {t('game_table_empty')}
                     </div>
                 ) : (
                     <div className="flex flex-wrap gap-2 sm:gap-4 justify-center items-center min-h-full">
@@ -443,8 +446,8 @@ export default function GameRoomPage() {
                     </div>
                     <div className="flex-1 flex flex-col items-center">
                         <div className="flex justify-between w-full max-w-[250px] sm:max-w-[300px] text-[10px] sm:text-sm mb-2 sm:mb-3">
-                            <span className="font-black text-theme-primary flex items-center gap-1 sm:gap-2 text-xs sm:text-lg"><span>{user.avatarEmoji || '😎'}</span> Вы</span>
-                            <span className="opacity-80 font-mono font-black text-xs sm:text-lg text-theme-text">Суры: {me.surs || 0}</span>
+                            <span className="font-black text-theme-primary flex items-center gap-1 sm:gap-2 text-xs sm:text-lg"><span>{user.avatarEmoji || '😎'}</span> {t('game_you_label')}</span>
+                            <span className="opacity-80 font-mono font-black text-xs sm:text-lg text-theme-text">{t('game_surs')} {me.surs || 0}</span>
                         </div>
                         <div className="flex justify-center -space-x-2 sm:space-x-2">
                             {me.hand.map(card => <PlayingCard key={card.id} card={card} onClick={handlePlayerMove} disabled={!isMyTurnSafe || isProcessing.current || game.isRoundOver || !!animatingAction} isPending={pendingMove?.card.id === card.id} />)}
@@ -462,7 +465,7 @@ export default function GameRoomPage() {
                                     )}
                                 </div>
                             ) : (
-                                <CardBack count={game.deckCount ?? game.deck?.length ?? 0} label="Колода" isEmpty={(game.deckCount ?? game.deck?.length ?? 0) === 0} />
+                                <CardBack count={game.deckCount ?? game.deck?.length ?? 0} label={t('game_deck')} isEmpty={(game.deckCount ?? game.deck?.length ?? 0) === 0} />
                             )}
                         </div>
                     </div>
@@ -475,29 +478,29 @@ export default function GameRoomPage() {
                     <div className="bg-theme-panel p-6 sm:p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-300">
                         {game.isMatchOver ? (
                             <>
-                                <h2 className="text-3xl sm:text-4xl font-black mb-2 text-theme-primary tracking-wider">{game.matchWinnerTeamId === me.teamId ? "ПОБЕДА!" : "ПОРАЖЕНИЕ"}</h2>
+                                <h2 className="text-3xl sm:text-4xl font-black mb-2 text-theme-primary tracking-wider">{game.matchWinnerTeamId === me.teamId ? t('game_victory') : t('game_defeat')}</h2>
                                 <p className="opacity-70 mb-6 font-bold">Счет: {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
 
                                 {meLobbyInfo?.isReady ? (
-                                    <div className="w-full mt-4 bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black opacity-70">Ожидаем соперника...</div>
+                                    <div className="w-full mt-4 bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black opacity-70">{t('game_waiting_opponent')}</div>
                                 ) : (
                                     <div className="flex flex-col gap-3 mt-4">
-                                        <button onClick={() => fbManager.rematch(roomId)} className="w-full bg-theme-primary text-white py-4 rounded-xl font-black shadow-lg">🔄 Реванш ({roomData.betAmount} 💰)</button>
-                                        <button onClick={handleLeaveOrSurrender} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black hover:bg-theme-border transition-colors">Вернуться в лобби</button>
+                                        <button onClick={() => fbManager.rematch(roomId)} className="w-full bg-theme-primary text-white py-4 rounded-xl font-black shadow-lg">🔄 {t('game_rematch')} ({roomData.betAmount} 💰)</button>
+                                        <button onClick={handleLeaveOrSurrender} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black hover:bg-theme-border transition-colors">{t('game_return_lobby')}</button>
                                     </div>
                                 )}
                             </>
                         ) : (
                             <>
-                                <h2 className="text-2xl sm:text-3xl font-black mb-2 text-theme-text">Раунд {game.roundNumber} завершен</h2>
-                                <p className="text-theme-primary mb-6 font-mono font-black text-2xl">Счет: {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
+                                <h2 className="text-2xl sm:text-3xl font-black mb-2 text-theme-text">{t('game_round')} {game.roundNumber} {t('game_completed')}</h2>
+                                <p className="text-theme-primary mb-6 font-mono font-black text-2xl">{t('game_score')} {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
                                 <div className="flex flex-col gap-3">
-                                    {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(e.message))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">Раздать карты</button> : <div className="opacity-70 font-black py-2 text-theme-text">Ожидаем раздачу...</div>}
+                                    {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(e.message))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
                                     
                                     {/* Кнопка запроса паузы доступна только если раунд окончен, но матч еще нет */}
                                     {roomData.status === 'playing' && (
                                         <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">
-                                            ⏸ Отложить игру (Пауза)
+                                            {t('game_pause_btn')}
                                         </button>
                                     )}
                                 </div>
@@ -511,15 +514,15 @@ export default function GameRoomPage() {
             {roomData.status === 'pause_requested' && !isSpectatorSafe && (
                 <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-theme-panel p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h2 className="text-2xl font-black mb-4">Запрос на паузу ⏱️</h2>
+                        <h2 className="text-2xl font-black mb-4">{t('game_pause_req_title')}</h2>
                         {roomData.pauseProposals?.includes(safeMyId) ? (
-                            <p className="opacity-80 mb-4 font-bold">Ожидаем ответа соперника... ({turnTimeLeft}с)</p>
+                            <p className="opacity-80 mb-4 font-bold">{t('game_pause_wait')} ({turnTimeLeft}с)</p>
                         ) : (
                             <>
-                                <p className="opacity-80 mb-6 font-bold">Оппонент хочет отложить игру. Согласны? ({turnTimeLeft}с)</p>
+                                <p className="opacity-80 mb-6 font-bold">{t('game_pause_ask')} ({turnTimeLeft}с)</p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => fbManager.answerPauseRequest(roomId, false)} className="flex-1 bg-theme-main border-2 border-theme-border py-3 rounded-xl font-bold hover:bg-theme-border transition-colors">Продолжить</button>
-                                    <button onClick={() => fbManager.answerPauseRequest(roomId, true)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">Согласиться</button>
+                                    <button onClick={() => fbManager.answerPauseRequest(roomId, false)} className="flex-1 bg-theme-main border-2 border-theme-border py-3 rounded-xl font-bold hover:bg-theme-border transition-colors">{t('game_continue')}</button>
+                                    <button onClick={() => fbManager.answerPauseRequest(roomId, true)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">{t('game_agree')}</button>
                                 </div>
                             </>
                         )}
