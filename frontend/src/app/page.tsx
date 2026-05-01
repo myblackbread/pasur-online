@@ -6,6 +6,7 @@ import { fbManager } from '@/lib/supabaseManager';
 import { supabase } from '@/lib/supabase';
 import { useAlert } from '@/components/AlertProvider';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function AuthPage() {
     const { t } = useTranslation();
@@ -55,32 +56,44 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-theme-panel p-8 rounded-3xl shadow-2xl border-4 border-theme-border text-center">
-                <h1 className="text-4xl font-extrabold mb-2 text-theme-primary">♠ {t('app_title')} ♥</h1>
-                <p className="opacity-70 mb-6 font-medium text-theme-text">{t('auth_subtitle')}</p>
+        // 🟢 Добавили flex-col
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
 
-                <div className="mb-6">
-                    <p className="text-sm opacity-70 mb-2 text-left px-1 font-medium text-theme-text">{t('auth_gender')}</p>
-                    <div className="flex gap-2 bg-theme-main p-1 rounded-xl border-2 border-theme-border/50">
-                        <button onClick={() => setGender('male')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${gender === 'male' ? 'bg-blue-600 text-white' : 'text-theme-text opacity-60 hover:opacity-100'}`}>👨 {t('auth_male')}</button>
-                        <button onClick={() => setGender('female')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${gender === 'female' ? 'bg-pink-600 text-white' : 'text-theme-text opacity-60 hover:opacity-100'}`}>👩 {t('auth_female')}</button>
-                    </div>
+            {/* 🟢 Добавили обертку для свитчера и карточки авторизации */}
+            <div className="w-full max-w-md">
+
+                {/* 🟢 Сам свитчер */}
+                <div className="mb-4 rounded-3xl overflow-hidden shadow-sm border-4 border-theme-border">
+                    <LanguageSwitcher />
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <button onClick={() => handleLogin('guest')} disabled={!gender || isLoading} className="bg-amber-500 hover:bg-amber-400 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-lg">🎭 {t('auth_guest')}</button>
-                    <div className="flex items-center my-2">
-                        <div className="flex-1 border-t-2 border-theme-border opacity-30"></div>
-                        <span className="px-3 opacity-50 text-sm font-bold text-theme-text">{t('auth_or')}</span>
-                        <div className="flex-1 border-t-2 border-theme-border opacity-30"></div>
+                {/* Твоя карточка входа (убрали отсюда w-full max-w-md, так как они теперь на родителе) */}
+                <div className="bg-theme-panel p-8 rounded-3xl shadow-2xl border-4 border-theme-border text-center">
+                    <h1 className="text-4xl font-extrabold mb-2 text-theme-primary">♠ {t('app_title')} ♥</h1>
+                    <p className="opacity-70 mb-6 font-medium text-theme-text">{t('auth_subtitle')}</p>
+
+                    <div className="mb-6">
+                        <p className="text-sm opacity-70 mb-2 text-left px-1 font-medium text-theme-text">{t('auth_gender')}</p>
+                        <div className="flex gap-2 bg-theme-main p-1 rounded-xl border-2 border-theme-border/50">
+                            <button onClick={() => setGender('male')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${gender === 'male' ? 'bg-blue-600 text-white' : 'text-theme-text opacity-60 hover:opacity-100'}`}>👨 {t('auth_male')}</button>
+                            <button onClick={() => setGender('female')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${gender === 'female' ? 'bg-pink-600 text-white' : 'text-theme-text opacity-60 hover:opacity-100'}`}>👩 {t('auth_female')}</button>
+                        </div>
                     </div>
-                    <button onClick={() => handleLogin('google')} disabled={!gender || isLoading} className="bg-theme-main border-2 border-theme-border font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-theme-border hover:text-white transition-colors text-theme-text disabled:opacity-50">🌐 {t('auth_google')}</button>
-                    
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth_email')} className="bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth_password')} className="bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
-                    
-                    <button onClick={() => handleLogin('email')} className="bg-theme-primary hover:opacity-80 text-white font-bold py-3 rounded-xl transition-opacity disabled:opacity-50 shadow-md" disabled={!gender || isLoading}>{t('auth_email_btn')}</button>
+
+                    <div className="flex flex-col gap-4">
+                        <button onClick={() => handleLogin('guest')} disabled={!gender || isLoading} className="bg-amber-500 hover:bg-amber-400 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-lg">🎭 {t('auth_guest')}</button>
+                        <div className="flex items-center my-2">
+                            <div className="flex-1 border-t-2 border-theme-border opacity-30"></div>
+                            <span className="px-3 opacity-50 text-sm font-bold text-theme-text">{t('auth_or')}</span>
+                            <div className="flex-1 border-t-2 border-theme-border opacity-30"></div>
+                        </div>
+                        <button onClick={() => handleLogin('google')} disabled={!gender || isLoading} className="bg-theme-main border-2 border-theme-border font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-theme-border hover:text-white transition-colors text-theme-text disabled:opacity-50">🌐 {t('auth_google')}</button>
+
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth_email')} className="bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth_password')} className="bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
+
+                        <button onClick={() => handleLogin('email')} className="bg-theme-primary hover:opacity-80 text-white font-bold py-3 rounded-xl transition-opacity disabled:opacity-50 shadow-md" disabled={!gender || isLoading}>{t('auth_email_btn')}</button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -78,10 +78,12 @@ export default function GameRoomPage() {
     const [visualGame, setVisualGame] = useState<GameState | null>(null);
     const [animatingAction, setAnimatingAction] = useState<any>(null);
 
+    const [allActiveRooms, setAllActiveRooms] = useState<GameRoom[]>([]);
+
+    // 1. Подписка на авторизацию и данные пользователя
     useEffect(() => {
         if (typeof window !== 'undefined') setMyMask(sessionStorage.getItem(`pasur_mask_${roomId}`));
         let unsubUser: (() => void) | undefined;
-        let unsubRoom: (() => void) | undefined;
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             const currentUser = session?.user;
@@ -90,42 +92,53 @@ export default function GameRoomPage() {
                 unsubUser = fbManager.subscribeToUser(currentUser.id, (userData) => {
                     if (userData) setUser(userData);
                 });
-
-                unsubRoom = fbManager.subscribeToRoomsByIds([roomId], (rooms) => {
-                    const data = rooms[0];
-                    if (!data) { router.push('/dashboard'); return; }
-
-                    const currentMask = sessionStorage.getItem(`pasur_mask_${roomId}`);
-                    const amIInPlayers = data.players.some(p => p.id === currentMask);
-
-                    if (!amIInPlayers && data.status === 'waiting' && currentMask) {
-                        sessionStorage.removeItem(`pasur_mask_${roomId}`);
-                        setMyMask(null);
-                        router.replace('/dashboard');
-                        return;
-                    }
-
-                    setRoomData(data);
-
-                    if (data.adminMessage && !shownAlerts.current.has(data.adminMessage)) {
-                        shownAlerts.current.add(data.adminMessage);
-                        const parts = data.adminMessage.split('|');
-                        if (parts.length >= 3) {
-                            if (parts[0] === 'ALL' || parts[0] === currentMask) showAlert(parts[1]);
-                        } else {
-                            showAlert(data.adminMessage.split('|')[0]);
-                        }
-                    }
-                });
             } else {
                 if (unsubUser) unsubUser();
-                if (unsubRoom) unsubRoom();
                 router.push('/');
             }
         });
 
-        return () => { subscription.unsubscribe(); if (unsubUser) unsubUser(); if (unsubRoom) unsubRoom(); };
-    }, [roomId, router, showAlert]);
+        return () => { subscription.unsubscribe(); if (unsubUser) unsubUser(); };
+    }, [roomId, router]);
+
+    // 2. 🟢 Подписка на комнаты (запускается, когда user обновился)
+    useEffect(() => {
+        if (!user) return; // Ждем загрузки юзера
+
+        // Собираем уникальный список ID комнат: текущая + все активные
+        const roomsToFetch = Array.from(new Set([roomId, ...(user.activeRooms || [])]));
+
+        const unsubRoom = fbManager.subscribeToRoomsByIds(roomsToFetch, (rooms) => {
+            setAllActiveRooms(rooms);
+            
+            const data = rooms.find(r => r.id === roomId);
+            if (!data) { router.push('/dashboard'); return; }
+
+            const currentMask = sessionStorage.getItem(`pasur_mask_${roomId}`);
+            const amIInPlayers = data.players.some(p => p.id === currentMask);
+
+            if (!amIInPlayers && data.status === 'waiting' && currentMask) {
+                sessionStorage.removeItem(`pasur_mask_${roomId}`);
+                setMyMask(null);
+                router.replace('/dashboard');
+                return;
+            }
+
+            setRoomData(data);
+
+            if (data.adminMessage && !shownAlerts.current.has(data.adminMessage)) {
+                shownAlerts.current.add(data.adminMessage);
+                const parts = data.adminMessage.split('|');
+                if (parts.length >= 3) {
+                    if (parts[0] === 'ALL' || parts[0] === currentMask) showAlert(parts[1]);
+                } else {
+                    showAlert(data.adminMessage.split('|')[0]);
+                }
+            }
+        });
+
+        return () => unsubRoom();
+    }, [user?.activeRooms, roomId, router, showAlert]);
 
     useEffect(() => {
         // 🟢 ИСПОЛЬЗУЕТСЯ НОВЫЙ МЕТОД getMyMask
@@ -179,6 +192,8 @@ export default function GameRoomPage() {
 
     const isSpectatorSafe = roomData ? !roomData.players.some(p => p.id === safeMyId) : true;
     const isMyTurnSafe = !isSpectatorSafe && roomData?.gameState?.currentTurnIndex === roomData?.gameState?.players.findIndex(p => p.id === safeMyId);
+
+    const otherRooms = allActiveRooms.filter(r => r.id !== roomId && r.status !== 'finished');
 
     const claimTimeoutVictory = useCallback(async () => {
         if (isProcessing.current) return;
@@ -442,12 +457,14 @@ export default function GameRoomPage() {
             {!isSpectatorSafe && (
                 <div className={`flex-shrink-0 w-full max-w-4xl mx-auto p-2 sm:p-4 rounded-[2rem] flex justify-between items-center transition-all duration-300 border-4 ${isMyTurnSafe ? 'bg-theme-main border-theme-primary shadow-[0_-10px_20px_rgba(0,0,0,0.05)]' : 'bg-theme-panel border-theme-border'}`}>
                     <div className="flex flex-col items-center gap-1 w-14 sm:w-24">
-                        <CardBack count={me.captured.length || 0} label="Взятки" isEmpty={!me.captured.length} />
+                        <CardBack count={me.captured.length || 0} label={t('game_captured')} isEmpty={!me.captured.length} />
                     </div>
                     <div className="flex-1 flex flex-col items-center">
                         <div className="flex justify-between w-full max-w-[250px] sm:max-w-[300px] text-[10px] sm:text-sm mb-2 sm:mb-3">
                             <span className="font-black text-theme-primary flex items-center gap-1 sm:gap-2 text-xs sm:text-lg"><span>{user.avatarEmoji || '😎'}</span> {t('game_you_label')}</span>
-                            <span className="opacity-80 font-mono font-black text-xs sm:text-lg text-theme-text">{t('game_surs')} {me.surs || 0}</span>
+                            {game.ruleSet === 'classic' && (
+                                <span className="opacity-80 font-mono font-black text-xs sm:text-lg text-theme-text">{t('game_surs')} {me.surs || 0}</span>
+                            )}
                         </div>
                         <div className="flex justify-center -space-x-2 sm:space-x-2">
                             {me.hand.map(card => <PlayingCard key={card.id} card={card} onClick={handlePlayerMove} disabled={!isMyTurnSafe || isProcessing.current || game.isRoundOver || !!animatingAction} isPending={pendingMove?.card.id === card.id} />)}
@@ -496,7 +513,7 @@ export default function GameRoomPage() {
                                 <p className="text-theme-primary mb-6 font-mono font-black text-2xl">{t('game_score')} {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
                                 <div className="flex flex-col gap-3">
                                     {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(e.message))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
-                                    
+
                                     {/* Кнопка запроса паузы доступна только если раунд окончен, но матч еще нет */}
                                     {roomData.status === 'playing' && (
                                         <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">
@@ -527,6 +544,30 @@ export default function GameRoomPage() {
                             </>
                         )}
                     </div>
+                </div>
+            )}
+
+            {otherRooms.length > 0 && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40 pointer-events-none">
+                    {otherRooms.map(room => {
+                        const roomSafeMyId = sessionStorage.getItem(`pasur_mask_${room.id}`) || user?.uid;
+                        const amIActiveThere = room.gameState?.players?.[room.gameState.currentTurnIndex]?.id === roomSafeMyId;
+                        const isRoomPlaying = room.status === 'playing';
+
+                        return (
+                            <button
+                                key={room.id}
+                                onClick={() => router.push(`/game/${room.id}`)}
+                                className={`pointer-events-auto relative w-12 h-12 rounded-full border-4 flex items-center justify-center font-black text-sm transition-transform hover:scale-110 shadow-lg
+                                ${amIActiveThere && isRoomPlaying ? 'bg-amber-500 border-white text-white animate-bounce' : 'bg-theme-panel border-theme-border text-theme-text opacity-70'}`}
+                            >
+                                {room.betAmount >= 1000 ? '💰' : '🎲'}
+                                {amIActiveThere && isRoomPlaying && (
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>

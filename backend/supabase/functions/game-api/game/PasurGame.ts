@@ -266,7 +266,7 @@ export class PasurGame {
             if (t0.has2C) t0.score += 1; else if (t1.has2C) t1.score += 1;
         } else {
             t0.score += t0.surs * 5; t1.score += t1.surs * 5;
-            if (t0.clubs >= 7) t0.score += 7; else if (t1.clubs >= 7) t1.score += 7;
+            if (t0.clubs > t1.clubs) t0.score += 7; else if (t1.clubs > t0.clubs) t1.score += 7;
             if (t0.has10D) t0.score += 3; else if (t1.has10D) t1.score += 3;
             if (t0.has2C) t0.score += 2; else if (t1.has2C) t1.score += 2;
             t0.score += t0.aces + t0.jacks; t1.score += t1.aces + t1.jacks;

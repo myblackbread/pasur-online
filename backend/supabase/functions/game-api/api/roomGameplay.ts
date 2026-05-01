@@ -1,6 +1,7 @@
 import { PasurGame } from "../game/PasurGame.ts";
 import { createShuffledDeck } from "../game/deck.ts";
 import { GameError, ErrorCode } from "../errors.ts";
+import { GAME_CONFIG } from "../constants.ts";
 
 // 🟢 НОВЫЙ ХЕЛПЕР: Сохраняет стейт игры, пряча колоду в секреты
 async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, game: PasurGame) {
@@ -13,7 +14,7 @@ async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, 
     const { data: updateCheck, error: updateError } = await adminDb.from("rooms")
         .update({
             game_state: JSON.parse(JSON.stringify(game)),
-            turn_deadline: Date.now() + 3600000,
+            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
             pause_proposals: [],
             version: (roomData.version || 1) + 1
         })
@@ -76,7 +77,7 @@ export async function secureAnswerPauseRequest(data: any, user: any, adminDb: an
     if (accept) {
         await adminDb.from("rooms").update({ status: 'paused', pause_proposals: [], turn_deadline: null }).eq("id", roomId);
     } else {
-        await adminDb.from("rooms").update({ status: 'playing', pause_proposals: [], turn_deadline: Date.now() + 3600000 }).eq("id", roomId);
+        await adminDb.from("rooms").update({ status: 'playing', pause_proposals: [], turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) }).eq("id", roomId);
     }
 
     return { success: true };
@@ -90,7 +91,7 @@ export async function secureResolvePauseTimeout(data: any, user: any, adminDb: a
 
     if (Date.now() >= (roomData.turn_deadline || 0)) {
         await adminDb.from("rooms").update({
-            status: 'playing', pause_proposals: [], turn_deadline: Date.now() + 3600000
+            status: 'playing', pause_proposals: [], turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION)
         }).eq("id", roomId);
         return { success: true };
     }

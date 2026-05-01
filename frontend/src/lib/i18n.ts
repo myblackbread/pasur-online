@@ -55,6 +55,17 @@ const resources = {
       "modal_private_table": "Private table",
       "modal_strict_mode": "Strict mode",
       "btn_cancel": "Cancel",
+      
+      // 🟢 НОВЫЕ КЛЮЧИ ДЛЯ МОДАЛКИ СТОЛА
+      "modal_setup_title": "Table Setup",
+      "modal_bet_label": "Bet (Coins)",
+      "modal_speed_label": "Turn Time",
+      "speed_fast": "Fast",
+      "speed_normal": "Normal",
+      "speed_slow": "Slow",
+      "speed_sec": "sec",
+      "modal_players_count": "Players",
+      "modal_btn_submit": "CREATE & PLAY",
 
       "profile_title": "Profile",
       "profile_rules": "Game Rules",
@@ -207,6 +218,17 @@ const resources = {
       "modal_private_table": "Приватный стол",
       "modal_strict_mode": "Строгий режим",
       "btn_cancel": "Отмена",
+      
+      // 🟢 НОВЫЕ КЛЮЧИ ДЛЯ МОДАЛКИ СТОЛА
+      "modal_setup_title": "Настройка стола",
+      "modal_bet_label": "Ставка (Монеты)",
+      "modal_speed_label": "Время на ход",
+      "speed_fast": "Быстро",
+      "speed_normal": "Нормально",
+      "speed_slow": "Медленно",
+      "speed_sec": "сек",
+      "modal_players_count": "Игрока",
+      "modal_btn_submit": "СОЗДАТЬ И ИГРАТЬ",
 
       "profile_title": "Профиль",
       "profile_rules": "Правила игры",
@@ -359,6 +381,17 @@ const resources = {
       "modal_private_table": "Gizli masa",
       "modal_strict_mode": "Ciddi rejim",
       "btn_cancel": "Ləğv et",
+      
+      // 🟢 НОВЫЕ КЛЮЧИ ДЛЯ МОДАЛКИ СТОЛА
+      "modal_setup_title": "Masa tənzimləmələri",
+      "modal_bet_label": "Mərc (Sikkə)",
+      "modal_speed_label": "Gediş vaxtı",
+      "speed_fast": "Tez",
+      "speed_normal": "Normal",
+      "speed_slow": "Yavaş",
+      "speed_sec": "san",
+      "modal_players_count": "Oyunçu",
+      "modal_btn_submit": "YARAT VƏ OYNA",
 
       "profile_title": "Profil",
       "profile_rules": "Oyun Qaydaları",

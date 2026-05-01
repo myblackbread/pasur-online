@@ -1,3 +1,13 @@
+export const GAME_CONFIG = {
+    BET_OPTIONS: [100, 200, 500, 1000, 2000, 5000, 10000],
+    SPEED_OPTIONS: [
+        { value: 15000, labelKey: 'speed_fast', icon: '⚡' },
+        { value: 30000, labelKey: 'speed_normal', icon: '⏱' },
+        { value: 60000, labelKey: 'speed_slow', icon: '☕' }
+    ],
+    DEFAULT_TURN_DURATION: 60000
+} as const;
+
 export type RuleSet = 'local' | 'classic';
 // 🟢 ДОБАВЛЕН СТАТУС pause_requested
 export type RoomStatus = 'waiting' | 'ready_check' | 'playing' | 'finished' | 'paused' | 'ready_check_resume' | 'pause_requested';
@@ -61,6 +71,7 @@ export interface GameRoom {
     betAmount: number;
     ruleSet: RuleSet;
     isStrict: boolean;
+    turnDuration?: number;
     status: RoomStatus;
     createdAt: number;
     readyDeadline?: number | null;

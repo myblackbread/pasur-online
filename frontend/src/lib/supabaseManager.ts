@@ -1,23 +1,5 @@
 import { supabase } from './supabase';
-import { UserProfile, GameRoom, RuleSet } from '../types';
-
-// export const ErrorTranslations: Record<string, string> = {
-//     'ERR_UNAUTHORIZED': 'Ошибка авторизации. Пожалуйста, войдите заново.',
-//     'ERR_NOT_ADMIN': 'У вас нет прав администратора.',
-//     'ERR_USER_NOT_FOUND': 'Пользователь не найден.',
-//     'ERR_INVALID_REQUEST': 'Неверный запрос.',
-//     'ERR_ROOM_NOT_FOUND': 'Стол не найден или уже закрыт.',
-//     'ERR_ROOM_FULL': 'Этот стол уже заполнен.',
-//     'ERR_NOT_ENOUGH_MONEY': 'Недостаточно монет на балансе!',
-//     'ERR_NOT_IN_ROOM': 'Вы не находитесь за этим столом.',
-//     'ERR_ALREADY_IN_ROOM': 'Вы уже за столом.',
-//     'ERR_ROOM_ALREADY_STARTED': 'Игра за этим столом уже началась.',
-//     'ERR_NOT_YOUR_TURN': 'Сейчас не ваш ход!',
-//     'ERR_INVALID_MOVE': 'Недопустимое действие.',
-//     'ERR_WRONG_ROUND_STATE': 'Действие недоступно в данный момент игры.',
-//     'ERR_PAUSE_ALREADY_ACTIVE': 'Пауза уже запрошена или активна.',
-//     'ERR_INTERNAL_SERVER_ERROR': 'Внутренняя ошибка сервера. Повторите попытку позже.'
-// };
+import { UserProfile, GameRoom, RuleSet, GAME_CONFIG } from '../types';
 
 const mapUser = (data: any): UserProfile => ({
     uid: data.id,
@@ -38,6 +20,7 @@ const mapRoom = (data: any): GameRoom => ({
     betAmount: data.bet_amount,
     ruleSet: data.rule_set,
     isStrict: data.is_strict ?? true,
+    turnDuration: data.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION,
     isPrivate: data.is_private,
     joinCode: data.join_code,
     players: data.players || [],
@@ -229,9 +212,9 @@ class SupabaseManager {
 
     /* ================= API ВЫЗОВЫ ================= */
 
-    async createRoom(creator: UserProfile, bet: number, ruleSet: RuleSet, isPrivate: boolean = false, isStrict: boolean = true): Promise<string> {
+    async createRoom(creator: UserProfile, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
         if (creator.balance < bet) throw new Error("Недостаточно средств");
-        const data = await this.callApi('secureCreateRoom', { betAmount: bet, ruleSet, isPrivate, isStrict });
+        const data = await this.callApi('secureCreateRoom', { betAmount: bet, ruleSet, isPrivate, isStrict, maxPlayers, turnDuration });
         if (typeof window !== 'undefined') sessionStorage.setItem(`pasur_mask_${data.roomId}`, data.publicUid);
         return data.roomId;
     }

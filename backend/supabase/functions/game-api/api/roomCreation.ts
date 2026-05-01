@@ -1,4 +1,5 @@
 import { GameError, ErrorCode } from "../errors.ts";
+import { GAME_CONFIG } from "../constants.ts";
 
 export async function devAddMoney(user: any, adminDb: any) {
     if (Deno.env.get('ENVIRONMENT') === 'production') throw new GameError(ErrorCode.UNAUTHORIZED);
@@ -7,7 +8,11 @@ export async function devAddMoney(user: any, adminDb: any) {
 }
 
 export async function secureCreateRoom(data: any, user: any, adminDb: any) {
-    const { betAmount, ruleSet, isPrivate, maxPlayers = 2 } = data;
+    const { betAmount, ruleSet, isPrivate, maxPlayers = 2, isStrict = true, turnDuration = GAME_CONFIG.DEFAULT_TURN_DURATION } = data;
+
+    if (!GAME_CONFIG.ALLOWED_BETS.includes(betAmount)) throw new GameError(ErrorCode.INVALID_REQUEST, "Invalid bet amount");
+    if (!GAME_CONFIG.ALLOWED_SPEEDS.includes(turnDuration)) throw new GameError(ErrorCode.INVALID_REQUEST, "Invalid turn duration");
+    if (!GAME_CONFIG.ALLOWED_PLAYERS.includes(maxPlayers)) throw new GameError(ErrorCode.INVALID_REQUEST, "Invalid players count"); 
     const uid = user.id;
 
     const { data: userData, error: userErr } = await adminDb.from('users').select('balance, settings, display_name').eq('id', uid).single();
@@ -22,20 +27,23 @@ export async function secureCreateRoom(data: any, user: any, adminDb: any) {
         bet_amount: betAmount,
         rule_set: ruleSet,
         is_private: !!isPrivate,
-        is_strict: !!data.isStrict,
+        is_strict: !!isStrict,
         max_players: maxPlayers,
+        turn_duration: turnDuration,
         status: 'waiting',
         join_code: isPrivate ? Math.random().toString(36).substring(2, 8).toUpperCase() : null,
         players: [{ id: publicUid, name: shouldHide ? "Неизвестный игрок" : userData.display_name, isReady: false }],
         created_at: Date.now()
     }).select('id').single();
 
-    if (roomErr) throw new GameError(ErrorCode.INTERNAL_SERVER_ERROR);
+    if (roomErr) {
+        console.error("🔥 Ошибка БД при создании комнаты:", roomErr);
+        throw new GameError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
     const roomId = roomData.id;
 
     await adminDb.from('room_secrets').insert({ room_id: roomId, real_uids: { [publicUid]: uid } });
 
-    // Чистый SQL-запрос вместо костылей
     await adminDb.rpc('increment_balance', { user_id: uid, amount: -betAmount });
     await adminDb.rpc('add_active_room', { user_id: uid, room_id: roomId });
 

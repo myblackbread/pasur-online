@@ -1,6 +1,7 @@
 import { PasurGame } from "../game/PasurGame.ts";
 import { createShuffledDeck } from "../game/deck.ts";
 import { GameError, ErrorCode } from "../errors.ts";
+import { GAME_CONFIG } from "../constants.ts";
 
 export async function secureJoinRoom(data: any, user: any, adminDb: any) {
     const { roomId } = data;
@@ -95,7 +96,7 @@ export async function secureToggleReady(data: any, user: any, adminDb: any) {
             players: updatedPlayers,
             status: 'playing',
             game_state: JSON.parse(JSON.stringify(game)),
-            turn_deadline: Date.now() + 3600000,
+            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
             admin_message: `ALL|Игра ${roomData.status === 'ready_check_resume' ? 'возобновлена' : 'началась'}!|${Date.now()}`,
             version: (roomData.version || 1) + 1
         }).eq("id", roomId);
@@ -155,7 +156,7 @@ export async function secureRematch(data: any, user: any, adminDb: any) {
             players: updatedPlayers.map((p: any) => ({ ...p, isReady: false })), // Сброс флага для конца следующего матча
             status: 'playing',
             game_state: JSON.parse(JSON.stringify(game)),
-            turn_deadline: Date.now() + 3600000,
+            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
             version: (roomData.version || 1) + 1
         }).eq("id", roomId);
 
