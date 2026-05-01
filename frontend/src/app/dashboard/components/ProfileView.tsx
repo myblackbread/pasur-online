@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { UserProfile } from '@/src/types';
-import { fbManager } from '@/src/lib/supabaseManager';
+import { UserProfile } from '@/types';
+import { fbManager } from '@/lib/supabaseManager';
 
 const EMOJIS = ['😎', '👽', '🤖', '🦊', '🐯', '👻', '🤡', '🤠'];
 

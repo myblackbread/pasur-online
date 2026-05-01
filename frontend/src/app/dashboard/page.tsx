@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fbManager } from '@/src/lib/supabaseManager';
-import { supabase } from '@/src/lib/supabase';
-import { UserProfile } from '@/src/types';
+import { fbManager } from '@/lib/supabaseManager';
+import { supabase } from '@/lib/supabase';
+import { UserProfile } from '@/types';
 
 import LobbyView from './components/LobbyView';
 import ProfileView from './components/ProfileView';
@@ -23,7 +23,7 @@ export default function MainAppPage() {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             const currentUser = session?.user;
-            
+
             // 🟢 ВАЖНО: Очищаем старую подписку, если слушатель выстрелил дважды
             if (unsubscribeSnap) {
                 unsubscribeSnap();

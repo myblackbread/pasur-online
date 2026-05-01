@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserProfile } from '@/src/types';
-import { fbManager } from '@/src/lib/supabaseManager';
-import { supabase } from '@/src/lib/supabase';
+import { UserProfile } from '@/types';
+import { fbManager } from '@/lib/supabaseManager';
+import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
 export default function SettingsView({ user }: { user: UserProfile }) {

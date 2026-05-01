@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { fbManager } from '@/src/lib/supabaseManager';
-import { supabase } from '@/src/lib/supabase'; // 🟢 ДОБАВЛЯЕМ SUPABASE
-import { GameRoom, UserProfile, RuleSet } from '@/src/types';
-import { useAlert } from '@/src/components/AlertProvider';
+import { fbManager } from '@/lib/supabaseManager';
+import { supabase } from '@/lib/supabase'; // 🟢 ДОБАВЛЯЕМ SUPABASE
+import { GameRoom, UserProfile, RuleSet } from '@/types';
+import { useAlert } from '@/components/AlertProvider';
 
 export default function LobbyView({ user }: { user: UserProfile }) {
     const router = useRouter();

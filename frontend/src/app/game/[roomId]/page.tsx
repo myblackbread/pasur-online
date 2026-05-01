@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/src/lib/supabase';
-import { fbManager } from '@/src/lib/supabaseManager';
-import { GameRoom, UserProfile, Card, GameState } from '@/src/types';
-import { useAlert } from '@/src/components/AlertProvider';
+import { supabase } from '@/lib/supabase';
+import { fbManager } from '@/lib/supabaseManager';
+import { GameRoom, UserProfile, Card, GameState } from '@/types';
+import { useAlert } from '@/components/AlertProvider';
 
 function useCountdown(deadline: number | null | undefined) {
     const [timeLeft, setTimeLeft] = useState(0);

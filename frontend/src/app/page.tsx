@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fbManager } from '@/src/lib/supabaseManager';
-import { supabase } from '@/src/lib/supabase'; // 🟢 ИМПОРТ SUPABASE
-import { useAlert } from '@/src/components/AlertProvider';
+import { fbManager } from '@/lib/supabaseManager';
+import { supabase } from '@/lib/supabase'; // 🟢 ИМПОРТ SUPABASE
+import { useAlert } from '@/components/AlertProvider';
 
 export default function AuthPage() {
     const router = useRouter();

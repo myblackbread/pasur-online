@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/src/lib/supabase';
-import { UserProfile } from '@/src/types';
-import { useAlert } from '@/src/components/AlertProvider';
+import { supabase } from '@/lib/supabase';
+import { UserProfile } from '@/types';
+import { useAlert } from '@/components/AlertProvider';
 
 export default function AdminPage() {
     const [users, setUsers] = useState<UserProfile[]>([]);

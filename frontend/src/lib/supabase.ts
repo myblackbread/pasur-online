@@ -7,5 +7,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error("Отсутствуют переменные окружения Supabase!");
 }
 
-// Создаем и экспортируем клиент
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

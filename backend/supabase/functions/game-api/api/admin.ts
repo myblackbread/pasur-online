@@ -1,5 +1,9 @@
 export async function adminDeleteUser(data: any, user: any, adminDb: any) {
-    const { data: caller, error: callerErr } = await adminDb.from('users').select('is_admin').eq('id', user.id).single();
+    const { data: caller, error: callerErr } = await adminDb
+    .from('users')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
     if (callerErr || !caller?.is_admin) throw new Error("У вас нет прав администратора!");
 
     const { uidToKill } = data;
