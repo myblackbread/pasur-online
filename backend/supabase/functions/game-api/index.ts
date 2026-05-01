@@ -6,7 +6,8 @@ import { secureCreateRoom, devAddMoney } from "./api/roomCreation.ts";
 import { secureJoinRoom, secureToggleReady, secureResolveReadyTimeout, secureRematch } from "./api/roomLobby.ts";
 import { secureProposePause, secureAnswerPauseRequest, secureResolvePauseTimeout, securePlayCard, secureLeaveRoom, secureNextRound, secureGetMyMask, secureSendReaction } from "./api/roomGameplay.ts";
 import { adminDeleteUser } from "./api/admin.ts";
-import { runGlobalCleanup } from "./api/cron.ts"; // 🟢 ИМПОРТ НАШЕГО УБОРЩИКА
+import { runGlobalCleanup } from "./api/cron.ts";
+import { GameError, ErrorCode } from "./errors.ts";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -29,13 +30,13 @@ serve(async (req) => {
         const { action, data } = await req.json();
         const authHeader = req.headers.get('Authorization');
         
-        if (!authHeader) throw new Error("Требуется авторизация");
+        if (!authHeader) throw new GameError(ErrorCode.UNAUTHORIZED); // 🟢 ИСПОЛЬЗУЕМ GAME ERROR
 
         const token = authHeader.replace('Bearer ', '').trim();
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
         if (!apiRoutes[action]) {
-            throw new Error(`Неизвестное действие: ${action}`);
+            throw new Error(`Неизвестное действие: ${action}`); // Это системная ошибка, оставляем обычный Error
         }
 
         const adminDb = createClient(
@@ -45,16 +46,12 @@ serve(async (req) => {
 
         let result;
 
-        // 🟢 СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ СЕРВЕРНЫХ ЗАДАЧ (CRON)
         if (action === 'runGlobalCleanup') {
-            // Проверяем, что запрос сделал сервер (крон), а не хитрый игрок
             if (token !== serviceRoleKey) {
-                throw new Error("Отказано в доступе. Требуется сервисный ключ.");
+                throw new GameError(ErrorCode.UNAUTHORIZED);
             }
-            // Крону не нужен объект user, передаем только базу
             result = await apiRoutes[action](adminDb);
         } 
-        // 🟢 ОБЫЧНАЯ ЛОГИКА ДЛЯ ИГРОКОВ
         else {
             const supabaseAuthClient = createClient(
                 Deno.env.get('SUPABASE_URL') ?? '',
@@ -62,13 +59,21 @@ serve(async (req) => {
             );
 
             const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser(token);
-            if (authError || !user) throw new Error("Ошибка авторизации: " + authError?.message);
+            if (authError || !user) throw new GameError(ErrorCode.UNAUTHORIZED, authError?.message);
 
             result = await apiRoutes[action](data, user, adminDb);
         }
 
         return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+        
     } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+        if (err instanceof GameError) {
+            // Если это наша игровая ошибка, отдаем ее код на фронт (например: "ERR_NOT_ENOUGH_MONEY")
+            return new Response(JSON.stringify({ error: err.code }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+        }
+        
+        // Если база упала или код сломался - логируем детали в Supabase Dashboard, а юзеру отдаем заглушку
+        console.error("🔥 Системная ошибка:", err);
+        return new Response(JSON.stringify({ error: ErrorCode.INTERNAL_SERVER_ERROR }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 });

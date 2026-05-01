@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { fbManager } from '@/lib/supabaseManager';
-import { supabase } from '@/lib/supabase'; // 🟢 ДОБАВЛЯЕМ SUPABASE
 import { GameRoom, UserProfile, RuleSet } from '@/types';
 import { useAlert } from '@/components/AlertProvider';
 
@@ -49,10 +48,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
             setIsSurrendering(true);
             try {
                 // 🟢 ВЫЗОВ SUPABASE EDGE FUNCTION
-                const { error } = await supabase.functions.invoke('game-api', {
-                    body: { action: 'secureLeaveRoom', data: { roomId, reason: 'surrender' } }
-                });
-                if (error) throw error;
+                await fbManager.leaveRoom(roomId, 'surrender');
             } catch (e: any) {
                 showAlert("Ошибка: " + e.message);
             } finally {

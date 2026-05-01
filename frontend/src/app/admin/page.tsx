@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/types';
 import { useAlert } from '@/components/AlertProvider';
+import { fbManager } from '@/lib/supabaseManager';
 
 export default function AdminPage() {
     const [users, setUsers] = useState<UserProfile[]>([]);
@@ -39,10 +40,8 @@ export default function AdminPage() {
     const handleDeleteUser = (userToKill: UserProfile) => {
         showConfirm(`Точно удалить пользователя ${userToKill.displayName}?`, async () => {
             try {
-                const { error } = await supabase.functions.invoke('game-api', {
-                    body: { action: 'adminDeleteUser', data: { uidToKill: userToKill.uid } }
-                });
-                if (error) throw error;
+                await fbManager.adminDeleteUser(userToKill.uid);
+
                 showAlert(`Пользователь ${userToKill.displayName} успешно удален сервером.`);
             } catch (error: any) {
                 showAlert("Ошибка удаления: " + error.message);

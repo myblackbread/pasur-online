@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { fbManager } from '@/lib/supabaseManager';
+import { fbManager } from '@/lib/supabaseManager'; // 🟢 Убран ErrorTranslations
 import { GameRoom, UserProfile, Card, GameState } from '@/types';
 import { useAlert } from '@/components/AlertProvider';
 
@@ -125,12 +125,10 @@ export default function GameRoomPage() {
     }, [roomId, router, showAlert]);
 
     useEffect(() => {
+        // 🟢 ИСПОЛЬЗУЕТСЯ НОВЫЙ МЕТОД getMyMask
         if (!myMask && user && roomData && !hasAttemptedFetchMask.current) {
             hasAttemptedFetchMask.current = true;
-            supabase.functions.invoke('game-api', {
-                body: { action: 'secureGetMyMask', data: { roomId } }
-            }).then(res => {
-                const mask = res.data?.mask;
+            fbManager.getMyMask(roomId).then(mask => {
                 if (mask) { setMyMask(mask); sessionStorage.setItem(`pasur_mask_${roomId}`, mask); }
             }).catch(console.error);
         }
@@ -183,9 +181,9 @@ export default function GameRoomPage() {
         if (isProcessing.current) return;
         isProcessing.current = true;
         try {
-            await supabase.functions.invoke('game-api', { body: { action: 'secureLeaveRoom', data: { roomId, reason: 'timeout' } } });
+            await fbManager.leaveRoom(roomId, 'timeout');
         }
-        catch (e: any) { if (!e.message?.includes("Время еще не вышло")) console.error(e); }
+        catch (e: any) { if (!e.message?.includes("ERR_INVALID_MOVE")) console.error(e); }
         finally { setTimeout(() => { isProcessing.current = false; }, 2000); }
     }, [roomId]);
 
@@ -235,10 +233,7 @@ export default function GameRoomPage() {
         showConfirm(isPlaying ? "Уверены? Вы потеряете ставку!" : "Покинуть стол?", async () => {
             isProcessing.current = true;
             try {
-                const { error } = await supabase.functions.invoke('game-api', {
-                    body: { action: 'secureLeaveRoom', data: { roomId, reason: isPlaying ? 'surrender' : 'leave' } }
-                });
-                if (error) throw error;
+                await fbManager.leaveRoom(roomId, isPlaying ? 'surrender' : 'leave');
 
                 sessionStorage.removeItem(`pasur_mask_${roomId}`);
                 setMyMask(null);
@@ -267,13 +262,8 @@ export default function GameRoomPage() {
         isProcessing.current = true;
 
         try {
-            const { data, error } = await supabase.functions.invoke('game-api', {
-                body: { action: 'securePlayCard', data: { roomId, cardId: card.id, targetCardIds: selectedTableCards } }
-            });
-
-            if (error) throw error;
-            if (data?.error) throw new Error(data.error);
-
+            // 🟢 ИСПОЛЬЗУЕТСЯ НОВЫЙ МЕТОД playCard
+            await fbManager.playCard(roomId, card.id, selectedTableCards);
             setSelectedTableCards([]);
         } catch (e: any) {
             showAlert(e.message);
@@ -502,8 +492,8 @@ export default function GameRoomPage() {
                                 <h2 className="text-2xl sm:text-3xl font-black mb-2 text-theme-text">Раунд {game.roundNumber} завершен</h2>
                                 <p className="text-theme-primary mb-6 font-mono font-black text-2xl">Счет: {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
                                 <div className="flex flex-col gap-3">
-                                    {isPlayer0 ? <button onClick={() => supabase.functions.invoke('game-api', { body: { action: 'secureNextRound', data: { roomId } } })} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">Раздать карты</button> : <div className="opacity-70 font-black py-2 text-theme-text">Ожидаем раздачу...</div>}
-
+                                    {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(e.message))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">Раздать карты</button> : <div className="opacity-70 font-black py-2 text-theme-text">Ожидаем раздачу...</div>}
+                                    
                                     {/* Кнопка запроса паузы доступна только если раунд окончен, но матч еще нет */}
                                     {roomData.status === 'playing' && (
                                         <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">

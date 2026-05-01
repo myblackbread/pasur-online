@@ -1,6 +1,24 @@
 import { supabase } from './supabase';
 import { UserProfile, GameRoom, RuleSet } from '../types';
 
+export const ErrorTranslations: Record<string, string> = {
+    'ERR_UNAUTHORIZED': 'Ошибка авторизации. Пожалуйста, войдите заново.',
+    'ERR_NOT_ADMIN': 'У вас нет прав администратора.',
+    'ERR_USER_NOT_FOUND': 'Пользователь не найден.',
+    'ERR_INVALID_REQUEST': 'Неверный запрос.',
+    'ERR_ROOM_NOT_FOUND': 'Стол не найден или уже закрыт.',
+    'ERR_ROOM_FULL': 'Этот стол уже заполнен.',
+    'ERR_NOT_ENOUGH_MONEY': 'Недостаточно монет на балансе!',
+    'ERR_NOT_IN_ROOM': 'Вы не находитесь за этим столом.',
+    'ERR_ALREADY_IN_ROOM': 'Вы уже за столом.',
+    'ERR_ROOM_ALREADY_STARTED': 'Игра за этим столом уже началась.',
+    'ERR_NOT_YOUR_TURN': 'Сейчас не ваш ход!',
+    'ERR_INVALID_MOVE': 'Недопустимое действие.',
+    'ERR_WRONG_ROUND_STATE': 'Действие недоступно в данный момент игры.',
+    'ERR_PAUSE_ALREADY_ACTIVE': 'Пауза уже запрошена или активна.',
+    'ERR_INTERNAL_SERVER_ERROR': 'Внутренняя ошибка сервера. Повторите попытку позже.'
+};
+
 const mapUser = (data: any): UserProfile => ({
     uid: data.id,
     displayName: data.display_name,
@@ -32,26 +50,29 @@ const mapRoom = (data: any): GameRoom => ({
 });
 
 class SupabaseManager {
-    
+
     private async callApi(action: string, data: any = {}) {
         const { data: result, error } = await supabase.functions.invoke('game-api', {
             body: { action, data }
         });
-        
+
         if (error) throw new Error("Ошибка сети: " + error.message);
-        if (result?.error) throw new Error(result.error);
+        if (result?.error) {
+            const translatedMessage = ErrorTranslations[result.error] || result.error;
+            throw new Error(translatedMessage);
+        }
         return result;
     }
 
     /* ================= AUTH ================= */
-    
+
     async login(provider: 'google' | 'email' | 'guest', email?: string, password?: string, gender?: 'male' | 'female'): Promise<string> {
         let authResult;
 
         if (provider === 'google') {
             authResult = await supabase.auth.signInWithOAuth({ provider: 'google' });
             if (authResult.error) throw authResult.error;
-            return ""; 
+            return "";
         } else if (provider === 'guest') {
             authResult = await supabase.auth.signInAnonymously();
         } else if (provider === 'email' && email && password) {
@@ -76,8 +97,8 @@ class SupabaseManager {
                 display_name: displayName,
                 balance: 1000,
                 active_rooms: [],
-                settings: { 
-                    isIncognito: gender === 'female', 
+                settings: {
+                    isIncognito: gender === 'female',
                     blockedUids: [],
                     avatarEmoji: provider === 'guest' ? '👻' : '😎',
                     gender
@@ -97,25 +118,25 @@ class SupabaseManager {
     subscribeToUser(uid: string, callback: (user: UserProfile | null) => void) {
         const fetchAndEnsureUser = async () => {
             const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
-            
+
             if (error && error.code === 'PGRST116') {
                 const { data: { user: authUser } } = await supabase.auth.getUser();
-                
+
                 const newProfile = {
                     id: uid,
                     display_name: authUser?.user_metadata?.name || `Игрок_${uid.substring(0, 5)}`,
                     balance: 1000,
                     active_rooms: [],
-                    settings: { 
-                        isIncognito: false, 
+                    settings: {
+                        isIncognito: false,
                         blockedUids: [],
                         avatarEmoji: authUser?.is_anonymous ? '👻' : '😎',
                         gender: 'male'
                     }
                 };
-                
+
                 const { error: insertErr } = await supabase.from('users').insert(newProfile);
-                
+
                 if (insertErr) {
                     if (insertErr.code === '23505') {
                         const { data: existingData } = await supabase.from('users').select('*').eq('id', uid).single();
@@ -126,7 +147,7 @@ class SupabaseManager {
                     callback(null);
                     return;
                 }
-                
+
                 callback(mapUser(newProfile));
                 return;
             }
@@ -148,7 +169,7 @@ class SupabaseManager {
     }
 
     subscribeToPublicRooms(callback: (rooms: GameRoom[]) => void) {
-        let currentRooms: GameRoom[] = []; 
+        let currentRooms: GameRoom[] = [];
 
         const fetchRooms = async () => {
             const { data } = await supabase.from('rooms')
@@ -179,7 +200,7 @@ class SupabaseManager {
     }
 
     subscribeToRoomsByIds(roomIds: string[], callback: (rooms: GameRoom[]) => void) {
-        if (!roomIds.length) { callback([]); return () => {}; }
+        if (!roomIds.length) { callback([]); return () => { }; }
         let currentRooms: GameRoom[] = [];
 
         const fetchRooms = async () => {
@@ -254,18 +275,39 @@ class SupabaseManager {
     async proposePause(roomId: string): Promise<void> {
         await this.callApi('secureProposePause', { roomId });
     }
-    
-    // 🟢 НОВЫЕ МЕТОДЫ
+
     async answerPauseRequest(roomId: string, accept: boolean): Promise<void> {
         await this.callApi('secureAnswerPauseRequest', { roomId, accept });
     }
-    
+
     async resolvePauseTimeout(roomId: string): Promise<void> {
-        try { await this.callApi('secureResolvePauseTimeout', { roomId }); } catch (e) {}
+        try { await this.callApi('secureResolvePauseTimeout', { roomId }); } catch (e) { }
     }
 
     async rematch(roomId: string): Promise<void> {
         await this.callApi('secureRematch', { roomId });
+    }
+
+    async leaveRoom(roomId: string, reason: 'leave' | 'surrender' | 'timeout'): Promise<void> {
+        await this.callApi('secureLeaveRoom', { roomId, reason });
+    }
+
+    async nextRound(roomId: string): Promise<void> {
+        await this.callApi('secureNextRound', { roomId });
+    }
+
+    async adminDeleteUser(uidToKill: string): Promise<void> {
+        await this.callApi('adminDeleteUser', { uidToKill });
+    }
+
+    // 🟢 НОВЫЕ МЕТОДЫ: Маска и ход картой
+    async getMyMask(roomId: string): Promise<string | null> {
+        const data = await this.callApi('secureGetMyMask', { roomId });
+        return data?.mask || null;
+    }
+
+    async playCard(roomId: string, cardId: string, targetCardIds: string[]): Promise<void> {
+        await this.callApi('securePlayCard', { roomId, cardId, targetCardIds });
     }
 }
 

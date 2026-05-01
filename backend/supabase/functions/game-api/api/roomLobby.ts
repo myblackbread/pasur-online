@@ -1,5 +1,6 @@
 import { PasurGame } from "../game/PasurGame.ts";
 import { createShuffledDeck } from "../game/deck.ts";
+import { GameError, ErrorCode } from "../errors.ts";
 
 export async function secureJoinRoom(data: any, user: any, adminDb: any) {
     const { roomId } = data;
@@ -9,7 +10,7 @@ export async function secureJoinRoom(data: any, user: any, adminDb: any) {
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
     const { data: userData } = await adminDb.from("users").select("*").eq("id", uid).single();
 
-    if (!roomData) throw new Error("Стол не найден");
+    if (!roomData) throw new GameError(ErrorCode.ROOM_NOT_FOUND);
     const secrets = secretDoc?.real_uids || {};
 
     let publicUid = uid;
@@ -24,9 +25,9 @@ export async function secureJoinRoom(data: any, user: any, adminDb: any) {
         return { success: true, roomId, publicUid };
     }
 
-    if (roomData.status !== 'waiting') throw new Error("Игра уже идет");
-    if (roomData.players.length >= roomData.max_players) throw new Error("Стол заполнен");
-    if ((userData?.balance ?? 0) < roomData.bet_amount) throw new Error("Недостаточно средств");
+    if (roomData.status !== 'waiting') throw new GameError(ErrorCode.ROOM_ALREADY_STARTED);
+    if (roomData.players.length >= roomData.max_players) throw new GameError(ErrorCode.ROOM_FULL);
+    if ((userData?.balance ?? 0) < roomData.bet_amount) throw new GameError(ErrorCode.NOT_ENOUGH_MONEY);
 
     const shouldHide = !roomData.is_private && userData.settings?.isIncognito;
     publicUid = shouldHide ? `anon_${Math.random().toString(36).substring(2, 12)}` : uid;
@@ -45,7 +46,7 @@ export async function secureJoinRoom(data: any, user: any, adminDb: any) {
 }
 
 export async function secureToggleReady(data: any, user: any, adminDb: any) {
-const { roomId, isReady } = data;
+    const { roomId, isReady } = data;
     const uid = user.id;
 
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
@@ -56,19 +57,19 @@ const { roomId, isReady } = data;
 
     const secrets = secretDoc?.real_uids || {};
     const publicUid = Object.keys(secrets).find(key => secrets[key] === uid);
-    if (!publicUid) throw new Error("Вы не за столом");
+    if (!publicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
     const currentPlayer = roomData.players.find((p: any) => p.id === publicUid);
 
     // 🟢 ЖЕСТКАЯ ЗАЩИТА БЭКЕНДА:
     // Если игрок уже нажал готовность, любые дальнейшие запросы просто игнорируются
     if (currentPlayer?.isReady) {
-        return { success: true }; 
+        return { success: true };
     }
 
     // Если хакер прислал isReady: false в обход фронтенда
     if (!isReady) {
-        throw new Error("Отмена готовности запрещена сервером!");
+        throw new GameError(ErrorCode.INVALID_MOVE);
     }
 
     const updatedPlayers = roomData.players.map((p: any) => p.id === publicUid ? { ...p, isReady } : p);
@@ -121,19 +122,19 @@ export async function secureRematch(data: any, user: any, adminDb: any) {
 
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
-    if (!roomData || !secretDoc) throw new Error("Room not found");
+    if (!roomData || !secretDoc) throw new GameError(ErrorCode.ROOM_NOT_FOUND);
 
-    if (roomData.status !== 'finished') throw new Error("Игра еще не завершена");
+    if (roomData.status !== 'finished') throw new GameError(ErrorCode.WRONG_ROUND_STATE);
 
     const secrets = secretDoc.real_uids || {};
     const publicUid = Object.keys(secrets).find(key => secrets[key] === uid);
-    if (!publicUid) throw new Error("Вы не за столом");
+    if (!publicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
     const currentPlayer = roomData.players.find((p: any) => p.id === publicUid);
     if (currentPlayer?.isReady) return { success: true }; // Уже оплатил реванш
 
     const { data: userData } = await adminDb.from("users").select("balance").eq("id", uid).single();
-    if ((userData?.balance ?? 0) < roomData.bet_amount) throw new Error("Недостаточно средств для реванша");
+    if ((userData?.balance ?? 0) < roomData.bet_amount) throw new GameError(ErrorCode.NOT_ENOUGH_MONEY);
 
     // Списываем ставку и возвращаем статус "в активной игре"
     await adminDb.rpc('increment_balance', { user_id: uid, amount: -roomData.bet_amount });
@@ -172,7 +173,7 @@ export async function secureResolveReadyTimeout(data: any, user: any, adminDb: a
 
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
-    
+
     if (!roomData || (roomData.status !== 'ready_check' && roomData.status !== 'ready_check_resume')) {
         return { success: false };
     }
@@ -184,7 +185,7 @@ export async function secureResolveReadyTimeout(data: any, user: any, adminDb: a
 
     const secrets = secretDoc?.real_uids || {};
     const players = roomData.players || [];
-    
+
     const afkPlayers = players.filter((p: any) => !p.isReady);
     if (afkPlayers.length === 0) return { success: true }; // Если все успели, игра сама начнется
 

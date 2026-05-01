@@ -1,5 +1,6 @@
 import { PasurGame } from "../game/PasurGame.ts";
 import { createShuffledDeck } from "../game/deck.ts";
+import { GameError, ErrorCode } from "../errors.ts";
 
 // 🟢 НОВЫЙ ХЕЛПЕР: Сохраняет стейт игры, пряча колоду в секреты
 async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, game: PasurGame) {
@@ -10,18 +11,18 @@ async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, 
     await adminDb.from("room_secrets").update({ deck: currentDeck }).eq("room_id", roomId);
 
     const { data: updateCheck, error: updateError } = await adminDb.from("rooms")
-        .update({ 
-            game_state: JSON.parse(JSON.stringify(game)), 
+        .update({
+            game_state: JSON.parse(JSON.stringify(game)),
             turn_deadline: Date.now() + 3600000,
             pause_proposals: [],
-            version: (roomData.version || 1) + 1 
+            version: (roomData.version || 1) + 1
         })
         .eq("id", roomId)
-        .eq("version", roomData.version || 1) 
+        .eq("version", roomData.version || 1)
         .select("id")
         .single();
 
-    if (updateError || !updateCheck) throw new Error("Состояние гонки: кто-то уже сделал ход.");
+    if (updateError || !updateCheck) throw new GameError(ErrorCode.NOT_YOUR_TURN);
 }
 
 export async function secureProposePause(data: any, user: any, adminDb: any) {
@@ -30,25 +31,25 @@ export async function secureProposePause(data: any, user: any, adminDb: any) {
 
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
-    if (!roomData || !secretDoc) throw new Error("Room not found");
+    if (!roomData || !secretDoc) throw new GameError(ErrorCode.ROOM_NOT_FOUND);
 
     const secrets = secretDoc.real_uids || {};
     const publicUid = Object.keys(secrets).find(key => secrets[key] === uid);
-    if (!publicUid) throw new Error("Вы не за столом");
+    if (!publicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
     if (roomData.status === 'paused' || roomData.status === 'pause_requested') {
-        throw new Error("Пауза уже запрошена или активна");
+        throw new GameError(ErrorCode.PAUSE_ALREADY_ACTIVE);
     }
 
     if (!roomData.game_state || !roomData.game_state.isRoundOver) {
-        throw new Error("Паузу можно предложить только между раздачами!");
+        throw new GameError(ErrorCode.WRONG_ROUND_STATE);
     }
 
     const deadline = Date.now() + 30000;
-    await adminDb.from("rooms").update({ 
-        status: 'pause_requested', 
-        pause_proposals: [publicUid], 
-        turn_deadline: deadline 
+    await adminDb.from("rooms").update({
+        status: 'pause_requested',
+        pause_proposals: [publicUid],
+        turn_deadline: deadline
     }).eq("id", roomId);
 
     return { success: true };
@@ -60,16 +61,16 @@ export async function secureAnswerPauseRequest(data: any, user: any, adminDb: an
 
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
-    if (!roomData || !secretDoc) throw new Error("Room not found");
+    if (!roomData || !secretDoc) throw new GameError(ErrorCode.ROOM_NOT_FOUND);
 
     const secrets = secretDoc.real_uids || {};
     const publicUid = Object.keys(secrets).find(key => secrets[key] === uid);
-    if (!publicUid) throw new Error("Вы не за столом");
+    if (!publicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
-    if (roomData.status !== 'pause_requested') throw new Error("Нет активного запроса на паузу");
+    if (roomData.status !== 'pause_requested') throw new GameError(ErrorCode.WRONG_ROUND_STATE);
 
     if (roomData.pause_proposals.includes(publicUid)) {
-        throw new Error("Вы ожидаете ответа соперника");
+        throw new GameError(ErrorCode.INVALID_MOVE);
     }
 
     if (accept) {
@@ -84,7 +85,7 @@ export async function secureAnswerPauseRequest(data: any, user: any, adminDb: an
 export async function secureResolvePauseTimeout(data: any, user: any, adminDb: any) {
     const { roomId } = data;
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
-    
+
     if (!roomData || roomData.status !== 'pause_requested') return { success: false };
 
     if (Date.now() >= (roomData.turn_deadline || 0)) {
@@ -102,22 +103,22 @@ export async function securePlayCard(data: any, user: any, adminDb: any) {
 
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
-    if (!roomData) throw new Error("Room not found");
+    if (!roomData) throw new GameError(ErrorCode.ROOM_NOT_FOUND);
 
     const secrets = secretDoc?.real_uids || {};
     const publicUid = Object.keys(secrets).find(key => secrets[key] === uid);
-    if (!publicUid) throw new Error("Вы не за столом");
+    if (!publicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
     const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict);
     Object.assign(game, roomData.game_state);
-    
+
     game.deck = secretDoc.deck || [];
     game.playCard(publicUid, cardId, targetCardIds);
 
     // 🟢 ФИКС: Используем хелпер, если матч продолжается
     if (game.isMatchOver && game.matchWinnerTeamId !== null) {
-        game.deckCount = game.deck.length; 
-        game.deck = []; 
+        game.deckCount = game.deck.length;
+        game.deck = [];
 
         const pot = roomData.bet_amount * roomData.max_players;
         const winners = game.players.filter((p: any) => p.teamId === game.matchWinnerTeamId);
@@ -133,8 +134,8 @@ export async function securePlayCard(data: any, user: any, adminDb: any) {
         }
 
         const resetPlayers = roomData.players.map((p: any) => ({ ...p, isReady: false }));
-        await adminDb.from("rooms").update({ 
-            status: 'finished', players: resetPlayers, game_state: JSON.parse(JSON.stringify(game)), turn_deadline: null, pause_proposals: [] 
+        await adminDb.from("rooms").update({
+            status: 'finished', players: resetPlayers, game_state: JSON.parse(JSON.stringify(game)), turn_deadline: null, pause_proposals: []
         }).eq("id", roomId);
     } else {
         await saveActiveGameState(adminDb, roomId, roomData, game);
@@ -152,19 +153,19 @@ export async function secureLeaveRoom(data: any, user: any, adminDb: any) {
 
     const secrets = secretDoc?.real_uids || {};
     const callerPublicUid = Object.keys(secrets).find(k => secrets[k] === uid);
-    if (!callerPublicUid) throw new Error("Вы не за столом");
+    if (!callerPublicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
-    if (roomData.status === 'ready_check') throw new Error("Идет проверка готовности. Выход заблокирован.");
+    if (roomData.status === 'ready_check') throw new GameError(ErrorCode.INVALID_MOVE);
 
     if (roomData.status === 'playing' || roomData.status === 'paused' || roomData.status === 'ready_check_resume' || roomData.status === 'pause_requested') {
         let loserPublicId = callerPublicUid;
 
         if (reason === 'timeout') {
-            if (roomData.status !== 'playing') throw new Error("Нельзя забрать по таймауту на паузе.");
-            if (Date.now() < (roomData.turn_deadline || 0)) throw new Error("Время еще не вышло!");
+            if (roomData.status !== 'playing') throw new GameError(ErrorCode.INVALID_MOVE);
+            if (Date.now() < (roomData.turn_deadline || 0)) throw new GameError(ErrorCode.INVALID_MOVE);
             const activePlayerIndex = roomData.game_state.currentTurnIndex;
             loserPublicId = roomData.players[activePlayerIndex].id;
-            if (loserPublicId === callerPublicUid) throw new Error("Нельзя выгнать самого себя");
+            if (loserPublicId === callerPublicUid) throw new GameError(ErrorCode.INVALID_MOVE);
         }
 
         const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict);
@@ -203,7 +204,7 @@ export async function secureLeaveRoom(data: any, user: any, adminDb: any) {
 
     } else if (roomData.status === 'waiting' || roomData.status === 'finished') {
         const callerPlayer = roomData.players.find((p: any) => p.id === callerPublicUid);
-        
+
         if (roomData.status === 'waiting' || (roomData.status === 'finished' && callerPlayer?.isReady)) {
             await adminDb.rpc('increment_balance', { user_id: uid, amount: roomData.bet_amount });
             await adminDb.rpc('remove_active_room', { user_id: uid, room_id: roomId });
@@ -243,22 +244,22 @@ export async function secureNextRound(data: any, user: any, adminDb: any) {
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
     if (!roomData) return { success: false };
 
-    if (roomData.status !== 'playing') throw new Error("Неверный статус комнаты для раздачи карт");
+    if (roomData.status !== 'playing') throw new GameError(ErrorCode.WRONG_ROUND_STATE);
 
     const secrets = secretDoc?.real_uids || {};
-    if (!Object.values(secrets).includes(uid)) throw new Error("Зрители не могут раздавать карты");
+    if (!Object.values(secrets).includes(uid)) throw new GameError(ErrorCode.UNAUTHORIZED);
 
     const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict);
     Object.assign(game, roomData.game_state);
 
-    if (!game.isRoundOver) throw new Error("Раунд еще не окончен!");
-    if (game.isMatchOver) throw new Error("Матч уже завершен!");
+    if (!game.isRoundOver) throw new GameError(ErrorCode.WRONG_ROUND_STATE);
+    if (game.isMatchOver) throw new GameError(ErrorCode.WRONG_ROUND_STATE);
 
     game.startNewRound(createShuffledDeck(game.roundNumber));
-    
+
     // 🟢 ФИКС: Используем хелпер
     await saveActiveGameState(adminDb, roomId, roomData, game);
-    
+
     return { success: true };
 }
 

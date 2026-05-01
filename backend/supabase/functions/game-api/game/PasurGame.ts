@@ -1,5 +1,6 @@
 import { Card, Player, RuleSet, TeamStats } from './types.ts';
 import { createShuffledDeck } from './deck.ts';
+import { GameError, ErrorCode } from "../errors.ts";
 
 export class PasurGame {
     isStrict: boolean = false;
@@ -153,20 +154,20 @@ export class PasurGame {
         if (this.isRoundOver || this.isMatchOver) return;
 
         const playerIndex = this.players.findIndex(p => p.id === playerId);
-        if (playerIndex !== this.currentTurnIndex) throw new Error("Не ваш ход!");
+        if (playerIndex !== this.currentTurnIndex) throw new GameError(ErrorCode.NOT_YOUR_TURN);
 
         const player = this.players[playerIndex];
         const cardIndex = player.hand.findIndex(c => c.id === cardId);
-        if (cardIndex === -1) throw new Error("Карта не найдена в руке!");
+        if (cardIndex === -1) throw new GameError(ErrorCode.INVALID_MOVE);
 
         const targets = this.table.filter(c => targetCardIds.includes(c.id));
-        if (targets.length !== targetCardIds.length) throw new Error("Выбранные карты отсутствуют на столе!");
+        if (targets.length !== targetCardIds.length) throw new GameError(ErrorCode.INVALID_MOVE);
 
         const cardToPlay = player.hand[cardIndex];
 
         if (targets.length === 0 && this.isStrict) {
             if (this.canCaptureAny(cardToPlay, this.table)) {
-                throw new Error("❌ Строгий режим: На столе есть карты, которые вы ОБЯЗАНЫ забрать!");
+                throw new GameError(ErrorCode.INVALID_MOVE);
             }
         }
         
@@ -174,12 +175,12 @@ export class PasurGame {
 
         if (targets.length > 0) {
             if (cardToPlay.rank === 'J') {
-                if (targets.some(c => c.rank === 'Q' || c.rank === 'K')) throw new Error("Валет не может забрать Даму или Короля!");
+                if (targets.some(c => c.rank === 'Q' || c.rank === 'K')) throw new GameError(ErrorCode.INVALID_MOVE);
             } else if (cardToPlay.rank === 'Q' || cardToPlay.rank === 'K') {
-                if (targets.length !== 1 || targets[0].rank !== cardToPlay.rank) throw new Error(`Можно взять только одну такую же картинку (${cardToPlay.rank})!`);
+                if (targets.length !== 1 || targets[0].rank !== cardToPlay.rank) throw new GameError(ErrorCode.INVALID_MOVE);
             } else {
-                if (targets.some(c => c.value === 0)) throw new Error("Нельзя использовать картинки для суммы 11!");
-                if (!this.isValidPartition(11 - cardToPlay.value, targets)) throw new Error("Карты не образуют сумму 11!");
+                if (targets.some(c => c.value === 0)) throw new GameError(ErrorCode.INVALID_MOVE);
+                if (!this.isValidPartition(11 - cardToPlay.value, targets)) throw new GameError(ErrorCode.INVALID_MOVE);
             }
         }
 
