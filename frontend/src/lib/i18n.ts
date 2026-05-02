@@ -164,7 +164,9 @@ const resources = {
       "err_guest_private_room": "Guests cannot create private tables. Link an account!",
       "err_guest_friend": "Adding friends is only available to registered players.",
       "err_guest_high_stakes": "Guests can only play at stakes up to 1000 coins.",
-      "err_guest_avatar": "Uploading avatars is not available for guests."
+      "err_guest_avatar": "Uploading avatars is not available for guests.",
+
+      "incognito_warn": "Warning!\nIncognito mode is disabled 🕵️‍♀️\n\nYour real name and avatar will be visible to other players. Are you sure you want to join the table without a mask?",
     }
   },
   ru: {
@@ -328,7 +330,9 @@ const resources = {
       "err_guest_private_room": "Гости не могут создавать приватные столы. Привяжите аккаунт!",
       "err_guest_friend": "Добавление в друзья доступно только зарегистрированным игрокам.",
       "err_guest_high_stakes": "Гости могут играть только на ставках до 1000 монет.",
-      "err_guest_avatar": "Загрузка аватарок недоступна для гостей."
+      "err_guest_avatar": "Загрузка аватарок недоступна для гостей.",
+
+      "incognito_warn": "Внимание!\nУ вас отключен режим Инкогнито 🕵️‍♀️\n\nВаше реальное имя и аватар будут видны другим игрокам. Вы точно хотите зайти за стол без маски?",
     }
   },
   az: {
@@ -492,7 +496,9 @@ const resources = {
       "err_guest_private_room": "Qonaqlar gizli masa yarada bilməz. Hesabınızı bağlayın!",
       "err_guest_friend": "Dost əlavə etmək yalnız qeydiyyatdan keçmiş oyunçular üçün mümkündür.",
       "err_guest_high_stakes": "Qonaqlar yalnız 1000 sikkəyə qədər mərclərlə oynaya bilərlər.",
-      "err_guest_avatar": "Avatar yükləmək qonaqlar üçün əlçatan deyil."
+      "err_guest_avatar": "Avatar yükləmək qonaqlar üçün əlçatan deyil.",
+
+      "incognito_warn": "Diqqət!\nİnkoqnito rejimi söndürülüb 🕵️‍♀️\n\nƏsl adınız və avatarınız digər oyunçulara görünəcək. Masaya maskasız daxil olmaq istədiyinizə əminsiniz?",
     }
   }
 };

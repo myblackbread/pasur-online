@@ -48,7 +48,13 @@ export default function AuthPage() {
         setIsLoading(true);
         try {
             await fbManager.login(provider, email, password, gender);
-            router.push('/dashboard');
+
+            // 🟢 ИСПРАВЛЕНИЕ ЗДЕСЬ:
+            // При Google Auth страница улетит на редирект, поэтому пушить роутер не нужно.
+            // Слушатель сессии в useEffect сам перекинет нас в дашборд после возвращения.
+            if (provider !== 'google') {
+                router.push('/dashboard');
+            }
         } catch (e: any) {
             showAlert(`${t('auth_error')} ${e.message}`);
             setIsLoading(false);

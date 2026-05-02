@@ -75,6 +75,14 @@ export default function LobbyView({ user }: { user: UserProfile }) {
         });
     };
 
+    const requireIncognitoCheck = (action: () => void) => {
+        if (user.gender === 'female' && !user.settings?.isIncognito) {
+            showConfirm(t('incognito_warn'), action);
+        } else {
+            action();
+        }
+    };
+
     return (
         <div className="p-4 md:p-6 max-w-4xl mx-auto relative">
             <div className="flex justify-between items-center mb-6 mt-4">
@@ -112,7 +120,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
 
             <div className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-border mb-8 flex gap-2 shadow-sm">
                 <input type="text" placeholder={t('lobby_game_code')} value={privateCode} onChange={e => setPrivateCode(e.target.value.toUpperCase())} className="flex-1 bg-theme-main border-2 border-theme-border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-theme-primary uppercase font-mono tracking-widest font-bold" />
-                <button onClick={handleJoinPrivate} className="bg-theme-primary hover:opacity-80 text-white px-6 font-bold rounded-xl transition-opacity">{t('btn_enter')}</button>
+                <button onClick={() => requireIncognitoCheck(handleJoinPrivate)} className="bg-theme-primary hover:opacity-80 text-white px-6 font-bold rounded-xl transition-opacity">{t('btn_enter')}</button>
             </div>
 
             <h2 className="text-xl font-black mb-4 opacity-80">{t('lobby_open_tables')}</h2>
@@ -136,7 +144,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="text-amber-500 font-black text-xl">{room.betAmount} 💰</div>
-                                <button onClick={() => router.push(`/game/${room.id}`)} className="bg-theme-primary text-white px-4 py-2 rounded-lg font-bold hover:opacity-80 transition-opacity">{t('btn_play')}</button>
+                                <button onClick={() => requireIncognitoCheck(() => router.push(`/game/${room.id}`))} className="bg-theme-primary text-white px-4 py-2 rounded-lg font-bold hover:opacity-80 transition-opacity">{t('btn_play')}</button>
                             </div>
                         </div>
                     ))
@@ -230,7 +238,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                             </label>
                         </div>
 
-                        <button onClick={handleCreateRoomSubmit} className="w-full bg-theme-primary hover:bg-opacity-80 text-white py-4 rounded-2xl font-black text-lg transition-all shadow-xl hover:-translate-y-1">
+                        <button onClick={() => requireIncognitoCheck(handleCreateRoomSubmit)} className="w-full bg-theme-primary hover:bg-opacity-80 text-white py-4 rounded-2xl font-black text-lg transition-all shadow-xl hover:-translate-y-1">
                             🚀 {t('modal_btn_submit')}
                         </button>
                     </div>

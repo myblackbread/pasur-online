@@ -70,23 +70,24 @@ export default function MainAppPage() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <main className="flex-1 overflow-y-auto pb-20">
+            <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 w-full">
                 {activeTab === 'lobby' && <LobbyView user={user} />}
                 {activeTab === 'profile' && <ProfileView user={user} />}
                 {activeTab === 'settings' && <SettingsView user={user} />}
             </main>
 
-            <nav className="fixed bottom-0 w-full bg-theme-panel/90 backdrop-blur-md border-t-4 border-theme-border pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-                <div className="flex justify-around items-center h-16 max-w-md mx-auto">
-                    <button onClick={() => setActiveTab('lobby')} className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'lobby' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
+            <nav className="fixed bottom-0 w-full bg-theme-panel/90 backdrop-blur-md border-t-4 border-theme-border pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
+                {/* 🟢 ИСПРАВЛЕНО: Теперь тут жесткая сетка из 3 колонок. Никаких сдвигов! */}
+                <div className="grid grid-cols-3 h-16 max-w-md mx-auto">
+                    <button onClick={() => setActiveTab('lobby')} className={`flex flex-col items-center justify-center p-2 transition-all ${activeTab === 'lobby' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
                         <span className="text-xl">🎲</span>
                         <span className="text-xs font-black mt-1">{t('nav_game')}</span>
                     </button>
-                    <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'profile' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
+                    <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center justify-center p-2 transition-all ${activeTab === 'profile' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
                         <span className="text-xl">👤</span>
                         <span className="text-xs font-black mt-1">{t('nav_profile')}</span>
                     </button>
-                    <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'settings' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
+                    <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center justify-center p-2 transition-all ${activeTab === 'settings' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
                         <span className="text-xl">⚙️</span>
                         <span className="text-xs font-black mt-1">{t('nav_settings')}</span>
                     </button>

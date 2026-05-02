@@ -169,9 +169,19 @@ class SupabaseManager {
         const channel = supabase.channel(`public_rooms_${Math.random().toString(36).substring(7)}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: 'is_private=eq.false' }, (payload) => {
                 if (payload.eventType === 'INSERT') {
-                    currentRooms = [mapRoom(payload.new), ...currentRooms];
+                    if (payload.new.status === 'waiting') {
+                        currentRooms = [mapRoom(payload.new), ...currentRooms];
+                    }
                 } else if (payload.eventType === 'UPDATE') {
-                    currentRooms = currentRooms.map(r => r.id === payload.new.id ? mapRoom(payload.new) : r);
+                    if (payload.new.status === 'waiting') {
+                        // Если статус всё еще waiting - обновляем или добавляем
+                        const index = currentRooms.findIndex(r => r.id === payload.new.id);
+                        if (index !== -1) currentRooms[index] = mapRoom(payload.new);
+                        else currentRooms.unshift(mapRoom(payload.new));
+                    } else {
+                        // 🟢 ЕСЛИ ИГРА СТАРТОВАЛА - УБИРАЕМ СТОЛ ИЗ ЛОББИ
+                        currentRooms = currentRooms.filter(r => r.id !== payload.new.id);
+                    }
                 } else if (payload.eventType === 'DELETE') {
                     currentRooms = currentRooms.filter(r => r.id !== payload.old.id);
                 }
