@@ -68,7 +68,6 @@ export async function runGlobalCleanup(adminDb: any) {
     if (stuckRooms) {
         for (const room of stuckRooms) {
             await adminDb.from("rooms").delete().eq("id", room.id);
-            await adminDb.from("room_secrets").delete().eq("room_id", room.id);
         }
     }
 

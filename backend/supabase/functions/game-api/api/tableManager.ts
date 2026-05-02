@@ -42,7 +42,6 @@ export async function resolveTable(adminDb: any, roomId: string, reason: LeaveRe
             }
         }
         await adminDb.from("rooms").delete().eq("id", roomId);
-        await adminDb.from("room_secrets").delete().eq("room_id", roomId);
         return { success: true };
     }
 
@@ -63,7 +62,6 @@ export async function resolveTable(adminDb: any, roomId: string, reason: LeaveRe
 
         if (remainingPlayers.length === 0) {
             await adminDb.from("rooms").delete().eq("id", roomId);
-            await adminDb.from("room_secrets").delete().eq("room_id", roomId);
         } else {
             const resetPlayers = remainingPlayers.map((p:any) => ({ ...p, isReady: false }));
             if (originalStatus === 'finished' && remainingPlayers[0].isReady) {
@@ -121,7 +119,6 @@ export async function resolveTable(adminDb: any, roomId: string, reason: LeaveRe
         }
 
         await adminDb.from("rooms").delete().eq("id", roomId);
-        await adminDb.from("room_secrets").delete().eq("room_id", roomId);
         return { success: true };
     }
 
@@ -186,7 +183,6 @@ export async function resolveTable(adminDb: any, roomId: string, reason: LeaveRe
             await adminDb.from("room_secrets").update({ real_uids: winnerSecrets }).eq("room_id", roomId);
         } else {
             await adminDb.from("rooms").delete().eq("id", roomId);
-            await adminDb.from("room_secrets").delete().eq("room_id", roomId);
         }
         return { success: true };
     }
