@@ -29,6 +29,7 @@ export class PasurGame {
     constructor(playerIds: string[], ruleSet: RuleSet = 'local', skipInit: boolean = false, preShuffledDeck?: Card[], isStrict: boolean = false, isSuddenDeath: boolean = false) {
         this.ruleSet = ruleSet;
         this.isStrict = isStrict;
+        this.isSuddenDeath = isSuddenDeath;
         
         this.players = playerIds.map((id, index) => ({
             id,
