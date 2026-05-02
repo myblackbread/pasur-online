@@ -9,7 +9,6 @@ export const GAME_CONFIG = {
 } as const;
 
 export type RuleSet = 'local' | 'classic';
-// 🟢 ДОБАВЛЕН СТАТУС pause_requested
 export type RoomStatus = 'waiting' | 'ready_check' | 'playing' | 'finished' | 'paused' | 'ready_check_resume' | 'pause_requested';
 
 export interface UserProfile {
@@ -37,6 +36,7 @@ export interface PlayerState {
 export interface GameState {
     ruleSet: RuleSet;
     isStrict: boolean;
+    isSuddenDeath?: boolean; // 🟢 Добавлено
     deck: Card[];
     deckCount?: number;
     table: Card[];
@@ -71,6 +71,7 @@ export interface GameRoom {
     betAmount: number;
     ruleSet: RuleSet;
     isStrict: boolean;
+    isSuddenDeath?: boolean; // 🟢 Добавлено
     turnDuration?: number;
     status: RoomStatus;
     createdAt: number;

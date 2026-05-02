@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { fbManager } from '@/lib/supabaseManager'; // 🟢 Убран ErrorTranslations
+import { fbManager } from '@/lib/supabaseManager'; 
 import { GameRoom, UserProfile, Card, GameState } from '@/types';
 import { useAlert } from '@/components/AlertProvider';
 import { useTranslation } from 'react-i18next';
@@ -80,7 +80,6 @@ export default function GameRoomPage() {
 
     const [allActiveRooms, setAllActiveRooms] = useState<GameRoom[]>([]);
 
-    // 1. Подписка на авторизацию и данные пользователя
     useEffect(() => {
         if (typeof window !== 'undefined') setMyMask(sessionStorage.getItem(`pasur_mask_${roomId}`));
         let unsubUser: (() => void) | undefined;
@@ -101,11 +100,9 @@ export default function GameRoomPage() {
         return () => { subscription.unsubscribe(); if (unsubUser) unsubUser(); };
     }, [roomId, router]);
 
-    // 2. 🟢 Подписка на комнаты (запускается, когда user обновился)
     useEffect(() => {
-        if (!user) return; // Ждем загрузки юзера
+        if (!user) return; 
 
-        // Собираем уникальный список ID комнат: текущая + все активные
         const roomsToFetch = Array.from(new Set([roomId, ...(user.activeRooms || [])]));
 
         const unsubRoom = fbManager.subscribeToRoomsByIds(roomsToFetch, (rooms) => {
@@ -141,7 +138,6 @@ export default function GameRoomPage() {
     }, [user?.activeRooms, roomId, router, showAlert]);
 
     useEffect(() => {
-        // 🟢 ИСПОЛЬЗУЕТСЯ НОВЫЙ МЕТОД getMyMask
         if (!myMask && user && roomData && !hasAttemptedFetchMask.current) {
             hasAttemptedFetchMask.current = true;
             fbManager.getMyMask(roomId).then(mask => {
@@ -209,14 +205,12 @@ export default function GameRoomPage() {
         let timeout: NodeJS.Timeout;
         let interval: NodeJS.Timeout;
 
-        // Timeout победы только если статус 'playing'
         if (roomData?.status === 'playing' && !isMyTurnSafe && !isSpectatorSafe && turnTimeLeft === 0) {
             const attemptKick = () => { if (!isProcessing.current) claimTimeoutVictory(); };
             timeout = setTimeout(attemptKick, 6000);
             interval = setInterval(attemptKick, 3000);
         }
 
-        // Timeout авто-отклонения паузы
         if (roomData?.status === 'pause_requested' && turnTimeLeft === 0) {
             fbManager.resolvePauseTimeout(roomId);
         }
@@ -227,7 +221,7 @@ export default function GameRoomPage() {
     useEffect(() => {
         let timeout: NodeJS.Timeout;
         let interval: NodeJS.Timeout;
-        if ((roomData?.status === 'ready_check' || roomData?.status === 'ready_check_resume') && readyTimeLeft === 0 && isPlayer0) {
+        if ((roomData?.status === 'ready_check' || roomData?.status === 'ready_check_resume') && readyTimeLeft === 0) {
             const attemptResolve = () => {
                 if (!isProcessing.current) {
                     isProcessing.current = true;
@@ -238,7 +232,7 @@ export default function GameRoomPage() {
             interval = setInterval(attemptResolve, 3000);
         }
         return () => { if (timeout) clearTimeout(timeout); if (interval) clearInterval(interval); };
-    }, [roomData?.status, readyTimeLeft, roomId, isPlayer0]);
+    }, [roomData?.status, readyTimeLeft, roomId]);
 
     const handleJoinClick = () => {
         setIsJoining(true);
@@ -246,13 +240,11 @@ export default function GameRoomPage() {
     };
 
     const handleLeaveOrSurrender = () => {
-        // Уходим с потерей ставки если игра в процессе или на паузе
         const isPlaying = roomData?.status === 'playing' || roomData?.status === 'pause_requested' || roomData?.status === 'paused' || roomData?.status === 'ready_check_resume';
         showConfirm(isPlaying ? t('game_surrender_confirm') : t('game_leave_table'), async () => {
             isProcessing.current = true;
             try {
                 await fbManager.leaveRoom(roomId, isPlaying ? 'surrender' : 'leave');
-
                 sessionStorage.removeItem(`pasur_mask_${roomId}`);
                 setMyMask(null);
                 router.replace('/dashboard');
@@ -280,7 +272,6 @@ export default function GameRoomPage() {
         isProcessing.current = true;
 
         try {
-            // 🟢 ИСПОЛЬЗУЕТСЯ НОВЫЙ МЕТОД playCard
             await fbManager.playCard(roomId, card.id, selectedTableCards);
             setSelectedTableCards([]);
         } catch (e: any) {
@@ -302,7 +293,6 @@ export default function GameRoomPage() {
     const isAnon = (id: string | null | undefined) => id?.startsWith('anon_');
     const renderAvatar = (id: string | null | undefined) => isAnon(id) ? '👤' : '😎';
 
-    // ЭКРАНЫ ЛОББИ И ОЖИДАНИЯ
     if (roomData.status === 'waiting' || roomData.status === 'ready_check' || roomData.status === 'ready_check_resume' || roomData.status === 'paused') {
         const isFull = roomData.players.length === roomData.maxPlayers;
         const isPaused = roomData.status === 'paused';
@@ -320,7 +310,14 @@ export default function GameRoomPage() {
                         <span>{renderAvatar(roomData.players[0]?.id)}</span>
                         <span>{t('game_table')} {roomData.players[0]?.name || t('game_player')}</span>
                     </h2>
-                    <p className="mb-6 text-amber-500 font-black text-xl">{t('game_bet')} {roomData.betAmount} 💰</p>
+                    <p className="mb-2 text-amber-500 font-black text-xl">{t('game_bet')} {roomData.betAmount} 💰</p>
+                    
+                    {/* 🟢 ИНФО О ПРАВИЛАХ СТОЛА (Добавлен тег Досрочной победы) */}
+                    <div className="text-xs opacity-70 font-medium mb-6">
+                        {roomData.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
+                        {roomData.isStrict && <span className="ml-2 text-red-500 font-black">{t('rule_strict')}</span>}
+                        {roomData.isSuddenDeath && <span className="ml-2 text-amber-500 font-black">{t('rule_sudden_death')} ⚡</span>}
+                    </div>
 
                     <div className="space-y-3 mb-6 text-left">
                         {Array.from({ length: roomData.maxPlayers }).map((_, i) => {
@@ -372,12 +369,15 @@ export default function GameRoomPage() {
 
             {/* ТОП-БАР */}
             <div className="flex-shrink-0 w-full max-w-4xl mx-auto bg-theme-panel border-4 border-theme-border p-3 sm:p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                <div className="font-mono font-black text-sm sm:text-xl text-theme-text">
+                <div className="font-mono font-black text-sm sm:text-xl text-theme-text flex items-center">
                     <span className="opacity-70 text-[10px] sm:text-sm mr-1 sm:mr-2">{isSpectatorSafe ? t('game_player_1') : t('game_you')}</span>
                     <span className="text-theme-primary">{game.matchScores[me.teamId] || 0}</span>
                     <span className="mx-1 sm:mx-2 opacity-50">:</span>
                     <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
                     <span className="opacity-70 text-[10px] sm:text-sm ml-1 sm:ml-2">{isSpectatorSafe ? t('game_player_2') : t('game_opp')}</span>
+                    
+                    {/* 🟢 Иконка молнии во время активной игры (чтобы не забыли) */}
+                    {roomData.isSuddenDeath && <span className="ml-3 text-amber-500 text-lg opacity-70 animate-pulse" title={t('rule_sudden_death')}>⚡</span>}
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
                     {!isSpectatorSafe && (
@@ -489,7 +489,7 @@ export default function GameRoomPage() {
                 </div>
             )}
 
-            {/* 🟢 МОДАЛКА ОКОНЧАНИЯ МАТЧА ИЛИ РАУНДА */}
+            {/* МОДАЛКА ОКОНЧАНИЯ МАТЧА ИЛИ РАУНДА */}
             {(game.isRoundOver || game.isMatchOver) && !isSpectatorSafe && !animatingAction && roomData.status !== 'pause_requested' && (
                 <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-theme-panel p-6 sm:p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-300">
@@ -514,7 +514,6 @@ export default function GameRoomPage() {
                                 <div className="flex flex-col gap-3">
                                     {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(e.message))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
 
-                                    {/* Кнопка запроса паузы доступна только если раунд окончен, но матч еще нет */}
                                     {roomData.status === 'playing' && (
                                         <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">
                                             {t('game_pause_btn')}
@@ -527,7 +526,7 @@ export default function GameRoomPage() {
                 </div>
             )}
 
-            {/* 🟢 МОДАЛКА: ЗАПРОС НА ПАУЗУ */}
+            {/* МОДАЛКА: ЗАПРОС НА ПАУЗУ */}
             {roomData.status === 'pause_requested' && !isSpectatorSafe && (
                 <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-theme-panel p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-200">

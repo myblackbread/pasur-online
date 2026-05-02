@@ -8,7 +8,8 @@ export async function devAddMoney(user: any, adminDb: any) {
 }
 
 export async function secureCreateRoom(data: any, user: any, adminDb: any) {
-    const { betAmount, ruleSet, isPrivate, maxPlayers = 2, isStrict = true, turnDuration = GAME_CONFIG.DEFAULT_TURN_DURATION } = data;
+    // 🟢 ИСПРАВЛЕНО: Достаем isSuddenDeath из data
+    const { betAmount, ruleSet, isPrivate, maxPlayers = 2, isStrict = true, isSuddenDeath = false, turnDuration = GAME_CONFIG.DEFAULT_TURN_DURATION } = data;
 
     if (!GAME_CONFIG.ALLOWED_BETS.includes(betAmount)) throw new GameError(ErrorCode.INVALID_REQUEST, "Invalid bet amount");
     if (!GAME_CONFIG.ALLOWED_SPEEDS.includes(turnDuration)) throw new GameError(ErrorCode.INVALID_REQUEST, "Invalid turn duration");
@@ -28,6 +29,7 @@ export async function secureCreateRoom(data: any, user: any, adminDb: any) {
         rule_set: ruleSet,
         is_private: !!isPrivate,
         is_strict: !!isStrict,
+        is_sudden_death: !!isSuddenDeath, // 🟢 ИСПРАВЛЕНО: Сохраняем в БД
         max_players: maxPlayers,
         turn_duration: turnDuration,
         status: 'waiting',

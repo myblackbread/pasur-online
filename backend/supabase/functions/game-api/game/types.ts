@@ -12,7 +12,7 @@ export interface Card {
 
 export interface Player { 
     id: string; 
-    teamId: number; // 0 или 1
+    teamId: number; 
     hand: Card[]; 
     captured: Card[]; 
     surs: number; 

@@ -4,6 +4,7 @@ import { GameError, ErrorCode } from "../errors.ts";
 
 export class PasurGame {
     isStrict: boolean = false;
+    isSuddenDeath: boolean = false;
     ruleSet: RuleSet;
     deck: Card[] = [];
     table: Card[] = [];
@@ -18,7 +19,6 @@ export class PasurGame {
     matchWinnerTeamId: number | null = null;
     roundNumber: number = 1;
     
-    // 🟢 ДОБАВЛЕНО: Хранилище последнего действия для анимации
     lastAction: {
         playerId: string;
         playedCard: Card;
@@ -26,7 +26,7 @@ export class PasurGame {
         timestamp: number;
     } | null = null;
 
-    constructor(playerIds: string[], ruleSet: RuleSet = 'local', skipInit: boolean = false, preShuffledDeck?: Card[], isStrict: boolean = false) {
+    constructor(playerIds: string[], ruleSet: RuleSet = 'local', skipInit: boolean = false, preShuffledDeck?: Card[], isStrict: boolean = false, isSuddenDeath: boolean = false) {
         this.ruleSet = ruleSet;
         this.isStrict = isStrict;
         
@@ -41,13 +41,49 @@ export class PasurGame {
         }
     }
 
+    public getLiveScores(): { [teamId: number]: number } {
+        const getTeamScore = (teamId: number) => {
+            const teamPlayers = this.players.filter(p => p.teamId === teamId);
+            const allCaptured = teamPlayers.flatMap(p => p.captured);
+            
+            let score = this.matchScores[teamId] || 0;
+            
+            // В классике очки считаются только в конце (суры не даем в лайве, они сложны)
+            // А вот в local очки зачисляются "на лету"
+            if (this.ruleSet === 'local') {
+                if (allCaptured.length >= 27) score += 2;
+                if (allCaptured.filter(c => c.suit === '♣').length >= 7) score += 1;
+                if (allCaptured.some(c => c.rank === '10' && c.suit === '♦')) score += 1;
+                if (allCaptured.some(c => c.rank === '2' && c.suit === '♣')) score += 1;
+            }
+            return score;
+        };
+
+        return { 0: getTeamScore(0), 1: getTeamScore(1) };
+    }
+
+    private checkSuddenDeath() {
+        if (this.ruleSet !== 'local'|| !this.isSuddenDeath) return;
+
+        const liveScores = this.getLiveScores();
+        const score0 = liveScores[0];
+        const score1 = liveScores[1];
+
+        // Мгновенная победа, если счет пробил 11 очков
+        if (score0 >= 11 || score1 >= 11) {
+            this.isRoundOver = true;
+            this.isMatchOver = true;
+            this.matchWinnerTeamId = score0 >= 11 ? 0 : 1; 
+        }
+    }
+
     public startNewRound(shuffledDeck: Card[]) {
         this.isRoundOver = false;
         this.deck = shuffledDeck;
         this.table = [];
         this.dealerReservedJacks = [];
         this.lastCapturerTeamId = null;
-        this.lastAction = null; // 🟢 Сбрасываем историю в новом раунде
+        this.lastAction = null; 
 
         this.players.forEach(p => { p.hand = []; p.captured = []; p.surs = 0; });
         this.currentTurnIndex = (this.roundNumber - 1) % this.players.length;
@@ -87,16 +123,13 @@ export class PasurGame {
             return table.some(c => c.rank !== 'Q' && c.rank !== 'K');
         }
         
-        // Для цифр и тузов: рекурсивно ищем, есть ли на столе сумма 11 - card.value
         const target = 11 - card.value;
-        const validCards = table.filter(c => c.value > 0); // Игнорируем картинки
+        const validCards = table.filter(c => c.value > 0); 
 
         const hasSubsetSum = (cards: Card[], targetSum: number): boolean => {
             if (targetSum === 0) return true;
             if (targetSum < 0 || cards.length === 0) return false;
-            // Берем текущую карту в сумму
             if (hasSubsetSum(cards.slice(1), targetSum - cards[0].value)) return true;
-            // Пропускаем текущую карту
             if (hasSubsetSum(cards.slice(1), targetSum)) return true;
             return false;
         };
@@ -171,7 +204,7 @@ export class PasurGame {
             }
         }
         
-        const capturedCardsClone = [...targets]; // Сохраняем копию для истории
+        const capturedCardsClone = [...targets]; 
 
         if (targets.length > 0) {
             if (cardToPlay.rank === 'J') {
@@ -184,7 +217,6 @@ export class PasurGame {
             }
         }
 
-        // 🟢 ДОБАВЛЕНО: Записываем действие перед тем, как изменить стейт
         this.lastAction = {
             playerId: playerId,
             playedCard: cardToPlay,
@@ -208,7 +240,10 @@ export class PasurGame {
 
         this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
 
-        if (this.players.every(p => p.hand.length === 0)) {
+        // 🟢 Проверяем досрочную победу для режима Local ПЕРЕД окончанием раунда!
+        this.checkSuddenDeath();
+
+        if (!this.isMatchOver && this.players.every(p => p.hand.length === 0)) {
             if (this.deck.length > 0) this.dealCards();
             else this.endRound();
         }

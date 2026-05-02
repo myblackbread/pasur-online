@@ -49,14 +49,15 @@ const resources = {
       "rule_classic": "Classic",
       "rule_local": "Local",
       "rule_strict": "STRICT",
+      "rule_sudden_death": "SUDDEN DEATH", // 🟢 Добавлено
       "lobby_seats": "seats",
       "btn_play": "Play",
       "modal_create_title": "Create table",
       "modal_private_table": "Private table",
       "modal_strict_mode": "Strict mode",
+      "modal_sudden_death": "Sudden Death", // 🟢 Добавлено
       "btn_cancel": "Cancel",
       
-      // 🟢 НОВЫЕ КЛЮЧИ ДЛЯ МОДАЛКИ СТОЛА
       "modal_setup_title": "Table Setup",
       "modal_bet_label": "Bet (Coins)",
       "modal_speed_label": "Turn Time",
@@ -212,14 +213,15 @@ const resources = {
       "rule_classic": "Классика",
       "rule_local": "Локальные",
       "rule_strict": "СТРОГИЙ",
+      "rule_sudden_death": "ДОСРОЧНАЯ ПОБЕДА", // 🟢 Добавлено
       "lobby_seats": "мест",
       "btn_play": "Играть",
       "modal_create_title": "Создать стол",
       "modal_private_table": "Приватный стол",
       "modal_strict_mode": "Строгий режим",
+      "modal_sudden_death": "Досрочная победа", // 🟢 Добавлено
       "btn_cancel": "Отмена",
       
-      // 🟢 НОВЫЕ КЛЮЧИ ДЛЯ МОДАЛКИ СТОЛА
       "modal_setup_title": "Настройка стола",
       "modal_bet_label": "Ставка (Монеты)",
       "modal_speed_label": "Время на ход",
@@ -320,7 +322,7 @@ const resources = {
       "admin_actions": "Действия",
       "admin_btn_kick": "УДАЛИТЬ",
 
-      "loading_profile": "Загрузка профиля...",
+      "loading_profile": "Профиль загружается...",
 
       "err_auth_required": "Пожалуйста, войдите в систему.",
       "err_guest_private_room": "Гости не могут создавать приватные столы. Привяжите аккаунт!",
@@ -375,14 +377,15 @@ const resources = {
       "rule_classic": "Klassik",
       "rule_local": "Lokal",
       "rule_strict": "CİDDİ",
+      "rule_sudden_death": "ERKƏN QƏLƏBƏ", // 🟢 Добавлено
       "lobby_seats": "yer",
       "btn_play": "Oyna",
       "modal_create_title": "Masa yarat",
       "modal_private_table": "Gizli masa",
       "modal_strict_mode": "Ciddi rejim",
+      "modal_sudden_death": "Erkən Qələbə", // 🟢 Добавлено
       "btn_cancel": "Ləğv et",
       
-      // 🟢 НОВЫЕ КЛЮЧИ ДЛЯ МОДАЛКИ СТОЛА
       "modal_setup_title": "Masa tənzimləmələri",
       "modal_bet_label": "Mərc (Sikkə)",
       "modal_speed_label": "Gediş vaxtı",

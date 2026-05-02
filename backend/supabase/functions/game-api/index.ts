@@ -14,13 +14,12 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Роутер
 const apiRoutes: Record<string, Function> = {
     devAddMoney, secureCreateRoom, secureJoinRoom, secureToggleReady,
     secureResolveReadyTimeout, secureProposePause, secureAnswerPauseRequest,
     secureResolvePauseTimeout, securePlayCard, secureLeaveRoom, secureNextRound,
     secureGetMyMask, secureSendReaction, secureRematch, adminDeleteUser, 
-    runGlobalCleanup // 🟢 РЕГИСТРИРУЕМ В РОУТЕРЕ
+    runGlobalCleanup 
 };
 
 serve(async (req) => {
@@ -30,13 +29,13 @@ serve(async (req) => {
         const { action, data } = await req.json();
         const authHeader = req.headers.get('Authorization');
         
-        if (!authHeader) throw new GameError(ErrorCode.UNAUTHORIZED); // 🟢 ИСПОЛЬЗУЕМ GAME ERROR
+        if (!authHeader) throw new GameError(ErrorCode.UNAUTHORIZED);
 
         const token = authHeader.replace('Bearer ', '').trim();
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
         if (!apiRoutes[action]) {
-            throw new Error(`Неизвестное действие: ${action}`); // Это системная ошибка, оставляем обычный Error
+            throw new Error(`Неизвестное действие: ${action}`); 
         }
 
         const adminDb = createClient(
@@ -68,11 +67,9 @@ serve(async (req) => {
         
     } catch (err: any) {
         if (err instanceof GameError) {
-            // Если это наша игровая ошибка, отдаем ее код на фронт (например: "ERR_NOT_ENOUGH_MONEY")
             return new Response(JSON.stringify({ error: err.code }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
         }
         
-        // Если база упала или код сломался - логируем детали в Supabase Dashboard, а юзеру отдаем заглушку
         console.error("🔥 Системная ошибка:", err);
         return new Response(JSON.stringify({ error: ErrorCode.INTERNAL_SERVER_ERROR }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }

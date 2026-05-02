@@ -2,8 +2,8 @@ import { PasurGame } from "../game/PasurGame.ts";
 import { createShuffledDeck } from "../game/deck.ts";
 import { GameError, ErrorCode } from "../errors.ts";
 import { GAME_CONFIG } from "../constants.ts";
+import { resolveTable, calculateWinPayout } from "./tableManager.ts";
 
-// 🟢 НОВЫЙ ХЕЛПЕР: Сохраняет стейт игры, пряча колоду в секреты
 async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, game: PasurGame) {
     const currentDeck = game.deck;
     game.deck = [];
@@ -75,7 +75,12 @@ export async function secureAnswerPauseRequest(data: any, user: any, adminDb: an
     }
 
     if (accept) {
-        await adminDb.from("rooms").update({ status: 'paused', pause_proposals: [], turn_deadline: null }).eq("id", roomId);
+        await adminDb.from("rooms").update({ 
+            status: 'paused', 
+            pause_proposals: [], 
+            turn_deadline: null,
+            ready_deadline: Date.now() + 86400000 
+        }).eq("id", roomId);
     } else {
         await adminDb.from("rooms").update({ status: 'playing', pause_proposals: [], turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) }).eq("id", roomId);
     }
@@ -110,20 +115,22 @@ export async function securePlayCard(data: any, user: any, adminDb: any) {
     const publicUid = Object.keys(secrets).find(key => secrets[key] === uid);
     if (!publicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
-    const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict);
+    if (roomData.status !== 'playing') throw new GameError(ErrorCode.WRONG_ROUND_STATE);
+
+    // 🟢 ИСПРАВЛЕНО: Передаем roomData.is_sudden_death 6-м аргументом
+    const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict, roomData.is_sudden_death);
     Object.assign(game, roomData.game_state);
 
     game.deck = secretDoc.deck || [];
     game.playCard(publicUid, cardId, targetCardIds);
 
-    // 🟢 ФИКС: Используем хелпер, если матч продолжается
     if (game.isMatchOver && game.matchWinnerTeamId !== null) {
         game.deckCount = game.deck.length;
         game.deck = [];
 
-        const pot = roomData.bet_amount * roomData.max_players;
         const winners = game.players.filter((p: any) => p.teamId === game.matchWinnerTeamId);
-        const winPerPlayer = pot / winners.length;
+        
+        const winPerPlayer = calculateWinPayout(roomData.bet_amount, roomData.max_players, winners.length);
 
         for (const realId of Object.values(secrets) as string[]) {
             await adminDb.rpc('remove_active_room', { user_id: realId, room_id: roomId });
@@ -150,90 +157,29 @@ export async function secureLeaveRoom(data: any, user: any, adminDb: any) {
 
     const { data: roomData } = await adminDb.from("rooms").select("*").eq("id", roomId).single();
     const { data: secretDoc } = await adminDb.from("room_secrets").select("*").eq("room_id", roomId).single();
-    if (!roomData) return { success: false };
+    if (!roomData || !secretDoc) return { success: false };
 
-    const secrets = secretDoc?.real_uids || {};
+    const secrets = secretDoc.real_uids || {};
     const callerPublicUid = Object.keys(secrets).find(k => secrets[k] === uid);
     if (!callerPublicUid) throw new GameError(ErrorCode.NOT_IN_ROOM);
 
     if (roomData.status === 'ready_check') throw new GameError(ErrorCode.INVALID_MOVE);
 
-    if (roomData.status === 'playing' || roomData.status === 'paused' || roomData.status === 'ready_check_resume' || roomData.status === 'pause_requested') {
-        let loserPublicId = callerPublicUid;
+    let targetPublicId = callerPublicUid;
 
-        if (reason === 'timeout') {
-            if (roomData.status !== 'playing') throw new GameError(ErrorCode.INVALID_MOVE);
-            if (Date.now() < (roomData.turn_deadline || 0)) throw new GameError(ErrorCode.INVALID_MOVE);
-            const activePlayerIndex = roomData.game_state.currentTurnIndex;
-            loserPublicId = roomData.players[activePlayerIndex].id;
-            if (loserPublicId === callerPublicUid) throw new GameError(ErrorCode.INVALID_MOVE);
-        }
-
-        const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict);
-        if (roomData.game_state) Object.assign(game, roomData.game_state);
-
-        const losingPlayer = game.players.find((p: any) => p.id === loserPublicId);
-        const winningTeamId = losingPlayer?.teamId === 0 ? 1 : 0;
-        const winners = game.players.filter((p: any) => p.teamId === winningTeamId);
-        const pot = roomData.bet_amount * roomData.max_players;
-        const winPerPlayer = pot / winners.length;
-
-        const loserRealId = secrets[loserPublicId];
-        if (loserRealId) await adminDb.rpc('remove_active_room', { user_id: loserRealId, room_id: roomId });
-
-        const newRealUids: any = {};
-        const newPlayers: any[] = [];
-
-        for (const w of winners) {
-            const realId = secrets[w.id];
-            if (realId) {
-                await adminDb.rpc('increment_balance', { user_id: realId, amount: winPerPlayer });
-                await adminDb.rpc('remove_active_room', { user_id: realId, room_id: roomId });
-                newRealUids[w.id] = realId;
-                const pData = roomData.players.find((p: any) => p.id === w.id);
-                if (pData) newPlayers.push({ ...pData, isReady: false });
-            }
-        }
-
-        await adminDb.from("room_secrets").update({ real_uids: newRealUids }).eq("room_id", roomId);
-        const msg = reason === 'timeout' ? "Оппонент исключен за бездействие!" : "Оппонент сдался (вышел)!";
-
-        await adminDb.from("rooms").update({
-            status: 'waiting', players: newPlayers, game_state: null, turn_deadline: null, pause_proposals: [],
-            admin_message: `${winners[0].id}|${msg} Банк ваш!|${Math.random().toString(36).substring(2, 8)}`
-        }).eq("id", roomId);
-
-    } else if (roomData.status === 'waiting' || roomData.status === 'finished') {
-        const callerPlayer = roomData.players.find((p: any) => p.id === callerPublicUid);
-
-        if (roomData.status === 'waiting' || (roomData.status === 'finished' && callerPlayer?.isReady)) {
-            await adminDb.rpc('increment_balance', { user_id: uid, amount: roomData.bet_amount });
-            await adminDb.rpc('remove_active_room', { user_id: uid, room_id: roomId });
-        } else if (roomData.status === 'finished') {
-            await adminDb.rpc('remove_active_room', { user_id: uid, room_id: roomId });
-        }
-
-        const remainingPlayers = roomData.players.filter((p: any) => p.id !== callerPublicUid);
-        delete secrets[callerPublicUid];
-
-        if (remainingPlayers.length === 0) {
-            await adminDb.from("rooms").delete().eq("id", roomId);
-            await adminDb.from("room_secrets").delete().eq("room_id", roomId);
-        } else {
-            const remainingPlayer = remainingPlayers[0];
-            if (roomData.status === 'finished' && remainingPlayer.isReady) {
-                const remainingRealId = secrets[remainingPlayer.id];
-                if (remainingRealId) {
-                    await adminDb.rpc('increment_balance', { user_id: remainingRealId, amount: roomData.bet_amount });
-                    await adminDb.rpc('remove_active_room', { user_id: remainingRealId, room_id: roomId });
-                }
-                remainingPlayer.isReady = false;
-            }
-
-            await adminDb.from("room_secrets").update({ real_uids: secrets }).eq("room_id", roomId);
-            await adminDb.from("rooms").update({ players: remainingPlayers, status: 'waiting', game_state: null }).eq("id", roomId);
-        }
+    if (reason === 'timeout') {
+        if (roomData.status !== 'playing') throw new GameError(ErrorCode.INVALID_MOVE);
+        if (Date.now() < (roomData.turn_deadline || 0)) throw new GameError(ErrorCode.INVALID_MOVE);
+        
+        const activePlayerIndex = roomData.game_state?.currentTurnIndex || 0;
+        targetPublicId = roomData.players[activePlayerIndex]?.id;
+        
+        if (targetPublicId === callerPublicUid) throw new GameError(ErrorCode.INVALID_MOVE);
     }
+
+    const leaveReason = reason === 'timeout' ? 'timeout' : (['playing', 'paused', 'ready_check_resume'].includes(roomData.status) ? 'surrender' : 'lobby_leave');
+    await resolveTable(adminDb, roomId, leaveReason, targetPublicId);
+
     return { success: true };
 }
 
@@ -250,7 +196,8 @@ export async function secureNextRound(data: any, user: any, adminDb: any) {
     const secrets = secretDoc?.real_uids || {};
     if (!Object.values(secrets).includes(uid)) throw new GameError(ErrorCode.UNAUTHORIZED);
 
-    const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict);
+    // 🟢 ИСПРАВЛЕНО: Передаем roomData.is_sudden_death 6-м аргументом
+    const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict, roomData.is_sudden_death);
     Object.assign(game, roomData.game_state);
 
     if (!game.isRoundOver) throw new GameError(ErrorCode.WRONG_ROUND_STATE);
@@ -258,7 +205,6 @@ export async function secureNextRound(data: any, user: any, adminDb: any) {
 
     game.startNewRound(createShuffledDeck(game.roundNumber));
 
-    // 🟢 ФИКС: Используем хелпер
     await saveActiveGameState(adminDb, roomId, roomData, game);
 
     return { success: true };

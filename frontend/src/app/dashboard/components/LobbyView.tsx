@@ -15,12 +15,14 @@ export default function LobbyView({ user }: { user: UserProfile }) {
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isSurrendering, setIsSurrendering] = useState(false);
+    
     const [createConfig, setCreateConfig] = useState({
         bet: 100,
         speed: 30000,
         players: 2,
         ruleSet: 'local' as RuleSet,
         isStrict: true,
+        isSuddenDeath: false, // 🟢 ТЕПЕРЬ ТИП УКАЗАН
         isPrivate: false
     });
 
@@ -33,6 +35,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 createConfig.ruleSet,
                 createConfig.isPrivate,
                 createConfig.isStrict,
+                createConfig.isSuddenDeath,
                 createConfig.players,
                 createConfig.speed
             );
@@ -126,6 +129,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                     <div className="text-xs opacity-70 font-medium">
                                         {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
                                         {room.isStrict && <span className="ml-2 text-red-500 font-black">{t('rule_strict')}</span>}
+                                        {room.isSuddenDeath && <span className="ml-2 text-amber-500 font-black" title={t('rule_sudden_death')}>⚡</span>}
                                         <span className="ml-2 text-theme-primary font-black">({room.players.length}/{room.maxPlayers} {t('lobby_seats')})</span>
                                     </div>
                                 </div>
@@ -187,7 +191,16 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 <div className="text-2xl">{createConfig.players === 2 ? '👥' : '👨‍👩‍👧‍👦'}</div>
                                 <div className="font-bold text-sm text-theme-text">{createConfig.players} {t('modal_players_count')}</div>
                             </div>
-                            <div className="bg-theme-main p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" onClick={() => setCreateConfig({ ...createConfig, ruleSet: createConfig.ruleSet === 'local' ? 'classic' : 'local' })}>
+                            <div className="bg-theme-main p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" 
+                                onClick={() => {
+                                    const newRule = createConfig.ruleSet === 'local' ? 'classic' : 'local';
+                                    setCreateConfig({ 
+                                        ...createConfig, 
+                                        ruleSet: newRule,
+                                        isSuddenDeath: newRule === 'classic' ? false : createConfig.isSuddenDeath
+                                    });
+                                }}
+                            >
                                 <div className="text-2xl">{createConfig.ruleSet === 'local' ? '🏡' : '🏛️'}</div>
                                 <div className="font-bold text-sm text-theme-text">{createConfig.ruleSet === 'local' ? t('rule_local') : t('rule_classic')}</div>
                             </div>
@@ -199,6 +212,17 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 <span className="font-bold text-theme-text group-hover:text-red-400 transition">⚖️ {t('modal_strict_mode')}</span>
                                 <input type="checkbox" className="w-5 h-5 accent-red-500 rounded" checked={createConfig.isStrict} onChange={e => setCreateConfig({ ...createConfig, isStrict: e.target.checked })} />
                             </label>
+                            
+                            {createConfig.ruleSet === 'local' && (
+                                <>
+                                    <div className="h-px w-full bg-theme-border/50"></div>
+                                    <label className="flex justify-between items-center cursor-pointer group">
+                                        <span className="font-bold text-theme-text group-hover:text-amber-500 transition">⚡ {t('modal_sudden_death')}</span>
+                                        <input type="checkbox" className="w-5 h-5 accent-amber-500 rounded" checked={createConfig.isSuddenDeath} onChange={e => setCreateConfig({ ...createConfig, isSuddenDeath: e.target.checked })} />
+                                    </label>
+                                </>
+                            )}
+                            
                             <div className="h-px w-full bg-theme-border/50"></div>
                             <label className="flex justify-between items-center cursor-pointer group">
                                 <span className="font-bold text-theme-text group-hover:text-theme-primary transition">🔒 {t('modal_private_table')}</span>

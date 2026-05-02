@@ -6,10 +6,13 @@ import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useAlert } from '@/components/AlertProvider'; // 🟢 ДОБАВЛЕН ИМПОРТ
 
 export default function SettingsView({ user }: { user: UserProfile }) {
     const { t } = useTranslation();
     const router = useRouter();
+    const { showAlert, showConfirm } = useAlert(); // 🟢 ПОДКЛЮЧЕН КАСТОМНЫЙ АЛЕРТ
+
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [sbUser, setSbUser] = useState<User | null>(null);
     const [isLinking, setIsLinking] = useState(false);
@@ -25,20 +28,21 @@ export default function SettingsView({ user }: { user: UserProfile }) {
     }, []);
 
     const handleLogout = async () => {
-        if (confirm(t('logout_confirm'))) {
+        // 🟢 ЗАМЕНЕН СИСТЕМНЫЙ confirm НА showConfirm
+        showConfirm(t('settings_logout_confirm'), async () => {
             await supabase.auth.signOut();
             localStorage.removeItem('pasurUid');
             router.push('/');
-        }
+        });
     };
 
     const handleLinkGoogle = async () => {
         setIsLinking(true);
         try {
             await fbManager.linkGoogleAccount();
-            alert(t('settings_google_linked'));
+            showAlert(t('settings_google_linked')); // 🟢 ЗАМЕНЕН СИСТЕМНЫЙ alert
         } catch (error: any) {
-            alert(error.message);
+            showAlert(error.message); // 🟢 ЗАМЕНЕН СИСТЕМНЫЙ alert
         } finally {
             setIsLinking(false);
         }
@@ -53,7 +57,7 @@ export default function SettingsView({ user }: { user: UserProfile }) {
         } catch (error) {
             console.error("Ошибка обновления настроек приватности", error);
             setIsIncognito(!newValue); 
-            alert(t('settings_update_error'));
+            showAlert(t('settings_update_error')); // 🟢 ЗАМЕНЕН СИСТЕМНЫЙ alert
         }
     };
 

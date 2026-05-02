@@ -20,6 +20,7 @@ const mapRoom = (data: any): GameRoom => ({
     betAmount: data.bet_amount,
     ruleSet: data.rule_set,
     isStrict: data.is_strict ?? true,
+    isSuddenDeath: data.is_sudden_death ?? false, // 🟢 Добавлено
     turnDuration: data.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION,
     isPrivate: data.is_private,
     joinCode: data.join_code,
@@ -212,9 +213,10 @@ class SupabaseManager {
 
     /* ================= API ВЫЗОВЫ ================= */
 
-    async createRoom(creator: UserProfile, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
+    // 🟢 ИСПРАВЛЕНО: Добавлен аргумент isSuddenDeath и он передается в data API
+    async createRoom(creator: UserProfile, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, isSuddenDeath: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
         if (creator.balance < bet) throw new Error("Недостаточно средств");
-        const data = await this.callApi('secureCreateRoom', { betAmount: bet, ruleSet, isPrivate, isStrict, maxPlayers, turnDuration });
+        const data = await this.callApi('secureCreateRoom', { betAmount: bet, ruleSet, isPrivate, isStrict, isSuddenDeath, maxPlayers, turnDuration });
         if (typeof window !== 'undefined') sessionStorage.setItem(`pasur_mask_${data.roomId}`, data.publicUid);
         return data.roomId;
     }
@@ -282,7 +284,6 @@ class SupabaseManager {
         await this.callApi('adminDeleteUser', { uidToKill });
     }
 
-    // 🟢 НОВЫЕ МЕТОДЫ: Маска и ход картой
     async getMyMask(roomId: string): Promise<string | null> {
         const data = await this.callApi('secureGetMyMask', { roomId });
         return data?.mask || null;

@@ -1,63 +1,76 @@
-import { ErrorCode } from "../errors.ts";
+import { resolveTable } from "./tableManager.ts";
+import { GAME_CONFIG } from "../constants.ts";
 
 export async function runGlobalCleanup(adminDb: any) {
     const now = Date.now();
 
-    // 1. Очистка зависших проверок готовности
+    // 1. Очистка мертвых комнат в ожидании / на паузе
     const { data: readyRooms } = await adminDb.from('rooms')
-        .select('*').in('status', ['ready_check', 'ready_check_resume']).lt('ready_deadline', now);
+        .select('*')
+        .in('status', ['ready_check', 'ready_check_resume', 'paused'])
+        .lt('ready_deadline', now);
 
     if (readyRooms) {
         for (const room of readyRooms) {
-            const { data: secrets } = await adminDb.from('room_secrets').select('real_uids').eq('room_id', room.id).single();
-            if (secrets?.real_uids) {
-                for (const realId of Object.values(secrets.real_uids) as string[]) {
-                    await adminDb.rpc('increment_balance', { user_id: realId, amount: room.bet_amount });
-                    await adminDb.rpc('remove_active_room', { user_id: realId, room_id: room.id });
+            if (room.status === 'paused') {
+                // Если пауза истекла, Эскроу проверяет счет и списывает штрафы
+                await resolveTable(adminDb, room.id, 'cron_pause_timeout'); 
+            } else if (room.status === 'ready_check_resume') {
+                // 🟢 ФИКС: Если один готов, а второй нет - второму засчитывается поражение (таймаут)
+                const afkPlayer = room.players?.find((p: any) => !p.isReady);
+                if (afkPlayer) {
+                    await resolveTable(adminDb, room.id, 'timeout', afkPlayer.id);
+                } else {
+                    // Если баг стейта и оба не готовы - просто удаляем с возвратом
+                    await resolveTable(adminDb, room.id, 'cron_delete');
+                }
+            } else {
+                // Обычное лобби: кикаем только АФК игроков
+                const afkPlayers = room.players?.filter((p: any) => !p.isReady) || [];
+                for (const afk of afkPlayers) {
+                    await resolveTable(adminDb, room.id, 'lobby_leave', afk.id);
                 }
             }
-            await adminDb.from('rooms').delete().eq('id', room.id);
         }
     }
 
-    // 2. Очистка зависших игр (AFK)
+    // 2. Очистка зависших игр (AFK таймауты на ход)
     const { data: playingRooms } = await adminDb.from('rooms')
-        .select('*').in('status', ['playing', 'pause_requested']).lt('turn_deadline', now);
+        .select('*')
+        .in('status', ['playing', 'pause_requested'])
+        .lt('turn_deadline', now);
 
     if (playingRooms) {
         for (const room of playingRooms) {
-            const { data: secrets } = await adminDb.from('room_secrets').select('real_uids').eq('room_id', room.id).single();
-            if (!secrets?.real_uids) {
-                await adminDb.from('rooms').delete().eq('id', room.id);
-                continue;
-            }
-
-            let afkPublicId;
             if (room.status === 'pause_requested') {
-                afkPublicId = room.players?.find((p: any) => !(room.pause_proposals || []).includes(p.id))?.id;
+                // Крон отменяет запрос на паузу, если второй игрок проигнорировал
+                await adminDb.from("rooms").update({
+                    status: 'playing', 
+                    pause_proposals: [], 
+                    turn_deadline: Date.now() + (room.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION)
+                }).eq("id", room.id);
             } else {
-                afkPublicId = room.game_state?.players?.[room.game_state?.currentTurnIndex || 0]?.id;
-            }
-            
-            if (afkPublicId) {
-                const innocentPlayer = room.players?.find((p: any) => p.id !== afkPublicId);
-                if (innocentPlayer) {
-                    const innocentRealId = secrets.real_uids[innocentPlayer.id];
-                    if (innocentRealId) {
-                        await adminDb.rpc('increment_balance', { user_id: innocentRealId, amount: room.bet_amount * room.max_players });
-                        // Важно: уведомляем через код
-                        await adminDb.from("rooms").update({
-                             admin_message: `${innocentPlayer.id}|${ErrorCode.AFK_KICKED}|${Date.now()}`
-                        }).eq("id", room.id);
-                    }
+                const afkPublicId = room.game_state?.players?.[room.game_state?.currentTurnIndex || 0]?.id;
+                if (afkPublicId) {
+                    await resolveTable(adminDb, room.id, 'timeout', afkPublicId);
+                } else {
+                    await resolveTable(adminDb, room.id, 'cron_delete');
                 }
             }
-
-            for (const realId of Object.values(secrets.real_uids) as string[]) {
-                await adminDb.rpc('remove_active_room', { user_id: realId, room_id: room.id });
-            }
-            await adminDb.from('rooms').delete().eq('id', room.id);
         }
     }
+
+    // 3. Защита от вечно заблокированных столов (если функция упала во время resolving)
+    const { data: stuckRooms } = await adminDb.from('rooms')
+        .select('id').eq('status', 'resolving')
+        .lt('updated_at', now - 300000); // зависли больше чем на 5 минут
+        
+    if (stuckRooms) {
+        for (const room of stuckRooms) {
+            await adminDb.from("rooms").delete().eq("id", room.id);
+            await adminDb.from("room_secrets").delete().eq("room_id", room.id);
+        }
+    }
+
     return { success: true };
 }
