@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { fbManager } from '@/lib/supabaseManager';
 import { supabase } from '@/lib/supabase';
@@ -10,13 +10,13 @@ import ProfileView from './components/ProfileView';
 import SettingsView from './components/SettingsView';
 import { useTranslation } from 'react-i18next';
 
-type Tab = 'lobby' | 'profile' | 'settings';
+// 🟢 Подключаем наш новый скроллбар
+import { HybridScrollView, ScrollScreen } from '@/app/ui/hybrid-scrollbar';
 
 export default function MainAppPage() {
     const { t } = useTranslation();
     const router = useRouter();
     const [user, setUser] = useState<UserProfile | null>(null);
-    const [activeTab, setActiveTab] = useState<Tab>('lobby');
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -25,7 +25,7 @@ export default function MainAppPage() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             const currentUser = session?.user;
 
-            // 🟢 ВАЖНО: Очищаем старую подписку, если слушатель выстрелил дважды
+            // Очищаем старую подписку
             if (unsubscribeSnap) {
                 unsubscribeSnap();
                 unsubscribeSnap = undefined;
@@ -56,6 +56,7 @@ export default function MainAppPage() {
         };
     }, [router]);
 
+    // Установка темы (цветов)
     useEffect(() => {
         if (user?.gender) {
             document.documentElement.setAttribute('data-theme', user.gender);
@@ -64,35 +65,40 @@ export default function MainAppPage() {
         }
     }, [user?.gender]);
 
+    // 🟢 Формируем экраны для HybridScrollView через useMemo (чтобы не пересоздавать массив при ререндерах)
+    const screens = useMemo<ScrollScreen[]>(() => {
+        if (!user) return [];
+        
+        return [
+            {
+                id: 'lobby',
+                icon: <span title={t('nav_game')}>🎲</span>,
+                content: <LobbyView user={user} />,
+                bgClass: 'bg-theme-main' // Используем системные цвета темы
+            },
+            {
+                id: 'profile',
+                icon: <span title={t('nav_profile')}>👤</span>,
+                content: <ProfileView user={user} />,
+                bgClass: 'bg-theme-main'
+            },
+            {
+                id: 'settings',
+                icon: <span title={t('nav_settings')}>⚙️</span>,
+                content: <SettingsView user={user} />,
+                bgClass: 'bg-theme-main'
+            }
+        ];
+    }, [user, t]);
+
     if (isLoading || !user) {
         return <div className="min-h-screen flex items-center justify-center font-bold">{t('loading_profile')}</div>;
     }
 
     return (
-        <div className="min-h-screen flex flex-col">
-            <main className="flex-1 overflow-y-auto overflow-x-hidden pb-20 w-full">
-                {activeTab === 'lobby' && <LobbyView user={user} />}
-                {activeTab === 'profile' && <ProfileView user={user} />}
-                {activeTab === 'settings' && <SettingsView user={user} />}
-            </main>
-
-            <nav className="fixed bottom-0 w-full bg-theme-panel/90 backdrop-blur-md border-t-4 border-theme-border pb-safe shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
-                {/* 🟢 ИСПРАВЛЕНО: Теперь тут жесткая сетка из 3 колонок. Никаких сдвигов! */}
-                <div className="grid grid-cols-3 h-16 max-w-md mx-auto">
-                    <button onClick={() => setActiveTab('lobby')} className={`flex flex-col items-center justify-center p-2 transition-all ${activeTab === 'lobby' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
-                        <span className="text-xl">🎲</span>
-                        <span className="text-xs font-black mt-1">{t('nav_game')}</span>
-                    </button>
-                    <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center justify-center p-2 transition-all ${activeTab === 'profile' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
-                        <span className="text-xl">👤</span>
-                        <span className="text-xs font-black mt-1">{t('nav_profile')}</span>
-                    </button>
-                    <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center justify-center p-2 transition-all ${activeTab === 'settings' ? 'text-theme-primary scale-110' : 'opacity-50 hover:opacity-100'}`}>
-                        <span className="text-xl">⚙️</span>
-                        <span className="text-xs font-black mt-1">{t('nav_settings')}</span>
-                    </button>
-                </div>
-            </nav>
-        </div>
+        // 🟢 Обертка на весь экран без отступов под старый нижний таб-бар
+        <main className="w-full h-[100dvh] bg-theme-main overflow-hidden">
+            <HybridScrollView screens={screens} />
+        </main>
     );
 }

