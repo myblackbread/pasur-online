@@ -13,17 +13,21 @@ export async function runGlobalCleanup(adminDb: any) {
     if (readyRooms) {
         for (const room of readyRooms) {
             if (room.status === 'paused') {
-                // Если пауза истекла, Эскроу проверяет счет и списывает штрафы
+                // Если пауза 24 часа истекла, Эскроу проверяет счет и списывает штрафы (УДАЛЕНИЕ)
                 await resolveTable(adminDb, room.id, 'cron_pause_timeout'); 
             } else if (room.status === 'ready_check_resume') {
-                // 🟢 ФИКС: Если один готов, а второй нет - второму засчитывается поражение (таймаут)
-                const afkPlayer = room.players?.find((p: any) => !p.isReady);
-                if (afkPlayer) {
-                    await resolveTable(adminDb, room.id, 'timeout', afkPlayer.id);
-                } else {
-                    // Если баг стейта и оба не готовы - просто удаляем с возвратом
-                    await resolveTable(adminDb, room.id, 'cron_delete');
-                }
+                // 🟢 ФИКС: 60 сек пинга истекли. Возвращаем в паузу, доставая оригинальный 24ч таймер из заначки!
+                const resetPlayers = room.players?.map((p: any) => ({ ...p, isReady: false })) || [];
+                
+                // На случай аномалий БД, если turn_deadline пуст, даем час
+                const restoredDeadline = room.turn_deadline || (Date.now() + 3600000); 
+
+                await adminDb.from("rooms").update({
+                    status: 'paused',
+                    players: resetPlayers,
+                    ready_deadline: restoredDeadline, // Восстановили старый таймер
+                    turn_deadline: null               // Очистили карман
+                }).eq("id", room.id);
             } else {
                 // Обычное лобби: кикаем только АФК игроков
                 const afkPlayers = room.players?.filter((p: any) => !p.isReady) || [];
@@ -60,7 +64,7 @@ export async function runGlobalCleanup(adminDb: any) {
         }
     }
 
-    // 3. Защита от вечно заблокированных столов (если функция упала во время resolving)
+    // 3. Защита от вечно заблокированных столов
     const { data: stuckRooms } = await adminDb.from('rooms')
         .select('id').eq('status', 'resolving')
         .lt('updated_at', now - 300000); // зависли больше чем на 5 минут
