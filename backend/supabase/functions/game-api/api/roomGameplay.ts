@@ -75,16 +75,24 @@ export async function secureAnswerPauseRequest(data: any, user: any, adminDb: an
     }
 
     if (accept) {
-        await adminDb.from("rooms").update({ 
-            status: 'paused', 
-            pause_proposals: [], 
+        // 🟢 ФИКС: Обязательно сбрасываем готовность всех игроков при уходе на паузу
+        const resetPlayers = roomData.players.map((p: any) => ({ ...p, isReady: false }));
+
+        await adminDb.from("rooms").update({
+            status: 'paused',
+            players: resetPlayers, // <-- Добавлено обновление игроков
+            pause_proposals: [],
             turn_deadline: null,
-            ready_deadline: Date.now() + 86400000 
+            ready_deadline: Date.now() + 86400000
         }).eq("id", roomId);
     } else {
-        await adminDb.from("rooms").update({ status: 'playing', pause_proposals: [], turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) }).eq("id", roomId);
+        await adminDb.from("rooms").update({
+            status: 'playing',
+            pause_proposals: [],
+            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION)
+        }).eq("id", roomId);
     }
-
+    
     return { success: true };
 }
 
@@ -129,7 +137,7 @@ export async function securePlayCard(data: any, user: any, adminDb: any) {
         game.deck = [];
 
         const winners = game.players.filter((p: any) => p.teamId === game.matchWinnerTeamId);
-        
+
         const winPerPlayer = calculateWinPayout(roomData.bet_amount, roomData.max_players, winners.length);
 
         for (const realId of Object.values(secrets) as string[]) {
@@ -170,10 +178,10 @@ export async function secureLeaveRoom(data: any, user: any, adminDb: any) {
     if (reason === 'timeout') {
         if (roomData.status !== 'playing') throw new GameError(ErrorCode.INVALID_MOVE);
         if (Date.now() < (roomData.turn_deadline || 0)) throw new GameError(ErrorCode.INVALID_MOVE);
-        
+
         const activePlayerIndex = roomData.game_state?.currentTurnIndex || 0;
         targetPublicId = roomData.players[activePlayerIndex]?.id;
-        
+
         if (targetPublicId === callerPublicUid) throw new GameError(ErrorCode.INVALID_MOVE);
     }
 

@@ -80,6 +80,18 @@ export default function GameRoomPage() {
 
     const [allActiveRooms, setAllActiveRooms] = useState<GameRoom[]>([]);
 
+    // 🟢 Восстанавливаем просмотренные алерты из sessionStorage при загрузке
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedAlerts = sessionStorage.getItem(`pasur_alerts_${roomId}`);
+            if (savedAlerts) {
+                try {
+                    shownAlerts.current = new Set(JSON.parse(savedAlerts));
+                } catch (e) {}
+            }
+        }
+    }, [roomId]);
+
     useEffect(() => {
         if (typeof window !== 'undefined') setMyMask(sessionStorage.getItem(`pasur_mask_${roomId}`));
         let unsubUser: (() => void) | undefined;
@@ -123,8 +135,13 @@ export default function GameRoomPage() {
 
             setRoomData(data);
 
+            // 🟢 Сохраняем алерт в sessionStorage после показа, чтобы не повторять при рефреше
             if (data.adminMessage && !shownAlerts.current.has(data.adminMessage)) {
                 shownAlerts.current.add(data.adminMessage);
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem(`pasur_alerts_${roomId}`, JSON.stringify(Array.from(shownAlerts.current)));
+                }
+
                 const parts = data.adminMessage.split('|');
                 if (parts.length >= 3) {
                     if (parts[0] === 'ALL' || parts[0] === currentMask) showAlert(parts[1]);
@@ -312,7 +329,6 @@ export default function GameRoomPage() {
                     </h2>
                     <p className="mb-2 text-amber-500 font-black text-xl">{t('game_bet')} {roomData.betAmount} 💰</p>
 
-                    {/* 🟢 ИНФО О ПРАВИЛАХ СТОЛА (Добавлен тег Досрочной победы) */}
                     <div className="text-xs opacity-70 font-medium mb-6">
                         {roomData.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
                         {roomData.isStrict && <span className="ml-2 text-red-500 font-black">{t('rule_strict')}</span>}
@@ -376,7 +392,6 @@ export default function GameRoomPage() {
                     <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
                     <span className="opacity-70 text-[10px] sm:text-sm ml-1 sm:ml-2">{isSpectatorSafe ? t('game_player_2') : t('game_opp')}</span>
 
-                    {/* 🟢 Иконка молнии во время активной игры (чтобы не забыли) */}
                     {roomData.isSuddenDeath && <span className="ml-3 text-amber-500 text-lg opacity-70 animate-pulse" title={t('rule_sudden_death')}>⚡</span>}
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
