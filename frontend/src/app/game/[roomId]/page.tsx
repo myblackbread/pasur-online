@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { fbManager } from '@/lib/supabaseManager'; 
+import { fbManager } from '@/lib/supabaseManager';
 import { GameRoom, UserProfile, Card, GameState } from '@/types';
 import { useAlert } from '@/components/AlertProvider';
 import { useTranslation } from 'react-i18next';
@@ -101,13 +101,13 @@ export default function GameRoomPage() {
     }, [roomId, router]);
 
     useEffect(() => {
-        if (!user) return; 
+        if (!user) return;
 
         const roomsToFetch = Array.from(new Set([roomId, ...(user.activeRooms || [])]));
 
         const unsubRoom = fbManager.subscribeToRoomsByIds(roomsToFetch, (rooms) => {
             setAllActiveRooms(rooms);
-            
+
             const data = rooms.find(r => r.id === roomId);
             if (!data) { router.push('/dashboard'); return; }
 
@@ -298,9 +298,9 @@ export default function GameRoomPage() {
         const isPaused = roomData.status === 'paused';
 
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-theme-main">
+            <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] bg-theme-main">
                 {(roomData.status === 'waiting' || isPaused) && (
-                    <button onClick={() => router.push('/dashboard')} className="absolute top-6 left-6 opacity-60 hover:opacity-100 transition font-bold text-theme-text">{t('game_back_lobby')}</button>
+                    <button onClick={() => router.push('/dashboard')} className="absolute top-[max(env(safe-area-inset-top),1.5rem)] left-[max(env(safe-area-inset-left),1.5rem)] opacity-60 hover:opacity-100 transition font-bold text-theme-text">{t('game_back_lobby')}</button>
                 )}
 
                 <div className="bg-theme-panel p-8 rounded-3xl max-w-md w-full border-4 border-theme-border text-center shadow-2xl">
@@ -311,7 +311,7 @@ export default function GameRoomPage() {
                         <span>{t('game_table')} {roomData.players[0]?.name || t('game_player')}</span>
                     </h2>
                     <p className="mb-2 text-amber-500 font-black text-xl">{t('game_bet')} {roomData.betAmount} 💰</p>
-                    
+
                     {/* 🟢 ИНФО О ПРАВИЛАХ СТОЛА (Добавлен тег Досрочной победы) */}
                     <div className="text-xs opacity-70 font-medium mb-6">
                         {roomData.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
@@ -365,8 +365,8 @@ export default function GameRoomPage() {
     if (!opponent) return null;
 
     return (
-        <div className="h-[100dvh] w-full flex flex-col bg-theme-main overflow-hidden p-2 sm:p-4 gap-2">
-
+        <div className="h-[100dvh] w-full flex flex-col bg-theme-main overflow-hidden p-2 sm:p-4 gap-2 pt-[max(env(safe-area-inset-top),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.5rem)] pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)]">
+            
             {/* ТОП-БАР */}
             <div className="flex-shrink-0 w-full max-w-4xl mx-auto bg-theme-panel border-4 border-theme-border p-3 sm:p-4 rounded-2xl flex justify-between items-center shadow-sm">
                 <div className="font-mono font-black text-sm sm:text-xl text-theme-text flex items-center">
@@ -375,7 +375,7 @@ export default function GameRoomPage() {
                     <span className="mx-1 sm:mx-2 opacity-50">:</span>
                     <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
                     <span className="opacity-70 text-[10px] sm:text-sm ml-1 sm:ml-2">{isSpectatorSafe ? t('game_player_2') : t('game_opp')}</span>
-                    
+
                     {/* 🟢 Иконка молнии во время активной игры (чтобы не забыли) */}
                     {roomData.isSuddenDeath && <span className="ml-3 text-amber-500 text-lg opacity-70 animate-pulse" title={t('rule_sudden_death')}>⚡</span>}
                 </div>

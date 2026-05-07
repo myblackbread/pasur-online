@@ -63,7 +63,7 @@ export default function AuthPage() {
 
     return (
         // 🟢 Добавили flex-col
-        <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)]">
 
             {/* 🟢 Добавили обертку для свитчера и карточки авторизации */}
             <div className="w-full max-w-md">

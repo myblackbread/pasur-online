@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next"; // 🟢 ДОБАВЛЕН ИМПОРТ Viewport
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AlertProvider } from "@/components/AlertProvider";
@@ -10,6 +10,15 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
     title: "Pasur Casino",
     description: "Premium online card game",
+};
+
+// 🟢 ДОБАВЛЕН ЭКСПОРТ ВЬЮПОРТА
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover", // Ключевой параметр для PWA
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
