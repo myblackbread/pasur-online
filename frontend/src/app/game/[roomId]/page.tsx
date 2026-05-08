@@ -144,9 +144,9 @@ export default function GameRoomPage() {
 
                 const parts = data.adminMessage.split('|');
                 if (parts.length >= 3) {
-                    if (parts[0] === 'ALL' || parts[0] === currentMask) showAlert(parts[1]);
+                    if (parts[0] === 'ALL' || parts[0] === currentMask) showAlert(t(parts[1]));
                 } else {
-                    showAlert(data.adminMessage.split('|')[0]);
+                    showAlert(t(data.adminMessage.split('|')[0]));
                 }
             }
         });
@@ -253,7 +253,7 @@ export default function GameRoomPage() {
 
     const handleJoinClick = () => {
         setIsJoining(true);
-        fbManager.joinRoom(roomId).then((mask) => { if (mask) setMyMask(mask); }).catch(e => showAlert(e.message)).finally(() => setIsJoining(false));
+        fbManager.joinRoom(roomId).then((mask) => { if (mask) setMyMask(mask); }).catch(e => showAlert(t(e.message))).finally(() => setIsJoining(false));
     };
 
     const handleLeaveOrSurrender = () => {
@@ -265,7 +265,7 @@ export default function GameRoomPage() {
                 sessionStorage.removeItem(`pasur_mask_${roomId}`);
                 setMyMask(null);
                 router.replace('/dashboard');
-            } catch (e: any) { showAlert(e.message); isProcessing.current = false; }
+            } catch (e: any) { showAlert(t(e.message)); isProcessing.current = false; }
         });
     };
 
@@ -292,7 +292,7 @@ export default function GameRoomPage() {
             await fbManager.playCard(roomId, card.id, selectedTableCards);
             setSelectedTableCards([]);
         } catch (e: any) {
-            showAlert(e.message);
+            showAlert(t(e.message));
             setPendingMove(null);
         } finally {
             isProcessing.current = false;
@@ -325,7 +325,7 @@ export default function GameRoomPage() {
 
                     <h2 className="text-3xl font-black mb-2 flex items-center justify-center gap-2 text-theme-text">
                         <span>{renderAvatar(roomData.players[0]?.id)}</span>
-                        <span>{t('game_table')} {roomData.players[0]?.name || t('game_player')}</span>
+                        <span>{t('game_table')} {roomData.players[0]?.name === '__INCOGNITO__' ? t('unknown_player') : (roomData.players[0]?.name || t('game_player'))}</span>
                     </h2>
                     <p className="mb-2 text-amber-500 font-black text-xl">{t('game_bet')} {roomData.betAmount} 💰</p>
 
@@ -340,7 +340,7 @@ export default function GameRoomPage() {
                             const p = roomData.players[i];
                             return (
                                 <div key={i} className="flex justify-between items-center bg-theme-main p-4 rounded-xl border-2 border-theme-border">
-                                    <span className="font-bold text-theme-text">{p ? p.name : <span className="opacity-50 italic">{t('game_waiting_player')}</span>}{p?.id === safeMyId && t('game_you_suffix')}</span>
+                                    <span className="font-bold text-theme-text">{p ? (p.name === '__INCOGNITO__' ? t('unknown_player') : p.name) : <span className="opacity-50 italic">{t('game_waiting_player')}</span>}{p?.id === safeMyId && t('game_you_suffix')}</span>
                                     {p && !isPaused && <span className={`text-sm font-black px-3 py-1 rounded-lg ${p.isReady ? 'bg-theme-primary text-white' : 'bg-theme-panel text-theme-text opacity-60 border-2 border-theme-border'}`}>{p.isReady ? t('game_ready') : t('game_thinking')}</span>}
                                 </div>
                             );
@@ -357,7 +357,7 @@ export default function GameRoomPage() {
                     {!isSpectatorSafe ? (
                         <div className="flex flex-col gap-3">
                             <button
-                                onClick={() => fbManager.toggleReady(roomId, true).catch(e => showAlert(e.message))}
+                                onClick={() => fbManager.toggleReady(roomId, true).catch(e => showAlert(t(e.message)))}
                                 disabled={!isFull || meLobbyInfo?.isReady}
                                 className={`w-full py-4 rounded-xl font-black transition-all shadow-lg text-lg text-white border-2 border-transparent ${meLobbyInfo?.isReady ? 'bg-theme-main border-theme-border text-theme-text opacity-70 cursor-not-allowed' : 'bg-theme-primary hover:opacity-80'}`}
                             >
@@ -422,7 +422,10 @@ export default function GameRoomPage() {
                             {renderAvatar(opponent.id)}
                         </span>
                         <span className={!isMyTurnSafe && roomData.status === 'playing' ? 'text-blue-500' : 'opacity-80'}>
-                            {roomData.players.find(p => p.id === opponent.id)?.name || t('game_opponent')}
+                            {(() => {
+                                const oppName = roomData.players.find(p => p.id === opponent.id)?.name;
+                                return oppName === '__INCOGNITO__' ? t('unknown_player') : (oppName || t('game_opponent'));
+                            })()}
                         </span>
                         {!isMyTurnSafe && roomData.status === 'playing' && (
                             <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full ml-2 animate-pulse">⏳ {t('game_is_moving')}</span>
@@ -527,7 +530,7 @@ export default function GameRoomPage() {
                                 <h2 className="text-2xl sm:text-3xl font-black mb-2 text-theme-text">{t('game_round')} {game.roundNumber} {t('game_completed')}</h2>
                                 <p className="text-theme-primary mb-6 font-mono font-black text-2xl">{t('game_score')} {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
                                 <div className="flex flex-col gap-3">
-                                    {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(e.message))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
+                                    {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(t(e.message)))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
 
                                     {roomData.status === 'playing' && (
                                         <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">

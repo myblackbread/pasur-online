@@ -26,8 +26,19 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
     const isDragging = useRef<boolean>(false);
     const isHoveringThumb = useRef<boolean>(false);
     const isScrolling = useRef<boolean>(false);
+    
+    const wasExpandedRef = useRef<boolean>(false);
+    const slotHeightsRef = useRef<number[]>([]);
 
     const dragOffset = useRef<number>(0);
+    const lastDragYRef = useRef<number>(0);
+    
+    const isHealedRef = useRef<boolean>(true);
+    const distortionYRef = useRef<number>(0);
+    const distortedIndexRef = useRef<number>(0);
+    const distortionStartYRef = useRef<number>(0);
+    
+    const isVibratingRef = useRef<boolean>(false);
 
     const updateScrollbar = useCallback(() => {
         if (!containerRef.current || !trackRef.current || !thumbHitboxRef.current || !thumbVisualRef.current || screens.length === 0) return;
@@ -36,6 +47,13 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         const P_top = containerRef.current.scrollTop;
         const trackHeight = trackRef.current.clientHeight;
         const N = screens.length;
+        const P_max = Math.max(C * (N - 1), 1);
+        const H = trackHeight / N;
+
+        const safe_P_top = Math.max(0, Math.min(P_top, P_max));
+        const parentIndex = Math.floor(safe_P_top / C);
+        const remainder = safe_P_top % C;
+        const localProgress = Math.max(0, Math.min(1, remainder / C));
 
         const children = Array.from(containerRef.current.children).filter(c => c.hasAttribute('data-screen-index'));
         let V_total = 0;
@@ -50,9 +68,6 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
             V_total += h;
         });
 
-        const parentIndex = Math.floor(P_top / C);
-        const remainder = P_top % C;
-
         let accumulatedHeight = 0;
         for (let i = 0; i < parentIndex; i++) {
             accumulatedHeight += heights[i];
@@ -66,12 +81,92 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         const collapsedProgress = Math.max(0, Math.min(1, V_top / V_max));
         const collapsedThumbY = collapsedProgress * (trackHeight - collapsedThumbHeight);
 
-        const expandedThumbHeight = Math.max(40, trackHeight / Math.max(N, 1));
-        const P_max = Math.max(C * (N - 1), 1);
-        const expandedProgress = Math.max(0, Math.min(1, P_top / P_max));
-        const expandedThumbY = expandedProgress * (trackHeight - expandedThumbHeight);
+        const expandedProgress = Math.max(0, Math.min(1, safe_P_top / P_max));
+        const activeIndex = Math.round(expandedProgress * (N - 1));
 
         const isExpanded = isDragging.current || isHoveringThumb.current;
+        const toleranceZone = H * 0.15; 
+
+        if (slotHeightsRef.current.length !== N) {
+            slotHeightsRef.current = new Array(N).fill(H);
+        }
+
+        if (isExpanded && !wasExpandedRef.current) {
+            const currentCenterY = collapsedThumbY + (collapsedThumbHeight / 2);
+            const Y_ideal = (safe_P_top / C) * H + H / 2;
+
+            if (Math.abs(currentCenterY - Y_ideal) > toleranceZone) {
+                isHealedRef.current = false;
+                distortionYRef.current = currentCenterY;
+                distortionStartYRef.current = currentCenterY; // Стартовая точка храповика
+                distortedIndexRef.current = activeIndex;
+            } else {
+                isHealedRef.current = true;
+                distortionYRef.current = Y_ideal;
+            }
+        }
+
+        if (iconsContainerRef.current) {
+            const iconWrappers = Array.from(iconsContainerRef.current.children) as HTMLElement[];
+
+            if (isExpanded) {
+                let slotHeights = new Array(N).fill(H);
+
+                if (!isHealedRef.current) {
+                    const i = distortedIndexRef.current;
+                    const y = distortionYRef.current;
+                    
+                    const T = Math.max(0, Math.min(trackHeight, y - H / 2));
+                    const B = Math.max(0, Math.min(trackHeight, y + H / 2));
+
+                    const h_active = B - T;
+                    const h_above = i > 0 ? T / i : 0;
+                    const h_below = i < N - 1 ? (trackHeight - B) / (N - i - 1) : 0;
+
+                    slotHeights = slotHeights.map((_, idx) => {
+                        if (idx < i) return h_above;
+                        if (idx === i) return h_active;
+                        return h_below;
+                    });
+                }
+
+                slotHeightsRef.current = slotHeights;
+
+                iconWrappers.forEach((wrapper, idx) => {
+                    wrapper.style.height = `${slotHeights[idx]}px`;
+                    wrapper.style.transition = (isDragging.current && !isHealedRef.current)
+                        ? 'none' 
+                        : 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                });
+            }
+
+            iconWrappers.forEach((wrapper, idx) => {
+                const innerIcon = wrapper.querySelector('.icon-inner') as HTMLElement | null;
+                if (innerIcon) {
+                    innerIcon.style.opacity = idx === activeIndex ? '1' : '0.3';
+                    innerIcon.style.transform = idx === activeIndex ? 'scale(1.3)' : 'scale(1)';
+                }
+            });
+        }
+
+        let expandedThumbHeight = 0;
+        let expandedThumbY = 0;
+
+        if (N > 0) {
+            const slots = slotHeightsRef.current;
+            const idx = Math.max(0, Math.min(parentIndex, N - 1));
+
+            let accumulatedY = 0;
+            for (let j = 0; j < idx; j++) {
+                accumulatedY += slots[j];
+            }
+
+            const hCurrent = slots[idx];
+            const hNext = (idx + 1 < N) ? slots[idx + 1] : hCurrent;
+
+            expandedThumbHeight = hCurrent + (hNext - hCurrent) * localProgress;
+            expandedThumbY = accumulatedY + hCurrent * localProgress;
+        }
 
         let thumbHeight = isExpanded ? expandedThumbHeight : collapsedThumbHeight;
         let thumbY = isExpanded ? expandedThumbY : collapsedThumbY;
@@ -89,29 +184,27 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         if (!isDragging.current && !isScrolling.current) {
             thumbHitboxRef.current.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out';
         } else {
-            thumbHitboxRef.current.style.transition = 'opacity 0.3s ease-out';
+            thumbHitboxRef.current.style.transition = isDragging.current ? 'opacity 0.3s ease-out' : 'opacity 0.3s ease-out, transform 0.1s linear';
         }
 
         thumbHitboxRef.current.style.height = `${thumbHeight}px`;
         thumbHitboxRef.current.style.transform = `translateY(${thumbY}px)`;
 
-        const activeIndex = Math.round(expandedProgress * (N - 1));
         const isVisible = isScrolling.current || isExpanded;
 
         thumbHitboxRef.current.style.opacity = isVisible ? '1' : '0';
         thumbHitboxRef.current.style.pointerEvents = isVisible ? 'auto' : 'none';
 
-        // 🟢 ИСПРАВЛЕННЫЕ ПАДДИНГИ ТУТ
         if (isExpanded) {
             thumbVisualRef.current.style.width = '48px';
-            thumbVisualRef.current.style.right = '8px'; // Парящая капсула (8px от края)
+            thumbVisualRef.current.style.right = '8px';
             thumbVisualRef.current.style.borderRadius = '24px';
             thumbVisualRef.current.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
             thumbVisualRef.current.style.backdropFilter = 'blur(10px)';
             thumbVisualRef.current.style.border = '1px solid rgba(255,255,255,0.4)';
         } else {
             thumbVisualRef.current.style.width = '4px';
-            thumbVisualRef.current.style.right = '3px'; // Нативный системный скроллбар (3px от края)
+            thumbVisualRef.current.style.right = '3px';
             thumbVisualRef.current.style.borderRadius = '9999px';
             thumbVisualRef.current.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
             thumbVisualRef.current.style.backdropFilter = 'none';
@@ -119,23 +212,12 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         }
 
         if (iconsContainerRef.current) {
-            iconsContainerRef.current.style.paddingTop = `${expandedThumbHeight / 2}px`;
-            iconsContainerRef.current.style.paddingBottom = `${expandedThumbHeight / 2}px`;
-
             iconsContainerRef.current.style.opacity = isExpanded ? '1' : '0';
             iconsContainerRef.current.style.transform = isExpanded ? 'translateX(0)' : 'translateX(10px)';
-
-            const iconWrappers = iconsContainerRef.current.children;
-            if (iconWrappers) {
-                Array.from(iconWrappers).forEach((wrapper, i) => {
-                    const innerIcon = wrapper.querySelector('.icon-inner') as HTMLElement | null;
-                    if (innerIcon) {
-                        innerIcon.style.opacity = i === activeIndex ? '1' : '0.3';
-                        innerIcon.style.transform = i === activeIndex ? 'scale(1.3)' : 'scale(1)';
-                    }
-                });
-            }
         }
+        
+        wasExpandedRef.current = isExpanded;
+
     }, [screens.length]);
 
     const wakeUpScrollbar = useCallback(() => {
@@ -166,19 +248,99 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
     }, [updateScrollbar]);
 
     const handleGlobalPointerMove = useCallback((e: globalThis.PointerEvent) => {
-        if (!isDragging.current || !containerRef.current || !trackRef.current || !thumbHitboxRef.current) return;
+        if (!isDragging.current || !containerRef.current || !trackRef.current) return;
 
         const trackRect = trackRef.current.getBoundingClientRect();
-        const maxThumbTravel = trackRect.height - thumbHitboxRef.current.clientHeight;
+        const N = screens.length;
+        const C = containerRef.current.clientHeight;
+        const maxScroll = Math.max(C * (N - 1), 1);
+        const H = trackRect.height / N;
+        const scrollFactor = C / H;
 
-        let targetThumbY = (e.clientY - trackRect.top) - dragOffset.current;
-        targetThumbY = Math.max(0, Math.min(targetThumbY, maxThumbTravel));
+        let currentDragY = (e.clientY - trackRect.top) - dragOffset.current;
+        currentDragY = Math.max(0, Math.min(currentDragY, trackRect.height));
 
-        const progress = maxThumbTravel > 0 ? targetThumbY / maxThumbTravel : 0;
-        const maxScroll = containerRef.current.clientHeight * (screens.length - 1);
+        const dy_finger = currentDragY - lastDragYRef.current;
+        lastDragYRef.current = currentDragY;
 
-        containerRef.current.scrollTop = progress * maxScroll;
-    }, [screens.length]);
+        let P_top = containerRef.current.scrollTop;
+        let dy_scroll = 0;
+
+        if (!isHealedRef.current) {
+            const Y_ideal = (P_top / C) * H + H / 2;
+            let currentRatchetY = distortionStartYRef.current;
+            const toleranceZone = H * 0.15;
+
+            // Определяем с какой стороны мы заходим
+            const isAbove = currentRatchetY < Y_ideal;
+
+            // 1. МЕХАНИЗМ ХРАПОВИКА: Обновляем стену ТОЛЬКО в сторону улучшения (к Y_ideal)
+            if (isAbove) {
+                if (currentDragY > currentRatchetY) {
+                    distortionStartYRef.current = Math.min(currentDragY, Y_ideal);
+                }
+            } else {
+                if (currentDragY < currentRatchetY) {
+                    distortionStartYRef.current = Math.max(currentDragY, Y_ideal);
+                }
+            }
+
+            const newRatchetY = distortionStartYRef.current;
+
+            // 2. Блокировка отката: если палец пытается уйти за лучшую достигнутую границу
+            // Даем погрешность в 1 пиксель, чтобы избежать микровибраций от дрожания пальца
+            const isPushingWall = isAbove ? (currentDragY < newRatchetY - 1) : (currentDragY > newRatchetY + 1);
+
+            if (isPushingWall) {
+                if (!isVibratingRef.current) {
+                    // Аппаратная вибрация
+                    if (typeof window !== 'undefined' && navigator && navigator.vibrate) {
+                        navigator.vibrate(15);
+                    }
+                    // Визуальная вибрация
+                    if (thumbVisualRef.current && thumbVisualRef.current.animate) {
+                        isVibratingRef.current = true;
+                        const anim = thumbVisualRef.current.animate([
+                            { transform: 'translateX(0)' },
+                            { transform: 'translateX(-4px)' },
+                            { transform: 'translateX(4px)' },
+                            { transform: 'translateX(-4px)' },
+                            { transform: 'translateX(4px)' },
+                            { transform: 'translateX(0)' }
+                        ], { duration: 250, easing: 'ease-in-out' });
+                        anim.onfinish = () => { isVibratingRef.current = false; };
+                    }
+                }
+            }
+
+            // 3. Жестко фиксируем визуальный ползунок на лучшем достигнутом состоянии
+            distortionYRef.current = newRatchetY;
+
+            // 4. Если мы перетянули за Y_ideal - излишек конвертируем в честный скролл
+            if (isAbove && currentDragY > Y_ideal) {
+                dy_scroll = currentDragY - Math.max(currentDragY - dy_finger, Y_ideal);
+            } else if (!isAbove && currentDragY < Y_ideal) {
+                dy_scroll = currentDragY - Math.min(currentDragY - dy_finger, Y_ideal);
+            }
+
+            // 5. Проверка попадания в мертвую зону (от лучшего состояния)
+            if (Math.abs(Y_ideal - newRatchetY) <= toleranceZone) {
+                isHealedRef.current = true;
+            }
+
+        } else {
+            // Если все исцелено - 100% честный скролл
+            dy_scroll = dy_finger;
+            distortionYRef.current += dy_finger;
+        }
+
+        if (dy_scroll !== 0) {
+            P_top += dy_scroll * scrollFactor;
+            containerRef.current.scrollTop = Math.max(0, Math.min(P_top, maxScroll));
+        }
+
+        updateScrollbar();
+    }, [screens.length, updateScrollbar]);
 
     const handleGlobalPointerUp = useCallback(() => {
         isDragging.current = false;
@@ -206,7 +368,12 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         document.body.style.userSelect = 'none';
 
         const thumbRect = thumbHitboxRef.current!.getBoundingClientRect();
+        const trackRect = trackRef.current!.getBoundingClientRect();
+        
         dragOffset.current = e.clientY - thumbRect.top;
+        
+        const initialDragY = e.clientY - trackRect.top - dragOffset.current;
+        lastDragYRef.current = initialDragY;
 
         if (containerRef.current) {
             containerRef.current.style.scrollSnapType = 'none';
@@ -239,7 +406,6 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
 
             <div
                 ref={trackRef}
-                // 🟢 Трек теперь прижат к правому краю (right-0) и имеет ширину 64px для перехвата тапов
                 className="fixed right-0 top-[env(safe-area-inset-top)] bottom-[env(safe-area-inset-bottom)] w-[64px] z-50 touch-none pointer-events-none select-none"
                 style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
             >
@@ -249,7 +415,6 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
                     onPointerLeave={() => { isHoveringThumb.current = false; updateScrollbar(); }}
                     onPointerDown={handlePointerDown}
                     onContextMenu={(e) => e.preventDefault()}
-                    // 🟢 Хитбокс (невидимая область тапа) прижат к краю
                     className="absolute top-0 right-0 w-[64px] z-10 cursor-pointer pointer-events-auto select-none"
                     style={{
                         opacity: '0',
@@ -260,7 +425,6 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
                 >
                     <div
                         ref={thumbVisualRef}
-                        // 🟢 Внешний вид скроллбара (управляется через JS right: 3px / 8px)
                         className="absolute h-full transition-all duration-300 ease-out box-border"
                         style={{ width: '4px', right: '3px' }}
                     />
@@ -268,8 +432,7 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
 
                 <div
                     ref={iconsContainerRef}
-                    // 🟢 Иконки центрируются точно по расширенному таб-бару (right-8px, width-48px)
-                    className="absolute right-[8px] w-[48px] top-0 bottom-0 flex flex-col justify-between items-center transition-all duration-300 ease-out pointer-events-none z-20 box-border"
+                    className="absolute right-[8px] w-[48px] top-0 bottom-0 flex flex-col items-center transition-all duration-300 ease-out pointer-events-none z-20 box-border"
                     style={{ opacity: '0' }}
                 >
                     {screens.map((screen) => (

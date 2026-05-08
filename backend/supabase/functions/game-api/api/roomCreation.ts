@@ -34,7 +34,7 @@ export async function secureCreateRoom(data: any, user: any, adminDb: any) {
         turn_duration: turnDuration,
         status: 'waiting',
         join_code: isPrivate ? Math.random().toString(36).substring(2, 8).toUpperCase() : null,
-        players: [{ id: publicUid, name: shouldHide ? "Неизвестный игрок" : userData.display_name, isReady: false }],
+        players: [{ id: publicUid, name: shouldHide ? "__INCOGNITO__" : userData.display_name, isReady: false }],
         created_at: Date.now()
     }).select('id').single();
 

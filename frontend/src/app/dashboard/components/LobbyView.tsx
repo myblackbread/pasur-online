@@ -41,7 +41,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
             );
             setShowCreateModal(false);
             router.push(`/game/${roomId}`);
-        } catch (e: any) { showAlert(`${t('lobby_create_error')} ${e.message}`); }
+        } catch (e: any) { showAlert(`${t('lobby_create_error')} ${t(e.message)}`); }
     };
 
     useEffect(() => {
@@ -68,7 +68,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
             try {
                 await fbManager.leaveRoom(roomId, 'surrender');
             } catch (e: any) {
-                showAlert(`${t('lobby_error')} ${e.message}`);
+                showAlert(`${t('lobby_error')} ${t(e.message)}`);
             } finally {
                 setIsSurrendering(false);
             }
@@ -145,7 +145,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                             <div className="flex items-start sm:items-center gap-3 overflow-hidden">
                                 <div className="text-3xl shrink-0 pt-1 sm:pt-0">😎</div>
                                 <div className="min-w-0">
-                                    <div className="font-bold text-lg truncate w-full">{room.players[0]?.name || t('lobby_empty_table')}</div>
+                                    <div className="font-bold text-lg truncate w-full">{room.players[0]?.name === '__INCOGNITO__' ? t('unknown_player') : (room.players[0]?.name || t('lobby_empty_table'))}</div>
                                     <div className="text-xs opacity-70 font-medium flex flex-wrap gap-1 mt-1">
                                         <span className="bg-theme-main px-2 py-0.5 rounded-md border border-theme-border">
                                             {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}

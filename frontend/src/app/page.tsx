@@ -56,7 +56,8 @@ export default function AuthPage() {
                 router.push('/dashboard');
             }
         } catch (e: any) {
-            showAlert(`${t('auth_error')} ${e.message}`);
+            const errKey = e.message.includes("Invalid login credentials") ? "auth_err_invalid_creds" : e.message;
+            showAlert(`${t('auth_error')} ${t(errKey)}`);
             setIsLoading(false);
         }
     };
@@ -105,4 +106,3 @@ export default function AuthPage() {
         </div>
     );
 }
-

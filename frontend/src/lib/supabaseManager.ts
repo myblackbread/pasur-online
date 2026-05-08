@@ -40,7 +40,7 @@ class SupabaseManager {
             body: { action, data }
         });
 
-        if (error) throw new Error("Ошибка сети: " + error.message);
+        if (error) throw new Error("err_network");
         if (result?.error) {
             throw new Error(result.error);
         }
@@ -64,17 +64,17 @@ class SupabaseManager {
                 authResult = await supabase.auth.signUp({ email, password });
             }
         } else {
-            throw new Error("Неверные данные для входа");
+            throw new Error("err_invalid_login_data");
         }
 
         if (authResult?.error) throw authResult.error;
         const user = authResult.data?.user;
-        if (!user) throw new Error("Ошибка авторизации");
+        if (!user) throw new Error("err_auth_failed");
 
         const { data: userDoc } = await supabase.from('users').select('*').eq('id', user.id).single();
 
         if (!userDoc) {
-            let displayName = user.user_metadata?.name || (email ? email.split('@')[0] : `Гость_${user.id.substring(0, 5)}`);
+            let displayName = user.user_metadata?.name || (email ? email.split('@')[0] : `Guest_${user.id.substring(0, 5)}`);
             await supabase.from('users').insert({
                 id: user.id,
                 display_name: displayName,
@@ -93,7 +93,7 @@ class SupabaseManager {
 
     async linkGoogleAccount(): Promise<void> {
         const { error } = await supabase.auth.linkIdentity({ provider: 'google' });
-        if (error) throw new Error("Этот аккаунт Google уже привязан.");
+        if (error) throw new Error("err_google_already_linked");
     }
 
     /* ================= REALTIME ================= */
@@ -107,7 +107,7 @@ class SupabaseManager {
 
                 const newProfile = {
                     id: uid,
-                    display_name: authUser?.user_metadata?.name || `Игрок_${uid.substring(0, 5)}`,
+                    display_name: authUser?.user_metadata?.name || `Player_${uid.substring(0, 5)}`,
                     balance: 1000,
                     active_rooms: [],
                     settings: {
@@ -225,7 +225,7 @@ class SupabaseManager {
 
     // 🟢 ИСПРАВЛЕНО: Добавлен аргумент isSuddenDeath и он передается в data API
     async createRoom(creator: UserProfile, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, isSuddenDeath: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
-        if (creator.balance < bet) throw new Error("Недостаточно средств");
+        if (creator.balance < bet) throw new Error("ERR_NOT_ENOUGH_MONEY");
         const data = await this.callApi('secureCreateRoom', { betAmount: bet, ruleSet, isPrivate, isStrict, isSuddenDeath, maxPlayers, turnDuration });
         if (typeof window !== 'undefined') sessionStorage.setItem(`pasur_mask_${data.roomId}`, data.publicUid);
         return data.roomId;

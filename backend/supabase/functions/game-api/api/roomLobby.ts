@@ -40,7 +40,7 @@ export async function secureJoinRoom(data: any, user: any, adminDb: any) {
     secrets[publicUid] = uid;
     await adminDb.from("room_secrets").update({ real_uids: secrets }).eq("room_id", roomId);
 
-    const updatedPlayers = [...roomData.players, { id: publicUid, name: shouldHide ? "Неизвестный" : userData.display_name, isReady: false }];
+    const updatedPlayers = [...roomData.players, { id: publicUid, name: shouldHide ? "__INCOGNITO__" : userData.display_name, isReady: false }];
     await adminDb.from("rooms").update({ players: updatedPlayers }).eq("id", roomId);
 
     return { success: true, roomId, publicUid };
@@ -75,7 +75,7 @@ export async function secureToggleReady(data: any, user: any, adminDb: any) {
                 players: updatedPlayers,
                 status: 'playing',
                 turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
-                admin_message: `ALL|Игра возобновлена!|${Date.now()}`
+                admin_message: `ALL|MSG_GAME_RESUMED|${Date.now()}`
             }).eq("id", roomId);
         } else {
             const game = new PasurGame(updatedPlayers.map((p: any) => p.id), roomData.rule_set, false, undefined, roomData.is_strict, roomData.is_sudden_death);
@@ -89,7 +89,7 @@ export async function secureToggleReady(data: any, user: any, adminDb: any) {
                 status: 'playing',
                 game_state: JSON.parse(JSON.stringify(game)),
                 turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
-                admin_message: `ALL|Игра началась!|${Date.now()}`,
+                admin_message: `ALL|MSG_GAME_STARTED|${Date.now()}`,
                 version: (roomData.version || 1) + 1
             }).eq("id", roomId);
 

@@ -167,8 +167,8 @@ export async function resolveTable(adminDb: any, roomId: string, reason: LeaveRe
         }
 
         if (winners.length > 0) {
-            let msg = reason === 'timeout' ? "Оппонент исключен за бездействие!" : "Оппонент сдался!";
-            if (reason === 'banned') msg = "Оппонент заблокирован!";
+            let msg = reason === 'timeout' ? "MSG_AFK_KICKED" : "MSG_SURRENDERED";
+            if (reason === 'banned') msg = "MSG_BANNED";
 
             const resetWinners = winners.map((w: any) => ({ ...w, isReady: false }));
             const winnerSecrets: any = {};
@@ -177,7 +177,7 @@ export async function resolveTable(adminDb: any, roomId: string, reason: LeaveRe
             await adminDb.from("rooms").update({
                 status: 'waiting', players: resetWinners, game_state: null, 
                 turn_deadline: null, ready_deadline: null, pause_proposals: [],
-                admin_message: `${winners[0].id}|${msg} Банк ваш!|${Date.now()}`
+                admin_message: `${winners[0].id}|${msg}|${Date.now()}`
             }).eq("id", roomId);
             
             await adminDb.from("room_secrets").update({ real_uids: winnerSecrets }).eq("room_id", roomId);
