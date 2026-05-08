@@ -1,24 +1,23 @@
-import type { Metadata, Viewport } from "next"; // 🟢 ДОБАВЛЕН ИМПОРТ Viewport
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AlertProvider } from "@/components/AlertProvider";
-import { I18nProvider } from "@/components/I18nProvider";
+import { AlertProvider } from "@/components/providers/AlertProvider";
+import { I18nProvider } from "@/components/providers/I18nProvider";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "Pasur Casino",
+    title: "Pasur",
     description: "Premium online card game",
 };
 
-// 🟢 ДОБАВЛЕН ЭКСПОРТ ВЬЮПОРТА
 export const viewport: Viewport = {
     width: "device-width",
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
-    viewportFit: "cover", // Ключевой параметр для PWA
+    viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -31,7 +30,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                             <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-900/20 rounded-full mix-blend-screen blur-[120px]"></div>
                             <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-rose-900/10 rounded-full mix-blend-screen blur-[120px]"></div>
                         </div>
+                        
                         {children}
+                        
                     </AlertProvider>
                 </I18nProvider>
             </body>

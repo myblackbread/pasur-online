@@ -19,7 +19,7 @@ export const AccessManager = {
     },
 
     canAccess(user: User | null, feature: Feature): { allowed: boolean; reason?: string } {
-        if (!user) return { allowed: false, reason: 'err_auth_required' }; // Тоже заменили на ключ
+        if (!user) return { allowed: false, reason: 'err_auth_required' };
         if (this.isGuest(user)) return { allowed: false, reason: GUEST_RESTRICTIONS[feature] };
         return { allowed: true };
     }

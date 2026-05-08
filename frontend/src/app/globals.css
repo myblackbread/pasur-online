@@ -37,3 +37,20 @@
   }
 }
 
+@layer base {
+  :root {
+    --safe-top: max(env(safe-area-inset-top), 1rem);
+    --safe-bottom: max(env(safe-area-inset-bottom), 1rem);
+    --safe-left: max(env(safe-area-inset-left), 1rem);
+    --safe-right: max(env(safe-area-inset-right), 1rem);
+  }
+}
+
+@layer utilities {
+  .safe-padding {
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
+}

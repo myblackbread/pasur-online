@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { fbManager } from '@/lib/supabaseManager';
-import { GameRoom, UserProfile, RuleSet, GAME_CONFIG } from '@/types';
-import { useAlert } from '@/components/AlertProvider';
+import { gameApi, realtimeApi } from '@/lib/supabase';
+import { GameRoom, UserProfile, RuleSet } from '@/types';
+import { GAME_CONFIG } from '@/utils/constants';
+import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
+import { Modal } from '@/components/ui/Modal';
 
 export default function LobbyView({ user }: { user: UserProfile }) {
     const router = useRouter();
@@ -29,7 +31,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     const handleCreateRoomSubmit = async () => {
         if (user.balance < createConfig.bet) return showAlert(t('lobby_not_enough_money'));
         try {
-            const roomId = await fbManager.createRoom(
+            const roomId = await gameApi.createRoom(
                 user,
                 createConfig.bet,
                 createConfig.ruleSet,
@@ -45,19 +47,19 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     };
 
     useEffect(() => {
-        const unsub = fbManager.subscribeToPublicRooms(setRooms);
+        const unsub = realtimeApi.subscribeToPublicRooms(setRooms);
         return () => unsub();
     }, []);
 
     useEffect(() => {
         if (!user.activeRooms?.length) { setActiveRooms([]); return; }
-        const unsub = fbManager.subscribeToRoomsByIds(user.activeRooms, setActiveRooms);
+        const unsub = realtimeApi.subscribeToRoomsByIds(user.activeRooms, setActiveRooms);
         return () => unsub();
     }, [user.activeRooms]);
 
     const handleJoinPrivate = async () => {
         if (!privateCode.trim()) return;
-        const roomId = await fbManager.findPrivateRoom(privateCode);
+        const roomId = await gameApi.findPrivateRoom(privateCode);
         if (roomId) router.push(`/game/${roomId}`);
         else showAlert(t('lobby_room_not_found'));
     };
@@ -66,7 +68,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
         showConfirm(t('lobby_surrender_confirm'), async () => {
             setIsSurrendering(true);
             try {
-                await fbManager.leaveRoom(roomId, 'surrender');
+                await gameApi.leaveRoom(roomId, 'surrender');
             } catch (e: any) {
                 showAlert(`${t('lobby_error')} ${t(e.message)}`);
             } finally {
@@ -171,11 +173,10 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 )}
             </div>
 
-            {/* МОДАЛКА (Без изменений, она уже была достаточно адаптивной, я только подправил паддинги) */}
+            {/* МОДАЛКА СОЗДАНИЯ СТОЛА */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in">
-                    <div className="bg-theme-panel p-5 sm:p-8 rounded-[2rem] shadow-2xl border-4 border-theme-border w-full max-w-lg max-h-[95vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-6">
+                <Modal onClose={() => setShowCreateModal(false)}>
+                    <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl sm:text-3xl font-black text-theme-text">{t('modal_setup_title')}</h2>
                             <button onClick={() => setShowCreateModal(false)} className="text-2xl opacity-50 hover:opacity-100 transition p-2">✖</button>
                         </div>
@@ -257,8 +258,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                         <button onClick={() => requireIncognitoCheck(handleCreateRoomSubmit)} className="w-full bg-theme-primary hover:bg-opacity-80 text-white py-4 rounded-2xl font-black text-lg transition-all shadow-xl hover:-translate-y-1">
                             🚀 {t('modal_btn_submit')}
                         </button>
-                    </div>
-                </div>
+                </Modal>
             )}
         </div>
     );

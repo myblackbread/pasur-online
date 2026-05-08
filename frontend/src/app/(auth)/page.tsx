@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fbManager } from '@/lib/supabaseManager';
+import { authApi } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
-import { useAlert } from '@/components/AlertProvider';
+import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 export default function AuthPage() {
     const { t } = useTranslation();
@@ -21,13 +21,11 @@ export default function AuthPage() {
     useEffect(() => {
         document.documentElement.removeAttribute('data-theme');
 
-        // 🟢 ПРОВЕРКА СЕССИИ ЧЕРЕЗ SUPABASE
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (session?.user) router.push('/dashboard');
             else setIsCheckingAuth(false);
         });
 
-        // Первичная проверка
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) router.push('/dashboard');
             else setIsCheckingAuth(false);
@@ -36,7 +34,7 @@ export default function AuthPage() {
         return () => subscription.unsubscribe();
     }, [router]);
 
-    if (isCheckingAuth) return <div className="min-h-screen flex items-center justify-center font-bold text-theme-text">{t('auth_checking')}</div>;
+    if (isCheckingAuth) return <div className="min-h-full flex items-center justify-center font-bold text-theme-text">{t('auth_checking')}</div>;
 
     const handleLogin = async (provider: 'google' | 'email' | 'guest') => {
         if (!gender) return showAlert(t('auth_err_gender'));
@@ -47,11 +45,7 @@ export default function AuthPage() {
 
         setIsLoading(true);
         try {
-            await fbManager.login(provider, email, password, gender);
-
-            // 🟢 ИСПРАВЛЕНИЕ ЗДЕСЬ:
-            // При Google Auth страница улетит на редирект, поэтому пушить роутер не нужно.
-            // Слушатель сессии в useEffect сам перекинет нас в дашборд после возвращения.
+            await authApi.login(provider, email, password, gender);
             if (provider !== 'google') {
                 router.push('/dashboard');
             }
@@ -63,18 +57,12 @@ export default function AuthPage() {
     };
 
     return (
-        // 🟢 Добавили flex-col
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)]">
-
-            {/* 🟢 Добавили обертку для свитчера и карточки авторизации */}
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 safe-padding">
             <div className="w-full max-w-md">
-
-                {/* 🟢 Сам свитчер */}
                 <div className="mb-4 rounded-3xl overflow-hidden shadow-sm border-4 border-theme-border">
                     <LanguageSwitcher />
                 </div>
 
-                {/* Твоя карточка входа (убрали отсюда w-full max-w-md, так как они теперь на родителе) */}
                 <div className="bg-theme-panel p-8 rounded-3xl shadow-2xl border-4 border-theme-border text-center">
                     <h1 className="text-4xl font-extrabold mb-2 text-theme-primary">♠ {t('app_title')} ♥</h1>
                     <p className="opacity-70 mb-6 font-medium text-theme-text">{t('auth_subtitle')}</p>

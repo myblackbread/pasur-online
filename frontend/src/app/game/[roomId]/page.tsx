@@ -3,58 +3,16 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { fbManager } from '@/lib/supabaseManager';
+import { gameApi, realtimeApi } from '@/lib/supabase';
 import { GameRoom, UserProfile, Card, GameState } from '@/types';
-import { useAlert } from '@/components/AlertProvider';
+import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
+import { Modal } from '@/components/ui/Modal';
 
-function useCountdown(deadline: number | null | undefined) {
-    const [timeLeft, setTimeLeft] = useState(0);
-    useEffect(() => {
-        if (!deadline) { setTimeLeft(0); return; }
-        const update = () => setTimeLeft(Math.max(0, Math.floor((deadline - Date.now()) / 1000)));
-        update();
-        const interval = setInterval(update, 1000);
-        return () => clearInterval(interval);
-    }, [deadline]);
-    return timeLeft;
-}
-
-const PlayingCard = ({ card, onClick, disabled, isPending, isSelected, isCapturedTarget }: any) => {
-    const isRed = card.suit === '♥' || card.suit === '♦';
-    return (
-        <button
-            onClick={disabled ? undefined : () => onClick(card)}
-            disabled={disabled}
-            className={`relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl shadow-md flex flex-col justify-between p-1.5 sm:p-2 font-bold select-none border-2 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform
-            ${isRed ? 'text-red-600 border-red-200 bg-red-50' : 'text-slate-900 border-slate-200 bg-white'}
-            ${isSelected ? 'ring-4 ring-theme-primary -translate-y-3 z-10' : ''}
-            ${isCapturedTarget ? 'ring-4 ring-red-500 border-red-500 scale-110 z-20 shadow-[0_0_20px_rgba(239,68,68,0.8)]' : ''}
-            ${disabled && !isSelected && !isCapturedTarget ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:-translate-y-2 hover:shadow-xl'}
-            ${isPending ? 'opacity-0 scale-50' : 'opacity-100'}`}
-        >
-            <div className="text-xs sm:text-base md:text-lg leading-none text-left">{card.rank}</div>
-            <div className="text-lg sm:text-2xl md:text-3xl text-center self-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">{card.suit}</div>
-            <div className="text-xs sm:text-base md:text-lg leading-none text-right rotate-180">{card.rank}</div>
-        </button>
-    );
-};
-
-const CardBack = ({ count, label, isAnimating, isEmpty }: any) => {
-    const { t } = useTranslation();
-    if (isEmpty) return (
-        <div className="relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl border-4 border-dashed border-theme-border opacity-50 flex flex-col items-center justify-center text-theme-text select-none">
-            <span className="text-[10px] sm:text-xs font-bold">{t('game_empty')}</span>
-            {label && <span className="absolute -bottom-5 sm:-bottom-6 text-[10px] sm:text-xs whitespace-nowrap font-bold opacity-70">{label}</span>}
-        </div>
-    );
-    return (
-        <div className={`relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,0.1)] border-4 border-theme-border flex flex-col items-center justify-center text-theme-text font-black select-none transition-all duration-300 ${isAnimating ? 'scale-125 -translate-y-4 ring-4 ring-amber-400 z-10' : ''}`} style={{ backgroundImage: 'repeating-linear-gradient(45deg, var(--bg-panel), var(--bg-panel) 10px, var(--bg-main) 10px, var(--bg-main) 20px)' }}>
-            <div className="bg-theme-main px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md text-xs sm:text-sm md:text-xl border-2 border-theme-border">{count}</div>
-            {label && <span className="absolute -bottom-5 sm:-bottom-6 text-[10px] sm:text-xs whitespace-nowrap opacity-70 font-bold">{label}</span>}
-        </div>
-    );
-};
+// Импорт новых компонентов из фичи game
+import { useCountdown } from '@/features/game/hooks/useCountdown';
+import { PlayingCard } from '@/features/game/components/PlayingCard';
+import { CardBack } from '@/features/game/components/CardBack';
 
 export default function GameRoomPage() {
     const { t } = useTranslation();
@@ -80,14 +38,11 @@ export default function GameRoomPage() {
 
     const [allActiveRooms, setAllActiveRooms] = useState<GameRoom[]>([]);
 
-    // 🟢 Восстанавливаем просмотренные алерты из sessionStorage при загрузке
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedAlerts = sessionStorage.getItem(`pasur_alerts_${roomId}`);
             if (savedAlerts) {
-                try {
-                    shownAlerts.current = new Set(JSON.parse(savedAlerts));
-                } catch (e) {}
+                try { shownAlerts.current = new Set(JSON.parse(savedAlerts)); } catch (e) {}
             }
         }
     }, [roomId]);
@@ -98,9 +53,8 @@ export default function GameRoomPage() {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             const currentUser = session?.user;
-
             if (currentUser) {
-                unsubUser = fbManager.subscribeToUser(currentUser.id, (userData) => {
+                unsubUser = realtimeApi.subscribeToUser(currentUser.id, (userData) => {
                     if (userData) setUser(userData);
                 });
             } else {
@@ -114,12 +68,9 @@ export default function GameRoomPage() {
 
     useEffect(() => {
         if (!user) return;
-
         const roomsToFetch = Array.from(new Set([roomId, ...(user.activeRooms || [])]));
-
-        const unsubRoom = fbManager.subscribeToRoomsByIds(roomsToFetch, (rooms) => {
+        const unsubRoom = realtimeApi.subscribeToRoomsByIds(roomsToFetch, (rooms) => {
             setAllActiveRooms(rooms);
-
             const data = rooms.find(r => r.id === roomId);
             if (!data) { router.push('/dashboard'); return; }
 
@@ -135,13 +86,9 @@ export default function GameRoomPage() {
 
             setRoomData(data);
 
-            // 🟢 Сохраняем алерт в sessionStorage после показа, чтобы не повторять при рефреше
             if (data.adminMessage && !shownAlerts.current.has(data.adminMessage)) {
                 shownAlerts.current.add(data.adminMessage);
-                if (typeof window !== 'undefined') {
-                    sessionStorage.setItem(`pasur_alerts_${roomId}`, JSON.stringify(Array.from(shownAlerts.current)));
-                }
-
+                if (typeof window !== 'undefined') sessionStorage.setItem(`pasur_alerts_${roomId}`, JSON.stringify(Array.from(shownAlerts.current)));
                 const parts = data.adminMessage.split('|');
                 if (parts.length >= 3) {
                     if (parts[0] === 'ALL' || parts[0] === currentMask) showAlert(t(parts[1]));
@@ -150,14 +97,13 @@ export default function GameRoomPage() {
                 }
             }
         });
-
         return () => unsubRoom();
-    }, [user?.activeRooms, roomId, router, showAlert]);
+    }, [user?.activeRooms, roomId, router, showAlert, t]);
 
     useEffect(() => {
         if (!myMask && user && roomData && !hasAttemptedFetchMask.current) {
             hasAttemptedFetchMask.current = true;
-            fbManager.getMyMask(roomId).then(mask => {
+            gameApi.getMyMask(roomId).then(mask => {
                 if (mask) { setMyMask(mask); sessionStorage.setItem(`pasur_mask_${roomId}`, mask); }
             }).catch(console.error);
         }
@@ -179,7 +125,6 @@ export default function GameRoomPage() {
 
         if (serverGame.lastAction.timestamp > (visualGame.lastAction?.timestamp || 0)) {
             const action = serverGame.lastAction;
-
             if (action.playerId === safeMyId) {
                 setVisualGame(serverGame);
                 setPendingMove(null);
@@ -195,7 +140,7 @@ export default function GameRoomPage() {
             setVisualGame(serverGame);
             setPendingMove(null);
         }
-    }, [roomData?.gameState]);
+    }, [roomData?.gameState]); // eslint-disable-line
 
     const safeMyId = myMask || user?.uid;
     const isPlayer0 = roomData?.players[0]?.id === safeMyId;
@@ -211,9 +156,7 @@ export default function GameRoomPage() {
     const claimTimeoutVictory = useCallback(async () => {
         if (isProcessing.current) return;
         isProcessing.current = true;
-        try {
-            await fbManager.leaveRoom(roomId, 'timeout');
-        }
+        try { await gameApi.leaveRoom(roomId, 'timeout'); }
         catch (e: any) { if (!e.message?.includes("ERR_INVALID_MOVE")) console.error(e); }
         finally { setTimeout(() => { isProcessing.current = false; }, 2000); }
     }, [roomId]);
@@ -229,9 +172,8 @@ export default function GameRoomPage() {
         }
 
         if (roomData?.status === 'pause_requested' && turnTimeLeft === 0) {
-            fbManager.resolvePauseTimeout(roomId);
+            gameApi.resolvePauseTimeout(roomId);
         }
-
         return () => { if (timeout) clearTimeout(timeout); if (interval) clearInterval(interval); };
     }, [roomData?.status, isMyTurnSafe, isSpectatorSafe, turnTimeLeft, claimTimeoutVictory, roomId]);
 
@@ -242,7 +184,7 @@ export default function GameRoomPage() {
             const attemptResolve = () => {
                 if (!isProcessing.current) {
                     isProcessing.current = true;
-                    fbManager.resolveReadyTimeout(roomId).finally(() => { setTimeout(() => { isProcessing.current = false; }, 2000); });
+                    gameApi.resolveReadyTimeout(roomId).finally(() => { setTimeout(() => { isProcessing.current = false; }, 2000); });
                 }
             };
             timeout = setTimeout(attemptResolve, 1500);
@@ -253,7 +195,7 @@ export default function GameRoomPage() {
 
     const handleJoinClick = () => {
         setIsJoining(true);
-        fbManager.joinRoom(roomId).then((mask) => { if (mask) setMyMask(mask); }).catch(e => showAlert(t(e.message))).finally(() => setIsJoining(false));
+        gameApi.joinRoom(roomId).then((mask) => { if (mask) setMyMask(mask); }).catch(e => showAlert(t(e.message))).finally(() => setIsJoining(false));
     };
 
     const handleLeaveOrSurrender = () => {
@@ -261,7 +203,7 @@ export default function GameRoomPage() {
         showConfirm(isPlaying ? t('game_surrender_confirm') : t('game_leave_table'), async () => {
             isProcessing.current = true;
             try {
-                await fbManager.leaveRoom(roomId, isPlaying ? 'surrender' : 'leave');
+                await gameApi.leaveRoom(roomId, isPlaying ? 'surrender' : 'leave');
                 sessionStorage.removeItem(`pasur_mask_${roomId}`);
                 setMyMask(null);
                 router.replace('/dashboard');
@@ -272,24 +214,18 @@ export default function GameRoomPage() {
     const handlePlayerMove = async (card: Card) => {
         if (!roomData || isProcessing.current || animatingAction) return;
 
-        if (selectedTableCards.length > 0 && game) {
-            const targets = game.table.filter(c => selectedTableCards.includes(c.id));
-            if (card.rank === 'J' && targets.some(c => c.rank === 'Q' || c.rank === 'K')) {
-                return showAlert(t('game_err_jack'));
-            }
-            if ((card.rank === 'Q' || card.rank === 'K') && (targets.length !== 1 || targets[0].rank !== card.rank)) {
-                return showAlert(t('game_err_picture'));
-            }
-            if (card.rank !== 'J' && card.rank !== 'Q' && card.rank !== 'K' && targets.some(c => c.value === 0)) {
-                return showAlert(t('game_err_sum11'));
-            }
+        if (selectedTableCards.length > 0 && visualGame) {
+            const targets = visualGame.table.filter(c => selectedTableCards.includes(c.id));
+            if (card.rank === 'J' && targets.some(c => c.rank === 'Q' || c.rank === 'K')) return showAlert(t('game_err_jack'));
+            if ((card.rank === 'Q' || card.rank === 'K') && (targets.length !== 1 || targets[0].rank !== card.rank)) return showAlert(t('game_err_picture'));
+            if (card.rank !== 'J' && card.rank !== 'Q' && card.rank !== 'K' && targets.some(c => c.value === 0)) return showAlert(t('game_err_sum11'));
         }
 
         setPendingMove({ card, isMe: true });
         isProcessing.current = true;
 
         try {
-            await fbManager.playCard(roomId, card.id, selectedTableCards);
+            await gameApi.playCard(roomId, card.id, selectedTableCards);
             setSelectedTableCards([]);
         } catch (e: any) {
             showAlert(t(e.message));
@@ -315,9 +251,9 @@ export default function GameRoomPage() {
         const isPaused = roomData.status === 'paused';
 
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] bg-theme-main">
+            <div className="min-h-screen flex flex-col items-center justify-center p-4 safe-padding bg-theme-main relative">
                 {(roomData.status === 'waiting' || isPaused) && (
-                    <button onClick={() => router.push('/dashboard')} className="absolute top-[max(env(safe-area-inset-top),1.5rem)] left-[max(env(safe-area-inset-left),1.5rem)] opacity-60 hover:opacity-100 transition font-bold text-theme-text">{t('game_back_lobby')}</button>
+                    <button onClick={() => router.push('/dashboard')} className="absolute top-4 left-4 sm:top-8 sm:left-8 opacity-60 hover:opacity-100 transition font-bold text-theme-text">{t('game_back_lobby')}</button>
                 )}
 
                 <div className="bg-theme-panel p-8 rounded-3xl max-w-md w-full border-4 border-theme-border text-center shadow-2xl">
@@ -357,7 +293,7 @@ export default function GameRoomPage() {
                     {!isSpectatorSafe ? (
                         <div className="flex flex-col gap-3">
                             <button
-                                onClick={() => fbManager.toggleReady(roomId, true).catch(e => showAlert(t(e.message)))}
+                                onClick={() => gameApi.toggleReady(roomId, true).catch(e => showAlert(t(e.message)))}
                                 disabled={!isFull || meLobbyInfo?.isReady}
                                 className={`w-full py-4 rounded-xl font-black transition-all shadow-lg text-lg text-white border-2 border-transparent ${meLobbyInfo?.isReady ? 'bg-theme-main border-theme-border text-theme-text opacity-70 cursor-not-allowed' : 'bg-theme-primary hover:opacity-80'}`}
                             >
@@ -381,7 +317,7 @@ export default function GameRoomPage() {
     if (!opponent) return null;
 
     return (
-        <div className="h-[100dvh] w-full flex flex-col bg-theme-main overflow-hidden p-2 sm:p-4 gap-2 pt-[max(env(safe-area-inset-top),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.5rem)] pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)]">
+        <div className="h-[100dvh] w-full flex flex-col bg-theme-main overflow-hidden p-2 sm:p-4 gap-2 safe-padding">
             
             {/* ТОП-БАР */}
             <div className="flex-shrink-0 w-full max-w-4xl mx-auto bg-theme-panel border-4 border-theme-border p-3 sm:p-4 rounded-2xl flex justify-between items-center shadow-sm">
@@ -391,7 +327,6 @@ export default function GameRoomPage() {
                     <span className="mx-1 sm:mx-2 opacity-50">:</span>
                     <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
                     <span className="opacity-70 text-[10px] sm:text-sm ml-1 sm:ml-2">{isSpectatorSafe ? t('game_player_2') : t('game_opp')}</span>
-
                     {roomData.isSuddenDeath && <span className="ml-3 text-amber-500 text-lg opacity-70 animate-pulse" title={t('rule_sudden_death')}>⚡</span>}
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
@@ -455,7 +390,7 @@ export default function GameRoomPage() {
                 ) : (
                     <div className="flex flex-wrap gap-2 sm:gap-4 justify-center items-center min-h-full">
                         {game.table.map(card => {
-                            const isCapturedByOpponent = animatingAction?.capturedCards.some((c: Card) => c.id === card.id);
+                            const isCapturedByOpponent = animatingAction?.capturedCards?.some((c: Card) => c.id === card.id);
                             return (
                                 <PlayingCard
                                     key={card.id}
@@ -509,8 +444,8 @@ export default function GameRoomPage() {
 
             {/* МОДАЛКА ОКОНЧАНИЯ МАТЧА ИЛИ РАУНДА */}
             {(game.isRoundOver || game.isMatchOver) && !isSpectatorSafe && !animatingAction && roomData.status !== 'pause_requested' && (
-                <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-theme-panel p-6 sm:p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-300">
+                <Modal>
+                    <div className="text-center">
                         {game.isMatchOver ? (
                             <>
                                 <h2 className="text-3xl sm:text-4xl font-black mb-2 text-theme-primary tracking-wider">{game.matchWinnerTeamId === me.teamId ? t('game_victory') : t('game_defeat')}</h2>
@@ -520,7 +455,7 @@ export default function GameRoomPage() {
                                     <div className="w-full mt-4 bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black opacity-70">{t('game_waiting_opponent')}</div>
                                 ) : (
                                     <div className="flex flex-col gap-3 mt-4">
-                                        <button onClick={() => fbManager.rematch(roomId)} className="w-full bg-theme-primary text-white py-4 rounded-xl font-black shadow-lg">🔄 {t('game_rematch')} ({roomData.betAmount} 💰)</button>
+                                        <button onClick={() => gameApi.rematch(roomId)} className="w-full bg-theme-primary text-white py-4 rounded-xl font-black shadow-lg">🔄 {t('game_rematch')} ({roomData.betAmount} 💰)</button>
                                         <button onClick={handleLeaveOrSurrender} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black hover:bg-theme-border transition-colors">{t('game_return_lobby')}</button>
                                     </div>
                                 )}
@@ -530,10 +465,10 @@ export default function GameRoomPage() {
                                 <h2 className="text-2xl sm:text-3xl font-black mb-2 text-theme-text">{t('game_round')} {game.roundNumber} {t('game_completed')}</h2>
                                 <p className="text-theme-primary mb-6 font-mono font-black text-2xl">{t('game_score')} {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
                                 <div className="flex flex-col gap-3">
-                                    {isPlayer0 ? <button onClick={() => fbManager.nextRound(roomId).catch(e => showAlert(t(e.message)))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
+                                    {isPlayer0 ? <button onClick={() => gameApi.nextRound(roomId).catch(e => showAlert(t(e.message)))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
 
                                     {roomData.status === 'playing' && (
-                                        <button onClick={() => fbManager.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">
+                                        <button onClick={() => gameApi.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">
                                             {t('game_pause_btn')}
                                         </button>
                                     )}
@@ -541,13 +476,13 @@ export default function GameRoomPage() {
                             </>
                         )}
                     </div>
-                </div>
+                </Modal>
             )}
 
             {/* МОДАЛКА: ЗАПРОС НА ПАУЗУ */}
             {roomData.status === 'pause_requested' && !isSpectatorSafe && (
-                <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-theme-panel p-8 rounded-3xl max-w-sm w-full text-center border-4 border-theme-border shadow-2xl animate-in zoom-in-95 duration-200">
+                <Modal>
+                    <div className="text-center">
                         <h2 className="text-2xl font-black mb-4">{t('game_pause_req_title')}</h2>
                         {roomData.pauseProposals?.includes(safeMyId) ? (
                             <p className="opacity-80 mb-4 font-bold">{t('game_pause_wait')} ({turnTimeLeft}с)</p>
@@ -555,20 +490,21 @@ export default function GameRoomPage() {
                             <>
                                 <p className="opacity-80 mb-6 font-bold">{t('game_pause_ask')} ({turnTimeLeft}с)</p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => fbManager.answerPauseRequest(roomId, false)} className="flex-1 bg-theme-main border-2 border-theme-border py-3 rounded-xl font-bold hover:bg-theme-border transition-colors">{t('game_continue')}</button>
-                                    <button onClick={() => fbManager.answerPauseRequest(roomId, true)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">{t('game_agree')}</button>
+                                    <button onClick={() => gameApi.answerPauseRequest(roomId, false)} className="flex-1 bg-theme-main border-2 border-theme-border py-3 rounded-xl font-bold hover:bg-theme-border transition-colors">{t('game_continue')}</button>
+                                    <button onClick={() => gameApi.answerPauseRequest(roomId, true)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">{t('game_agree')}</button>
                                 </div>
                             </>
                         )}
                     </div>
-                </div>
+                </Modal>
             )}
 
+            {/* ИКОНКИ ДРУГИХ АКТИВНЫХ ИГР */}
             {otherRooms.length > 0 && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40 pointer-events-none">
                     {otherRooms.map(room => {
                         const roomSafeMyId = sessionStorage.getItem(`pasur_mask_${room.id}`) || user?.uid;
-                        const amIActiveThere = room.gameState?.players?.[room.gameState.currentTurnIndex]?.id === roomSafeMyId;
+                        const amIActiveThere = room.gameState ? room.gameState.players[room.gameState.currentTurnIndex]?.id === roomSafeMyId : false;
                         const isRoomPlaying = room.status === 'playing';
 
                         return (

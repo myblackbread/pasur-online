@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '@/types';
-import { fbManager } from '@/lib/supabaseManager';
+import { gameApi } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 
 const EMOJIS = ['😎', '👽', '🤖', '🦊', '🐯', '👻', '🤡', '🤠'];
@@ -10,7 +10,7 @@ export default function ProfileView({ user }: { user: UserProfile }) {
     const [isEditingEmoji, setIsEditingEmoji] = useState(false);
 
     const changeEmoji = async (emoji: string) => {
-        await fbManager.updateUserEmoji(user.uid, emoji);
+        await gameApi.updateUserEmoji(user.uid, emoji);
         setIsEditingEmoji(false);
     };
     
@@ -37,7 +37,7 @@ export default function ProfileView({ user }: { user: UserProfile }) {
                 <h2 className="text-2xl font-black mt-4">{user.displayName}</h2>
                 <div className="inline-flex items-center gap-2 mt-2 bg-theme-main border-2 border-theme-border px-4 py-2 rounded-full">
                     <span className="text-amber-500 font-black text-lg">{user.balance} 💰</span>
-                    <button onClick={() => fbManager.addMoney(user.uid, 500)} className="text-xs bg-theme-primary text-white font-bold px-2 py-1 rounded-md hover:opacity-80 transition-opacity">+</button>
+                    <button onClick={() => gameApi.addMoney(user.uid, 500)} className="text-xs bg-theme-primary text-white font-bold px-2 py-1 rounded-md hover:opacity-80 transition-opacity">+</button>
                 </div>
             </div>
 

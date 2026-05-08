@@ -2,16 +2,14 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { fbManager } from '@/lib/supabaseManager';
+import { realtimeApi } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/types';
-import LobbyView from './components/LobbyView';
-import ProfileView from './components/ProfileView';
-import SettingsView from './components/SettingsView';
+import LobbyView from '@/features/lobby/components/LobbyView';
+import ProfileView from '@/features/profile/components/ProfileView';
+import SettingsView from '@/features/profile/components/SettingsView';
 import { useTranslation } from 'react-i18next';
-
-// 🟢 Подключаем наш новый скроллбар
-import { HybridScrollView, ScrollScreen } from '@/app/ui/hybrid-scrollbar';
+import { HybridScrollView, ScrollScreen } from '@/components/ui/hybrid-scrollbar';
 
 export default function MainAppPage() {
     const { t } = useTranslation();
@@ -32,7 +30,7 @@ export default function MainAppPage() {
             }
 
             if (currentUser) {
-                unsubscribeSnap = fbManager.subscribeToUser(currentUser.id, (userData) => {
+                unsubscribeSnap = realtimeApi.subscribeToUser(currentUser.id, (userData) => {
                     if (userData?.isDeleted) {
                         supabase.auth.signOut().then(() => router.push('/'));
                     } else if (userData) {

@@ -43,7 +43,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
             
             {alertState && (
                 <div 
-                    className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 touch-none overscroll-none pointer-events-auto animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 touch-none overscroll-none pointer-events-auto animate-in fade-in duration-200 safe-padding"
                     style={{ overscrollBehavior: 'none' }}
                 >
                     <div className="bg-theme-panel border-4 border-theme-border p-6 sm:p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">

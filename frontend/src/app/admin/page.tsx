@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/types';
-import { useAlert } from '@/components/AlertProvider';
-import { fbManager } from '@/lib/supabaseManager';
+import { useAlert } from '@/components/providers/AlertProvider';
+import { gameApi } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 
 export default function AdminPage() {
@@ -42,7 +42,7 @@ export default function AdminPage() {
     const handleDeleteUser = (userToKill: UserProfile) => {
         showConfirm(`${t('admin_confirm_delete')} ${userToKill.displayName}?`, async () => {
             try {
-                await fbManager.adminDeleteUser(userToKill.uid);
+                await gameApi.adminDeleteUser(userToKill.uid);
 
                 showAlert(`${userToKill.displayName} ${t('admin_user_deleted')}`);
             } catch (error: any) {

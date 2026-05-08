@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/types';
-import { fbManager } from '@/lib/supabaseManager';
+import { authApi } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useAlert } from '@/components/AlertProvider'; // 🟢 ДОБАВЛЕН ИМПОРТ
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { useAlert } from '@/components/providers/AlertProvider';
 
 export default function SettingsView({ user }: { user: UserProfile }) {
     const { t } = useTranslation();
@@ -39,7 +39,7 @@ export default function SettingsView({ user }: { user: UserProfile }) {
     const handleLinkGoogle = async () => {
         setIsLinking(true);
         try {
-            await fbManager.linkGoogleAccount();
+            await authApi.linkGoogleAccount();
             showAlert(t('settings_google_linked')); // 🟢 ЗАМЕНЕН СИСТЕМНЫЙ alert
         } catch (error: any) {
             showAlert(error.message); // 🟢 ЗАМЕНЕН СИСТЕМНЫЙ alert

@@ -397,7 +397,7 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
                 <div
                     key={screen.id}
                     data-screen-index={index}
-                    className={`h-[100dvh] w-full max-w-full snap-start snap-always relative overflow-x-hidden overflow-y-auto overscroll-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] ${screen.bgClass || 'bg-zinc-900'}`}
+                    className={`h-[100dvh] w-full max-w-full snap-start snap-always relative overflow-x-hidden overflow-y-auto overscroll-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden safe-padding ${screen.bgClass || 'bg-zinc-900'}`}
                     onScroll={wakeUpScrollbar}
                 >
                     {screen.content}
