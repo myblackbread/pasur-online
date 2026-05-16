@@ -12,28 +12,38 @@
 }
 
 @layer base {
-  /* Базовая тема + Мужская тема (Стильный Slate/Blue) */
-  :root, :root[data-theme="male"] {
-    --bg-main: #0f172a;      
-    --bg-panel: #1e293b;     
-    --color-primary: #3b82f6; 
-    --color-text: #f8fafc;
-    --color-border: #334155;
+  /* 1. БАЗОВАЯ ТЕМА (Экран авторизации / Гость) - Оставляем темной и стильной */
+  :root {
+    --bg-main: #0f172a;       /* slate-900 */
+    --bg-panel: #1e293b;      /* slate-800 */
+    --color-primary: #8b5cf6; /* violet-500 (Нейтральный акцент до выбора пола) */
+    --color-text: #f8fafc;    /* slate-50 */
+    --color-border: #334155;  /* slate-700 */
   }
 
-  /* Женская тема (Темно-пурпурный с розовыми акцентами) */
+  /* 2. МУЖСКАЯ ТЕМА - Светлая, строгая. На белых карточках тени работают идеально! */
+  :root[data-theme="male"] {
+    --bg-main: #f1f5f9;       /* slate-100 (Светло-серый фон) */
+    --bg-panel: #ffffff;      /* Чисто белые карточки */
+    --color-primary: #3b82f6; /* blue-500 */
+    --color-text: #0f172a;    /* slate-900 */
+    --color-border: #e2e8f0;  /* slate-200 */
+  }
+
+  /* 3. ЖЕНСКАЯ ТЕМА - Светлая, теплая. */
   :root[data-theme="female"] {
-    --bg-main: #1f121b;      
-    --bg-panel: #311c2a;     
-    --color-primary: #f43f5e; 
-    --color-text: #fff1f2;
-    --color-border: #502941; 
+    --bg-main: #fff1f2;       /* rose-50 (Нежно-розовый фон) */
+    --bg-panel: #ffffff;      /* Чисто белые карточки */
+    --color-primary: #f43f5e; /* rose-500 */
+    --color-text: #4c0519;    /* rose-950 (Винный оттенок текста для контраста) */
+    --color-border: #ffe4e6;  /* rose-100 */
   }
 
   body {
     background-color: var(--bg-main);
     color: var(--color-text);
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    /* Добавляем плавность, чтобы при логине цвета красиво перетекали из темного в светлый */
+    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
   }
 }
 

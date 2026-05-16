@@ -194,10 +194,18 @@ export class PasurGame {
         const cardIndex = player.hand.findIndex(c => c.id === cardId);
         if (cardIndex === -1) throw new GameError(ErrorCode.INVALID_MOVE);
 
-        const targets = this.table.filter(c => targetCardIds.includes(c.id));
+        let targets = this.table.filter(c => targetCardIds.includes(c.id));
         if (targets.length !== targetCardIds.length) throw new GameError(ErrorCode.INVALID_MOVE);
 
         const cardToPlay = player.hand[cardIndex];
+
+        // 🟢 ИСПРАВЛЕНИЕ: В строгом режиме Валет автоматически забирает все возможные карты
+        if (this.isStrict && cardToPlay.rank === 'J') {
+            const validJackTargets = this.table.filter(c => c.rank !== 'Q' && c.rank !== 'K');
+            if (validJackTargets.length > 0) {
+                targets = validJackTargets; // Игнорируем то, что выбрал клиент и забираем все доступное
+            }
+        }
 
         if (targets.length === 0 && this.isStrict) {
             if (this.canCaptureAny(cardToPlay, this.table)) {

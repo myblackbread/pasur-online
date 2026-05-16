@@ -9,11 +9,13 @@ interface AlertState {
     type: AlertType;
     message: string;
     onConfirm?: () => void;
+    onCancel?: () => void; // 🟢 Добавили onCancel в стейт
 }
 
 interface AlertContextType {
     showAlert: (message: string) => void;
-    showConfirm: (message: string, onConfirm: () => void) => void;
+    // 🟢 Добавили 3-й опциональный аргумент
+    showConfirm: (message: string, onConfirm: () => void, onCancel?: () => void) => void;
 }
 
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
@@ -26,14 +28,21 @@ export function AlertProvider({ children }: { children: ReactNode }) {
         setAlertState({ type: 'alert', message });
     }, []);
 
-    const showConfirm = useCallback((message: string, onConfirm: () => void) => {
-        setAlertState({ type: 'confirm', message, onConfirm });
+    // 🟢 Принимаем onCancel и сохраняем его в стейт
+    const showConfirm = useCallback((message: string, onConfirm: () => void, onCancel?: () => void) => {
+        setAlertState({ type: 'confirm', message, onConfirm, onCancel });
     }, []);
 
     const close = () => setAlertState(null);
 
     const handleConfirm = () => {
         if (alertState?.onConfirm) alertState.onConfirm();
+        close();
+    };
+
+    // 🟢 Создаем хендлер для отмены
+    const handleCancel = () => {
+        if (alertState?.onCancel) alertState.onCancel();
         close();
     };
 
@@ -46,11 +55,11 @@ export function AlertProvider({ children }: { children: ReactNode }) {
                     className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 touch-none overscroll-none pointer-events-auto animate-in fade-in duration-200 safe-padding"
                     style={{ overscrollBehavior: 'none' }}
                 >
-                    <div className="bg-theme-panel border-4 border-theme-border p-6 sm:p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-theme-panel border-4 border-theme-border p-5 sm:p-8 rounded-2xl sm:rounded-3xl max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="text-4xl mb-4">
                             {alertState.type === 'confirm' ? '🤔' : '⚠️'}
                         </div>
-                        <h3 className="text-2xl font-black mb-2 text-theme-text">
+                        <h3 className="text-xl sm:text-2xl font-black mb-2 text-theme-text">
                             {alertState.type === 'confirm' ? t('alert_confirm') : t('alert_warning')}
                         </h3>
                         <p className="text-theme-text font-bold mb-8 opacity-90 whitespace-pre-line text-lg leading-tight">
@@ -67,7 +76,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
                         ) : (
                             <div className="flex gap-3">
                                 <button 
-                                    onClick={close} 
+                                    onClick={handleCancel} // 🟢 Используем handleCancel вместо close
                                     className="flex-1 bg-theme-main border-2 border-theme-border text-theme-text font-black py-4 rounded-xl hover:opacity-80 transition-opacity"
                                 >
                                     {t('alert_cancel')}

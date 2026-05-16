@@ -25,6 +25,7 @@ export const authApi = {
 
         const { data: userDoc } = await supabase.from('users').select('*').eq('id', user.id).single();
 
+        // 🟢 Только СОЗДАНИЕ нового профиля. Никаких обновлений пола для существующих!
         if (!userDoc) {
             let displayName = user.user_metadata?.name || (email ? email.split('@')[0] : `Guest_${user.id.substring(0, 5)}`);
             await supabase.from('users').insert({
@@ -36,10 +37,11 @@ export const authApi = {
                     isIncognito: gender === 'female',
                     blockedUids: [],
                     avatarEmoji: provider === 'guest' ? '👻' : '😎',
-                    gender
+                    gender: gender || 'male'
                 }
             });
         }
+        
         return user.id;
     },
 

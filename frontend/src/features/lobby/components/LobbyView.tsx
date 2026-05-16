@@ -1,50 +1,67 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Plus, Check, ChevronRight, Trash2, LogOut } from 'lucide-react';
 import { gameApi, realtimeApi } from '@/lib/supabase';
 import { GameRoom, UserProfile, RuleSet } from '@/types';
 import { GAME_CONFIG } from '@/utils/constants';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
-import { Modal } from '@/components/ui/Modal';
+import { MorphingCapsule, sharedSpringTransition } from '@/components/ui/MorphingCapsule';
+import { AppleToggle } from '@/components/ui/AppleToggle';
+import { SwipeableActionCard } from '@/components/ui/SwipeableActionCard';
+import { CapsuleModal } from '@/components/ui/CapsuleModal';
+import { NavigationItem } from '@/components/ui/NavigationItem';
+
+const DEFAULT_CONFIG = {
+    bet: 100, speed: 30000, players: 2, ruleSet: 'local' as RuleSet,
+    isStrict: true, isSuddenDeath: false, isPrivate: false
+};
 
 export default function LobbyView({ user }: { user: UserProfile }) {
     const router = useRouter();
     const { showAlert, showConfirm } = useAlert();
     const { t } = useTranslation();
+
     const [rooms, setRooms] = useState<GameRoom[]>([]);
     const [activeRooms, setActiveRooms] = useState<GameRoom[]>([]);
+
+    const [view, setView] = useState<'none' | 'search' | 'create'>('none');
+
     const [privateCode, setPrivateCode] = useState('');
+    const [createConfig, setCreateConfig] = useState({ ...DEFAULT_CONFIG });
+    const [searchConfig, setSearchConfig] = useState({ ...DEFAULT_CONFIG });
 
-    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isInputActive, setIsInputActive] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
     const [isSurrendering, setIsSurrendering] = useState(false);
-    
-    const [createConfig, setCreateConfig] = useState({
-        bet: 100,
-        speed: 30000,
-        players: 2,
-        ruleSet: 'local' as RuleSet,
-        isStrict: true,
-        isSuddenDeath: false,
-        isPrivate: false
-    });
 
-    const handleCreateRoomSubmit = async () => {
-        if (user.balance < createConfig.bet) return showAlert(t('lobby_not_enough_money'));
-        try {
-            const roomId = await gameApi.createRoom(
-                user,
-                createConfig.bet,
-                createConfig.ruleSet,
-                createConfig.isPrivate,
-                createConfig.isStrict,
-                createConfig.isSuddenDeath,
-                createConfig.players,
-                createConfig.speed
-            );
-            setShowCreateModal(false);
-            router.push(`/game/${roomId}`);
-        } catch (e: any) { showAlert(`${t('lobby_create_error')} ${t(e.message)}`); }
+    const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
+
+    const hasText = privateCode.trim().length > 0;
+
+    const closeView = () => {
+        setView('none');
     };
+
+    useEffect(() => {
+        setPortalNode(document.getElementById('overlay-lobby'));
+    }, []);
+
+    useEffect(() => {
+        document.body.style.overflow = view !== 'none' ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [view]);
+
+    useEffect(() => {
+        if (view === 'search' && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [view]);
 
     useEffect(() => {
         const unsub = realtimeApi.subscribeToPublicRooms(setRooms);
@@ -57,26 +74,6 @@ export default function LobbyView({ user }: { user: UserProfile }) {
         return () => unsub();
     }, [user.activeRooms]);
 
-    const handleJoinPrivate = async () => {
-        if (!privateCode.trim()) return;
-        const roomId = await gameApi.findPrivateRoom(privateCode);
-        if (roomId) router.push(`/game/${roomId}`);
-        else showAlert(t('lobby_room_not_found'));
-    };
-
-    const handleSurrenderActive = (roomId: string) => {
-        showConfirm(t('lobby_surrender_confirm'), async () => {
-            setIsSurrendering(true);
-            try {
-                await gameApi.leaveRoom(roomId, 'surrender');
-            } catch (e: any) {
-                showAlert(`${t('lobby_error')} ${t(e.message)}`);
-            } finally {
-                setIsSurrendering(false);
-            }
-        });
-    };
-
     const requireIncognitoCheck = (action: () => void) => {
         if (user.gender === 'female' && !user.settings?.isIncognito) {
             showConfirm(t('incognito_warn'), action);
@@ -85,181 +82,383 @@ export default function LobbyView({ user }: { user: UserProfile }) {
         }
     };
 
-    return (
-        // 🟢 Добавлено w-full и overflow-x-hidden для страховки от любых вылезаний
-        <div className="p-4 md:p-6 w-full max-w-4xl mx-auto relative overflow-x-hidden">
-            
-            {/* 🟢 ШАПКА: На мобилках кнопка падает вниз и растягивается на всю ширину */}
-            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-6 mt-4 gap-4">
-                <h1 className="text-3xl font-black text-center sm:text-left">{t('lobby_title')}</h1>
-                <button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto bg-theme-primary hover:opacity-80 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-opacity">
-                    + {t('lobby_create')}
-                </button>
-            </div>
+    const handleCreateRoomSubmit = async () => {
+        if (user.balance < createConfig.bet) return showAlert(t('lobby_not_enough_money'));
+        try {
+            const roomId = await gameApi.createRoom(
+                user, createConfig.bet, createConfig.ruleSet, createConfig.isPrivate,
+                createConfig.isStrict, createConfig.isSuddenDeath, createConfig.players, createConfig.speed
+            );
+            closeView();
+            router.push(`/game/${roomId}`);
+        } catch (e: any) { showAlert(`${t('lobby_create_error')} ${t(e.message)}`); }
+    };
 
-            {/* 🟢 АКТИВНЫЕ ИГРЫ */}
-            {activeRooms.length > 0 && (
-                <div className="mb-8">
-                    <h2 className="text-xl font-black mb-4 text-theme-primary flex items-center gap-2"><span>⏳</span> {t('lobby_active_games')}</h2>
-                    <div className="grid gap-4 w-full">
-                        {activeRooms.map(room => (
-                            <div key={room.id} className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-primary flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 hover:shadow-md transition-shadow">
-                                <div className="flex-1 text-center sm:text-left">
-                                    <div className="font-bold text-lg text-theme-primary">{t('lobby_your_table')} ({room.betAmount} 💰)</div>
-                                    <div className="text-xs opacity-70 font-medium mt-1">
-                                        {room.status === 'paused' ? t('status_paused') :
-                                            room.status === 'pause_requested' ? t('status_pause_req') :
-                                                room.status === 'finished' ? t('status_finished') : t('status_playing')}
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <button onClick={() => handleSurrenderActive(room.id!)} disabled={isSurrendering} className="flex-1 sm:flex-none bg-red-500/20 text-red-500 px-3 py-3 sm:py-2 rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors">
-                                        {room.status === 'finished' || room.status === 'waiting' ? t('btn_leave') : t('btn_surrender')}
-                                    </button>
-                                    <button onClick={() => router.push(`/game/${room.id}`)} className="flex-1 sm:flex-none bg-theme-primary text-white px-4 py-3 sm:py-2 rounded-lg font-bold hover:opacity-80 transition-opacity">
-                                        {t('btn_enter')}
-                                    </button>
-                                </div>
-                            </div>
+    const handleJoinPrivate = async () => {
+        if (!privateCode.trim()) return;
+        const roomId = await gameApi.findPrivateRoom(privateCode);
+        if (roomId) router.push(`/game/${roomId}`);
+        else showAlert(t('lobby_room_not_found'));
+    };
+
+    const handleApplySearchFilters = () => {
+        console.log('Поиск по фильтрам:', searchConfig);
+        closeView();
+    };
+
+    const updateSearchFilter = (updates: any) => {
+        setSearchConfig(prev => ({ ...prev, ...updates }));
+    };
+
+    const handleSurrenderActive = (roomId: string, resetCard?: () => void) => {
+        showConfirm(
+            t('lobby_surrender_confirm'),
+            async () => {
+                setIsSurrendering(true);
+                try {
+                    await gameApi.leaveRoom(roomId, 'surrender');
+                } catch (e: any) {
+                    showAlert(`${t('lobby_error')} ${t(e.message)}`);
+                    resetCard?.(); 
+                } finally {
+                    setIsSurrendering(false);
+                }
+            },
+            () => {
+                resetCard?.();
+            }
+        );
+    };
+
+    const renderSettingsForm = (config: any, setConfig: any, isSearchMode: boolean) => {
+        const updateFn = isSearchMode ? updateSearchFilter : setConfig;
+
+        return (
+            <div className="space-y-6">
+                <h3 className="text-2xl font-black text-gray-800 mb-2">
+                    {isSearchMode ? "Фильтры поиска" : t('modal_setup_title')}
+                </h3>
+
+                <div>
+                    <label className="block font-bold text-gray-500 mb-2 text-sm uppercase tracking-wider">{t('modal_bet_label')}</label>
+                    <div className="flex flex-wrap gap-2">
+                        {GAME_CONFIG.BET_OPTIONS.map(b => (
+                            <button
+                                key={b}
+                                onClick={() => updateFn({ ...config, bet: b })}
+                                className={`flex-1 min-w-[70px] py-3 rounded-2xl font-black transition-all border ${config.bet === b ? 'bg-amber-500 text-white shadow-md border-amber-500' : 'bg-white/40 text-gray-600 hover:bg-white/60 border-white/30'}`}
+                            >
+                                {b}
+                            </button>
                         ))}
                     </div>
                 </div>
-            )}
 
-            {/* 🟢 ПРИВАТНЫЙ КОД: Поле и кнопка друг под другом на мобилках */}
-            <div className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-border mb-8 flex flex-col sm:flex-row gap-3 shadow-sm w-full">
-                <input type="text" placeholder={t('lobby_game_code')} value={privateCode} onChange={e => setPrivateCode(e.target.value.toUpperCase())} className="w-full sm:flex-1 bg-theme-main border-2 border-theme-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-theme-primary uppercase font-mono tracking-widest font-bold" />
-                <button onClick={() => requireIncognitoCheck(handleJoinPrivate)} className="w-full sm:w-auto bg-theme-primary hover:opacity-80 text-white px-8 py-3 font-bold rounded-xl transition-opacity">
-                    {t('btn_enter')}
-                </button>
-            </div>
-
-            <h2 className="text-xl font-black mb-4 opacity-80">{t('lobby_open_tables')}</h2>
-            
-            {/* 🟢 ОТКРЫТЫЕ СТОЛЫ */}
-            <div className="grid gap-4 w-full pb-6">
-                {rooms.length === 0 ? (
-                    <div className="text-center py-10 opacity-50 border-4 border-dashed border-theme-border rounded-3xl font-bold">{t('lobby_no_active')}</div>
-                ) : (
-                    rooms.map(room => (
-                        <div key={room.id} className="bg-theme-panel p-4 rounded-2xl border-4 border-theme-border flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 hover:shadow-md transition-shadow">
-                            
-                            <div className="flex items-start sm:items-center gap-3 overflow-hidden">
-                                <div className="text-3xl shrink-0 pt-1 sm:pt-0">😎</div>
-                                <div className="min-w-0">
-                                    <div className="font-bold text-lg truncate w-full">{room.players[0]?.name === '__INCOGNITO__' ? t('unknown_player') : (room.players[0]?.name || t('lobby_empty_table'))}</div>
-                                    <div className="text-xs opacity-70 font-medium flex flex-wrap gap-1 mt-1">
-                                        <span className="bg-theme-main px-2 py-0.5 rounded-md border border-theme-border">
-                                            {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
-                                        </span>
-                                        {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-black">{t('rule_strict')}</span>}
-                                        {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md font-black" title={t('rule_sudden_death')}>⚡</span>}
-                                        <span className="text-theme-primary font-black ml-1 pt-0.5">({room.players.length}/{room.maxPlayers} {t('lobby_seats')})</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Разделитель на мобилках */}
-                            <div className="h-px w-full bg-theme-border/50 block sm:hidden my-1"></div>
-
-                            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                                <div className="text-amber-500 font-black text-xl whitespace-nowrap">{room.betAmount} 💰</div>
-                                <button onClick={() => requireIncognitoCheck(() => router.push(`/game/${room.id}`))} className="flex-1 sm:flex-none bg-theme-primary text-white px-6 py-3 sm:py-2 rounded-xl sm:rounded-lg font-bold hover:opacity-80 transition-opacity">
-                                    {t('btn_play')}
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* МОДАЛКА СОЗДАНИЯ СТОЛА */}
-            {showCreateModal && (
-                <Modal onClose={() => setShowCreateModal(false)}>
-                    <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl sm:text-3xl font-black text-theme-text">{t('modal_setup_title')}</h2>
-                            <button onClick={() => setShowCreateModal(false)} className="text-2xl opacity-50 hover:opacity-100 transition p-2">✖</button>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block font-bold text-theme-primary mb-3 uppercase tracking-wider text-sm">{t('modal_bet_label')}</label>
-                            <div className="flex flex-wrap gap-2">
-                                {GAME_CONFIG.BET_OPTIONS.map(b => (
-                                    <button
-                                        key={b}
-                                        onClick={() => setCreateConfig({ ...createConfig, bet: b })}
-                                        className={`flex-1 min-w-[70px] py-2 px-1 rounded-xl font-black border-2 transition-all ${createConfig.bet === b ? 'bg-amber-500 border-amber-400 text-white shadow-lg scale-105' : 'bg-theme-main border-theme-border text-theme-text opacity-70 hover:opacity-100'}`}
-                                    >
-                                        {b}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block font-bold text-theme-primary mb-3 uppercase tracking-wider text-sm">{t('modal_speed_label')}</label>
-                            <div className="flex gap-2 sm:gap-3">
-                                {GAME_CONFIG.SPEED_OPTIONS.map(s => (
-                                    <button
-                                        key={s.value}
-                                        onClick={() => setCreateConfig({ ...createConfig, speed: s.value })}
-                                        className={`flex-1 p-2 sm:p-3 rounded-2xl flex flex-col items-center justify-center border-4 transition-all ${createConfig.speed === s.value ? 'bg-theme-primary/20 border-theme-primary text-theme-text scale-105 shadow-md' : 'bg-theme-main border-transparent text-theme-text opacity-50 hover:opacity-100 border-theme-border'}`}
-                                    >
-                                        <span className="text-2xl sm:text-3xl mb-1">{s.icon}</span>
-                                        <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap">{t(s.labelKey)}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
-                            <div className="bg-theme-main p-3 sm:p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" onClick={() => setCreateConfig({ ...createConfig, players: createConfig.players === 2 ? 4 : 2 })}>
-                                <div className="text-2xl">{createConfig.players === 2 ? '👥' : '👨‍👩‍👧‍👦'}</div>
-                                <div className="font-bold text-xs sm:text-sm text-theme-text">{createConfig.players} {t('modal_players_count')}</div>
-                            </div>
-                            <div className="bg-theme-main p-3 sm:p-4 rounded-2xl border-2 border-theme-border flex flex-col justify-center items-center gap-2 cursor-pointer transition hover:border-theme-primary" 
-                                onClick={() => {
-                                    const newRule = createConfig.ruleSet === 'local' ? 'classic' : 'local';
-                                    setCreateConfig({ 
-                                        ...createConfig, 
-                                        ruleSet: newRule,
-                                        isSuddenDeath: newRule === 'classic' ? false : createConfig.isSuddenDeath
-                                    });
-                                }}
+                <div>
+                    <label className="block font-bold text-gray-500 mb-2 text-sm uppercase tracking-wider">{t('modal_speed_label')}</label>
+                    <div className="flex gap-2">
+                        {GAME_CONFIG.SPEED_OPTIONS.map(s => (
+                            <button
+                                key={s.value}
+                                onClick={() => updateFn({ ...config, speed: s.value })}
+                                className={`flex-1 p-3 rounded-2xl flex flex-col items-center justify-center transition-all border ${config.speed === s.value ? 'bg-blue-500 text-white shadow-md border-blue-500' : 'bg-white/40 border-white/30 text-gray-600 hover:bg-white/60'}`}
                             >
-                                <div className="text-2xl">{createConfig.ruleSet === 'local' ? '🏡' : '🏛️'}</div>
-                                <div className="font-bold text-xs sm:text-sm text-theme-text">{createConfig.ruleSet === 'local' ? t('rule_local') : t('rule_classic')}</div>
-                            </div>
-                        </div>
+                                <span className="text-2xl mb-1">{s.icon}</span>
+                                <span className="text-xs font-bold whitespace-nowrap">{t(s.labelKey)}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-                        <div className="flex flex-col gap-3 mb-8 bg-theme-main p-4 rounded-2xl border-2 border-theme-border">
-                            <label className="flex justify-between items-center cursor-pointer group">
-                                <span className="font-bold text-theme-text group-hover:text-red-400 transition text-sm sm:text-base">⚖️ {t('modal_strict_mode')}</span>
-                                <input type="checkbox" className="w-5 h-5 accent-red-500 rounded" checked={createConfig.isStrict} onChange={e => setCreateConfig({ ...createConfig, isStrict: e.target.checked })} />
-                            </label>
-                            
-                            {createConfig.ruleSet === 'local' && (
-                                <>
-                                    <div className="h-px w-full bg-theme-border/50"></div>
-                                    <label className="flex justify-between items-center cursor-pointer group">
-                                        <span className="font-bold text-theme-text group-hover:text-amber-500 transition text-sm sm:text-base">⚡ {t('modal_sudden_death')}</span>
-                                        <input type="checkbox" className="w-5 h-5 accent-amber-500 rounded" checked={createConfig.isSuddenDeath} onChange={e => setCreateConfig({ ...createConfig, isSuddenDeath: e.target.checked })} />
-                                    </label>
-                                </>
-                            )}
-                            
-                            <div className="h-px w-full bg-theme-border/50"></div>
-                            <label className="flex justify-between items-center cursor-pointer group">
-                                <span className="font-bold text-theme-text group-hover:text-theme-primary transition text-sm sm:text-base">🔒 {t('modal_private_table')}</span>
-                                <input type="checkbox" className="w-5 h-5 accent-theme-primary rounded" checked={createConfig.isPrivate} onChange={e => setCreateConfig({ ...createConfig, isPrivate: e.target.checked })} />
-                            </label>
-                        </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/40 border border-white/30 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer hover:bg-white/60 transition-colors" onClick={() => updateFn({ ...config, players: config.players === 2 ? 4 : 2 })}>
+                        <div className="text-3xl">{config.players === 2 ? '👥' : '👨‍👩‍👧‍👦'}</div>
+                        <div className="font-bold text-sm text-gray-700">{config.players} {t('modal_players_count')}</div>
+                    </div>
+                    <div className="bg-white/40 border border-white/30 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer hover:bg-white/60 transition-colors"
+                        onClick={() => {
+                            const newRule = config.ruleSet === 'local' ? 'classic' : 'local';
+                            updateFn({ ...config, ruleSet: newRule, isSuddenDeath: newRule === 'classic' ? false : config.isSuddenDeath });
+                        }}
+                    >
+                        <div className="text-3xl">{config.ruleSet === 'local' ? '🏡' : '🏛️'}</div>
+                        <div className="font-bold text-sm text-gray-700">{config.ruleSet === 'local' ? t('rule_local') : t('rule_classic')}</div>
+                    </div>
+                </div>
 
-                        <button onClick={() => requireIncognitoCheck(handleCreateRoomSubmit)} className="w-full bg-theme-primary hover:bg-opacity-80 text-white py-4 rounded-2xl font-black text-lg transition-all shadow-xl hover:-translate-y-1">
-                            🚀 {t('modal_btn_submit')}
-                        </button>
-                </Modal>
-            )}
+                <div className="flex flex-col gap-1 bg-white/40 border border-white/30 p-2 rounded-3xl">
+                    <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-white/50 rounded-2xl transition-colors">
+                        <span className="font-bold text-gray-700">⚖️ {t('modal_strict_mode')}</span>
+                        <AppleToggle checked={config.isStrict} onChange={v => updateFn({ ...config, isStrict: v })} />
+                    </label>
+                    {config.ruleSet === 'local' && (
+                        <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-white/50 rounded-2xl transition-colors">
+                            <span className="font-bold text-gray-700">⚡ {t('modal_sudden_death')}</span>
+                            <AppleToggle checked={config.isSuddenDeath} onChange={v => updateFn({ ...config, isSuddenDeath: v })} />
+                        </label>
+                    )}
+                    <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-white/50 rounded-2xl transition-colors">
+                        <span className="font-bold text-gray-700">🔒 {t('modal_private_table')}</span>
+                        <AppleToggle checked={config.isPrivate} onChange={v => updateFn({ ...config, isPrivate: v })} />
+                    </label>
+                </div>
+            </div>
+        );
+    };
+
+    const isSearch = view === 'search';
+    const isCreate = view === 'create';
+
+    const renderLeftArea = () => {
+        if (isSearch) {
+            return (
+                <div className="flex-1 flex items-center overflow-hidden">
+                    <AnimatePresence>
+                        {!isInputActive && !hasText && (
+                            <motion.button
+                                key="filter-action-btn"
+                                layout
+                                initial={{ opacity: 0, scale: 0.5, width: 0, marginRight: 0 }}
+                                animate={{ opacity: 1, scale: 1, width: 56, marginRight: 12 }}
+                                exit={{ opacity: 0, scale: 0.5, width: 0, marginRight: 0 }}
+                                transition={sharedSpringTransition}
+                                onClick={handleApplySearchFilters}
+                                style={{ borderRadius: 9999 }}
+                                className="h-14 bg-blue-500 flex items-center justify-center shrink-0 shadow-lg cursor-pointer hover:bg-blue-600"
+                            >
+                                <Check className="w-6 h-6 text-white shrink-0" />
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
+
+                    <motion.div
+                        layout
+                        transition={sharedSpringTransition}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: !isInputActive && !hasText ? 0.7 : 1 }}
+                        style={{ borderRadius: 9999 }}
+                        onClick={() => inputRef.current?.focus()}
+                        className={`relative flex-1 h-14 shadow-sm transition-colors duration-300 overflow-hidden ${!isInputActive && !hasText ? 'cursor-pointer' : 'cursor-text'}`}
+                    >
+                        <div className={`absolute inset-0 transition-colors duration-300 -z-10 border ${!isInputActive && !hasText ? 'bg-white/30 border-white/20' : 'bg-white/60 border-white/40'}`} />
+                        <div className="relative z-10 w-full h-full flex items-center px-4">
+                            <Search className="w-5 h-5 text-gray-500 mr-2 shrink-0" />
+                            <input
+                                ref={inputRef}
+                                value={privateCode}
+                                onChange={e => setPrivateCode(e.target.value.toUpperCase())}
+                                onFocus={() => setIsInputActive(true)}
+                                onBlur={() => setIsInputActive(false)}
+                                onKeyDown={(e) => e.key === 'Enter' && requireIncognitoCheck(handleJoinPrivate)}
+                                placeholder={t('lobby_game_code') || "Введите код"}
+                                className="select-text bg-transparent border-none outline-none w-full text-black placeholder:text-gray-500 font-medium text-lg uppercase tracking-wider"
+                            />
+                        </div>
+                    </motion.div>
+
+                    <AnimatePresence>
+                        {hasText && (
+                            <motion.button
+                                key="text-action-btn"
+                                layout
+                                initial={{ opacity: 0, scale: 0.5, width: 0, marginLeft: 0 }}
+                                animate={{ opacity: 1, scale: 1, width: 56, marginLeft: 12 }}
+                                exit={{ opacity: 0, scale: 0.5, width: 0, marginLeft: 0 }}
+                                transition={sharedSpringTransition}
+                                onClick={() => requireIncognitoCheck(handleJoinPrivate)}
+                                style={{ borderRadius: 9999 }}
+                                className="h-14 bg-blue-500 flex items-center justify-center shrink-0 shadow-lg cursor-pointer hover:bg-blue-600"
+                            >
+                                <Check className="w-6 h-6 text-white shrink-0" />
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
+                </div>
+            );
+        }
+
+        if (isCreate) {
+            return (
+                <>
+                    <motion.button
+                        layoutId="create-left-action"
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.1 } }}
+                        style={{ borderRadius: 9999 }}
+                        onClick={() => requireIncognitoCheck(handleCreateRoomSubmit)}
+                        className="w-14 h-14 bg-blue-500 flex items-center justify-center shrink-0 shadow-md hover:bg-blue-600 transition-colors overflow-hidden cursor-pointer"
+                    >
+                        <Check className="w-6 h-6 text-white" />
+                    </motion.button>
+                    <div className="flex-1" />
+                </>
+            );
+        }
+        return null;
+    };
+
+    const floatingUI = (
+        <>
+            <CapsuleModal
+                isOpen={view !== 'none'}
+                onClose={closeView}
+                layoutId={view === 'search' ? "search-wrapper" : (view === 'create' ? "create-wrapper" : "empty-wrapper")}
+                closeButtonLayoutId={view === 'search' ? "create-wrapper" : undefined}
+                headerLeft={renderLeftArea()}
+            >
+                {isSearch && (
+                    <div className="mt-2">
+                        {renderSettingsForm(searchConfig, setSearchConfig, true)}
+                    </div>
+                )}
+
+                {isCreate && renderSettingsForm(createConfig, setCreateConfig, false)}
+            </CapsuleModal>
+
+            <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none px-4" style={{ zIndex: 80 }}>
+                <AnimatePresence>
+                    {view === 'none' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                            className="flex justify-center gap-3 w-full max-w-md pointer-events-auto"
+                        >
+                            <MorphingCapsule
+                                isCapsule
+                                layoutId="search-wrapper"
+                                transition={sharedSpringTransition}
+                                onClick={() => setView('search')}
+                                className="relative flex-1 max-w-[280px] h-14 cursor-pointer shadow-lg hover:opacity-90 transition-opacity"
+                            >
+                                <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border border-white/50 -z-10" />
+                                <div className="relative z-10 flex items-center px-4 w-full h-full">
+                                    <Search className="w-5 h-5 text-gray-600 mr-2 shrink-0" />
+                                    <span className="text-gray-600 font-bold text-base whitespace-nowrap">{t('lobby_game_code') || 'Код стола или Поиск'}</span>
+                                </div>
+                            </MorphingCapsule>
+
+                            <MorphingCapsule
+                                isCapsule
+                                layoutId="create-wrapper"
+                                transition={sharedSpringTransition}
+                                onClick={() => setView('create')}
+                                className="relative w-14 h-14 cursor-pointer shadow-lg hover:opacity-90 transition-opacity"
+                            >
+                                <div className="absolute inset-0 bg-black/90 backdrop-blur-xl border border-gray-700 -z-10" />
+                                <div className="relative z-10 flex items-center justify-center w-full h-full">
+                                    <motion.div layoutId="action-icon" transition={sharedSpringTransition}>
+                                        <Plus className="w-6 h-6 text-white" />
+                                    </motion.div>
+                                </div>
+                            </MorphingCapsule>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </>
+    );
+
+    return (
+        <div className="w-full min-h-full font-sans relative pb-32">
+            <div className="w-full max-w-4xl mx-auto px-4 pt-6 sm:pt-12">
+                <h1 className="text-3xl font-black mb-8 text-theme-text">{t('lobby_title')}</h1>
+
+                {activeRooms.length > 0 && (
+                    <div className="mb-8">
+                        <div className="w-full">
+                            {activeRooms.map(room => {
+                                const roomId = room.id;
+                                if (!roomId) return null; // 🟢 Строгая проверка для TS
+
+                                const isFinished = room.status === 'finished' || room.status === 'waiting';
+                                const actionText = isFinished ? t('btn_leave') || 'Выйти' : t('btn_surrender') || 'Сдаться';
+
+                                return (
+                                    <SwipeableActionCard
+                                        key={roomId}
+                                        isActionLoading={isSurrendering}
+                                        actionBgColor="bg-red-500 hover:bg-red-600 active:bg-red-700"
+                                        onClick={() => router.push(`/game/${roomId}`)}
+                                        onAction={(resetCard) => handleSurrenderActive(roomId, resetCard)}
+                                        actionContent={
+                                            <div className="flex flex-col items-center justify-center whitespace-nowrap px-4">
+                                                {isFinished ? <LogOut className="w-5 h-5 mb-0.5" /> : <Trash2 className="w-5 h-5 mb-0.5" />}
+                                                <span className="text-[10px] uppercase tracking-wider">{actionText}</span>
+                                            </div>
+                                        }
+                                    >
+                                        <div className="bg-theme-panel p-4 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex flex-row justify-between items-center gap-4 cursor-pointer active:scale-[0.98] transition-all duration-300">
+                                            <div className="flex-1 text-left min-w-0">
+                                                <div className="font-bold text-lg text-theme-text flex items-center gap-2">
+                                                    <span>⏳</span> {t('lobby_your_table') || 'Ваша игра'}
+                                                </div>
+                                                <div className="text-sm text-theme-text opacity-70 font-medium mt-1 truncate">
+                                                    {room.status === 'paused' ? t('status_paused') :
+                                                        room.status === 'pause_requested' ? t('status_pause_req') :
+                                                            room.status === 'finished' ? t('status_finished') : t('status_playing')}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <div className="text-amber-500 font-black text-xl">{room.betAmount} 💰</div>
+                                                <ChevronRight className="w-5 h-5 text-theme-text opacity-50" />
+                                            </div>
+                                        </div>
+                                    </SwipeableActionCard>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                <h2 className="text-xl font-bold mb-4 text-theme-text opacity-70">{t('lobby_open_tables')}</h2>
+                <div className="grid gap-3 sm:gap-4 w-full">
+                    {rooms.length === 0 ? (
+                        <div className="text-center py-12 text-theme-text opacity-50 border-4 border-dashed border-theme-border rounded-3xl font-bold">
+                            {t('lobby_no_active')}
+                        </div>
+                    ) : (
+                        rooms.map(room => {
+                            const roomId = room.id;
+                            if (!roomId) return null; // 🟢 Строгая проверка для TS
+
+                            return (
+                                <div
+                                    key={roomId}
+                                    className="bg-theme-panel p-3 sm:p-4 rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                                >
+                                    <NavigationItem
+                                        onClick={() => requireIncognitoCheck(() => router.push(`/game/${roomId}`))}
+                                        rightContent={<span className="font-black text-lg sm:text-xl text-amber-500 whitespace-nowrap">{room.betAmount} 💰</span>}
+                                    >
+                                        <div className="text-xl sm:text-2xl shrink-0 bg-theme-main w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-inner">
+                                            🎲
+                                        </div>
+
+                                        <div className="min-w-0 flex flex-col justify-center text-left">
+                                            <div className="font-bold text-base sm:text-lg text-theme-text truncate w-full">
+                                                {t('lobby_table') || 'Игровой стол'}
+                                            </div>
+                                            <div className="text-[10px] sm:text-xs text-theme-text opacity-70 font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
+                                                <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm">
+                                                    {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
+                                                </span>
+                                                {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold">{t('rule_strict')}</span>}
+                                                {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md font-bold">⚡</span>}
+                                                <span className="text-blue-500 font-bold ml-1">({room.players.length}/{room.maxPlayers})</span>
+                                            </div>
+                                        </div>
+                                    </NavigationItem>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+
+            {portalNode ? createPortal(floatingUI, portalNode) : null}
         </div>
     );
 }

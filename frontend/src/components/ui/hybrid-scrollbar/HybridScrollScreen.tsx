@@ -9,13 +9,13 @@ export interface HybridScrollScreenProps {
 
 export const HybridScrollScreen = memo(({ 
   children, 
-  bg = 'bg-zinc-900', 
+  bg = 'bg-theme-main', // 🟢 Изменено с bg-zinc-900 
   className = '',
   id
 }: HybridScrollScreenProps) => (
   <div 
     id={id}
-    className={`h-screen w-full snap-start flex flex-col relative ${bg} ${className}`}
+    className={`h-full w-full snap-start flex flex-col relative ${bg} ${className}`}
     style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 100vh' }}
   >
     {children}

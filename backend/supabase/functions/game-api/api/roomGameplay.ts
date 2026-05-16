@@ -4,7 +4,7 @@ import { GameError, ErrorCode } from "../errors.ts";
 import { GAME_CONFIG } from "../constants.ts";
 import { resolveTable, calculateWinPayout } from "./tableManager.ts";
 
-async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, game: PasurGame) {
+async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, game: PasurGame, extraTime: number = 0) {
     const currentDeck = game.deck;
     game.deck = [];
     game.deckCount = currentDeck.length;
@@ -14,7 +14,8 @@ async function saveActiveGameState(adminDb: any, roomId: string, roomData: any, 
     const { data: updateCheck, error: updateError } = await adminDb.from("rooms")
         .update({
             game_state: JSON.parse(JSON.stringify(game)),
-            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
+            // 🟢 Добавляем extraTime к стандартному времени хода
+            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) + extraTime,
             pause_proposals: [],
             version: (roomData.version || 1) + 1
         })
@@ -75,12 +76,11 @@ export async function secureAnswerPauseRequest(data: any, user: any, adminDb: an
     }
 
     if (accept) {
-        // 🟢 ФИКС: Обязательно сбрасываем готовность всех игроков при уходе на паузу
         const resetPlayers = roomData.players.map((p: any) => ({ ...p, isReady: false }));
 
         await adminDb.from("rooms").update({
             status: 'paused',
-            players: resetPlayers, // <-- Добавлено обновление игроков
+            players: resetPlayers,
             pause_proposals: [],
             turn_deadline: null,
             ready_deadline: Date.now() + 86400000
@@ -125,19 +125,27 @@ export async function securePlayCard(data: any, user: any, adminDb: any) {
 
     if (roomData.status !== 'playing') throw new GameError(ErrorCode.WRONG_ROUND_STATE);
 
-    // 🟢 ИСПРАВЛЕНО: Передаем roomData.is_sudden_death 6-м аргументом
     const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict, roomData.is_sudden_death);
     Object.assign(game, roomData.game_state);
 
     game.deck = secretDoc.deck || [];
     game.playCard(publicUid, cardId, targetCardIds);
 
+    // 🟢 Расчет компенсации времени на анимации для следующего хода
+    let extraTime = GAME_CONFIG.ANIMATION_DELAYS.PLAY_CARD;
+    if (game.lastAction && game.lastAction.capturedCards.length > 0) {
+        extraTime += GAME_CONFIG.ANIMATION_DELAYS.CAPTURE;
+    }
+    // Если после этого хода были выданы новые карты, у всех игроков на руках снова по 4 карты
+    if (game.players.every((p: any) => p.hand.length === 4)) {
+        extraTime += GAME_CONFIG.ANIMATION_DELAYS.DEAL_CARDS;
+    }
+
     if (game.isMatchOver && game.matchWinnerTeamId !== null) {
         game.deckCount = game.deck.length;
         game.deck = [];
 
         const winners = game.players.filter((p: any) => p.teamId === game.matchWinnerTeamId);
-
         const winPerPlayer = calculateWinPayout(roomData.bet_amount, roomData.max_players, winners.length);
 
         for (const realId of Object.values(secrets) as string[]) {
@@ -154,7 +162,7 @@ export async function securePlayCard(data: any, user: any, adminDb: any) {
             status: 'finished', players: resetPlayers, game_state: JSON.parse(JSON.stringify(game)), turn_deadline: null, pause_proposals: []
         }).eq("id", roomId);
     } else {
-        await saveActiveGameState(adminDb, roomId, roomData, game);
+        await saveActiveGameState(adminDb, roomId, roomData, game, extraTime);
     }
     return { success: true };
 }
@@ -204,7 +212,6 @@ export async function secureNextRound(data: any, user: any, adminDb: any) {
     const secrets = secretDoc?.real_uids || {};
     if (!Object.values(secrets).includes(uid)) throw new GameError(ErrorCode.UNAUTHORIZED);
 
-    // 🟢 ИСПРАВЛЕНО: Передаем roomData.is_sudden_death 6-м аргументом
     const game = new PasurGame(roomData.players.map((p: any) => p.id), roomData.rule_set, true, undefined, roomData.is_strict, roomData.is_sudden_death);
     Object.assign(game, roomData.game_state);
 
@@ -213,7 +220,8 @@ export async function secureNextRound(data: any, user: any, adminDb: any) {
 
     game.startNewRound(createShuffledDeck(game.roundNumber));
 
-    await saveActiveGameState(adminDb, roomId, roomData, game);
+    // 🟢 Компенсация за время анимации раздачи новых карт
+    await saveActiveGameState(adminDb, roomId, roomData, game, GAME_CONFIG.ANIMATION_DELAYS.DEAL_CARDS);
 
     return { success: true };
 }

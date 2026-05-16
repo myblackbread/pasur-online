@@ -88,7 +88,8 @@ export async function secureToggleReady(data: any, user: any, adminDb: any) {
                 players: updatedPlayers,
                 status: 'playing',
                 game_state: JSON.parse(JSON.stringify(game)),
-                turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
+                // 🟢 Накидываем время за начальную раздачу
+                turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) + GAME_CONFIG.ANIMATION_DELAYS.DEAL_CARDS,
                 admin_message: `ALL|MSG_GAME_STARTED|${Date.now()}`,
                 version: (roomData.version || 1) + 1
             }).eq("id", roomId);
@@ -105,8 +106,8 @@ export async function secureToggleReady(data: any, user: any, adminDb: any) {
         await adminDb.from("rooms").update({ 
             players: updatedPlayers, 
             status: 'ready_check_resume',
-            turn_deadline: roomData.ready_deadline, // 🟢 Прячем оригинальный таймер паузы сюда
-            ready_deadline: Date.now() + 60000      // 🟢 Запускаем 60 секунд для фронтенда
+            turn_deadline: roomData.ready_deadline,
+            ready_deadline: Date.now() + 60000      
         }).eq("id", roomId);
     } else {
         await adminDb.from("rooms").update({ players: updatedPlayers }).eq("id", roomId);
@@ -151,7 +152,8 @@ export async function secureRematch(data: any, user: any, adminDb: any) {
             players: updatedPlayers.map((p: any) => ({ ...p, isReady: false })), 
             status: 'playing',
             game_state: JSON.parse(JSON.stringify(game)),
-            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION),
+            // 🟢 Накидываем время за начальную раздачу
+            turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) + GAME_CONFIG.ANIMATION_DELAYS.DEAL_CARDS,
             version: (roomData.version || 1) + 1
         }).eq("id", roomId);
 
@@ -181,20 +183,18 @@ export async function secureResolveReadyTimeout(data: any, user: any, adminDb: a
     if (afkPlayers.length === 0) return { success: true }; 
 
     if (roomData.status === 'ready_check_resume') {
-        // 🟢 ФИКС: Возвращаем игру в паузу, доставая оригинальный таймер из кармана
         const resetPlayers = roomData.players.map((p: any) => ({ ...p, isReady: false }));
         const restoredDeadline = roomData.turn_deadline || (Date.now() + 3600000);
 
         await adminDb.from("rooms").update({
             status: 'paused',
             players: resetPlayers,
-            ready_deadline: restoredDeadline, // 🟢 Восстановили старый таймер
+            ready_deadline: restoredDeadline, 
             turn_deadline: null
         }).eq("id", roomId);
         return { success: true };
     }
 
-    // Для обычного лобби (статус ready_check) кикаем АФК игроков
     for (const afk of afkPlayers) {
         await resolveTable(adminDb, roomId, 'lobby_leave', afk.id);
     }

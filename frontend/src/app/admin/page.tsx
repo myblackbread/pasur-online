@@ -52,7 +52,7 @@ export default function AdminPage() {
     };
 
     return (
-        <div className="min-h-screen bg-theme-main text-white p-8">
+        <div className="flex-1 min-h-0 bg-theme-main text-white p-8 overflow-y-auto">
             <div className="max-w-4xl mx-auto">
                 <h1 className="text-3xl font-bold mb-8 text-red-500">🛡️ {t('admin_title')}</h1>
                 <div className="bg-theme-panel rounded-xl overflow-hidden border border-theme-border">

@@ -57,7 +57,7 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 safe-padding">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-4 safe-padding overflow-y-auto">
             <div className="w-full max-w-md">
                 <div className="mb-4 rounded-3xl overflow-hidden shadow-sm border-4 border-theme-border">
                     <LanguageSwitcher />
@@ -84,8 +84,8 @@ export default function AuthPage() {
                         </div>
                         <button onClick={() => handleLogin('google')} disabled={!gender || isLoading} className="bg-theme-main border-2 border-theme-border font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-theme-border hover:text-white transition-colors text-theme-text disabled:opacity-50">🌐 {t('auth_google')}</button>
 
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth_email')} className="bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth_password')} className="bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth_email')} className="select-text bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth_password')} className="select-text bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
 
                         <button onClick={() => handleLogin('email')} className="bg-theme-primary hover:opacity-80 text-white font-bold py-3 rounded-xl transition-opacity disabled:opacity-50 shadow-md" disabled={!gender || isLoading}>{t('auth_email_btn')}</button>
                     </div>

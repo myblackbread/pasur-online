@@ -11,9 +11,10 @@ export interface ScrollScreen {
 
 interface HybridScrollViewProps {
     screens: ScrollScreen[];
+    onSwipeBlocked?: () => void;
 }
 
-export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) => {
+export const HybridScrollView = memo(({ screens = [], onSwipeBlocked }: HybridScrollViewProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const trackRef = useRef<HTMLDivElement>(null);
     const thumbHitboxRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,11 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
     
     const isVibratingRef = useRef<boolean>(false);
 
+    const onSwipeBlockedRef = useRef(onSwipeBlocked);
+    useEffect(() => {
+        onSwipeBlockedRef.current = onSwipeBlocked;
+    }, [onSwipeBlocked]);
+
     const updateScrollbar = useCallback(() => {
         if (!containerRef.current || !trackRef.current || !thumbHitboxRef.current || !thumbVisualRef.current || screens.length === 0) return;
 
@@ -61,8 +67,9 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         const scrollTops: number[] = [];
 
         children.forEach(c => {
-            const h = c.scrollHeight;
-            const s = c.scrollTop;
+            const scroller = c.querySelector('[data-scroller="true"]') as HTMLElement || c;
+            const h = scroller.scrollHeight;
+            const s = scroller.scrollTop;
             heights.push(h);
             scrollTops.push(s);
             V_total += h;
@@ -98,7 +105,7 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
             if (Math.abs(currentCenterY - Y_ideal) > toleranceZone) {
                 isHealedRef.current = false;
                 distortionYRef.current = currentCenterY;
-                distortionStartYRef.current = currentCenterY; // Стартовая точка храповика
+                distortionStartYRef.current = currentCenterY; 
                 distortedIndexRef.current = activeIndex;
             } else {
                 isHealedRef.current = true;
@@ -143,7 +150,7 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
             iconWrappers.forEach((wrapper, idx) => {
                 const innerIcon = wrapper.querySelector('.icon-inner') as HTMLElement | null;
                 if (innerIcon) {
-                    innerIcon.style.opacity = idx === activeIndex ? '1' : '0.3';
+                    innerIcon.style.opacity = idx === activeIndex ? '1' : '0.4';
                     innerIcon.style.transform = idx === activeIndex ? 'scale(1.3)' : 'scale(1)';
                 }
             });
@@ -195,20 +202,18 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         thumbHitboxRef.current.style.opacity = isVisible ? '1' : '0';
         thumbHitboxRef.current.style.pointerEvents = isVisible ? 'auto' : 'none';
 
+        // 🟢 ИЗМЕНЕНО: Адаптация под любую тему
         if (isExpanded) {
             thumbVisualRef.current.style.width = '48px';
             thumbVisualRef.current.style.right = '8px';
             thumbVisualRef.current.style.borderRadius = '24px';
-            thumbVisualRef.current.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-            thumbVisualRef.current.style.backdropFilter = 'blur(10px)';
-            thumbVisualRef.current.style.border = '1px solid rgba(255,255,255,0.4)';
+            thumbVisualRef.current.className = "absolute h-full transition-all duration-300 ease-out box-border bg-theme-panel/80 backdrop-blur-md border border-theme-border shadow-lg";
         } else {
             thumbVisualRef.current.style.width = '4px';
             thumbVisualRef.current.style.right = '3px';
             thumbVisualRef.current.style.borderRadius = '9999px';
-            thumbVisualRef.current.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
-            thumbVisualRef.current.style.backdropFilter = 'none';
-            thumbVisualRef.current.style.border = 'none';
+            // В свернутом состоянии используем цвет текста (bg-current), чтобы на светлом фоне ползунок был темным, а на темном - светлым
+            thumbVisualRef.current.className = "absolute h-full transition-all duration-300 ease-out box-border bg-current opacity-30 text-theme-text";
         }
 
         if (iconsContainerRef.current) {
@@ -271,10 +276,8 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
             let currentRatchetY = distortionStartYRef.current;
             const toleranceZone = H * 0.15;
 
-            // Определяем с какой стороны мы заходим
             const isAbove = currentRatchetY < Y_ideal;
 
-            // 1. МЕХАНИЗМ ХРАПОВИКА: Обновляем стену ТОЛЬКО в сторону улучшения (к Y_ideal)
             if (isAbove) {
                 if (currentDragY > currentRatchetY) {
                     distortionStartYRef.current = Math.min(currentDragY, Y_ideal);
@@ -287,17 +290,15 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
 
             const newRatchetY = distortionStartYRef.current;
 
-            // 2. Блокировка отката: если палец пытается уйти за лучшую достигнутую границу
-            // Даем погрешность в 1 пиксель, чтобы избежать микровибраций от дрожания пальца
             const isPushingWall = isAbove ? (currentDragY < newRatchetY - 1) : (currentDragY > newRatchetY + 1);
 
             if (isPushingWall) {
                 if (!isVibratingRef.current) {
-                    // Аппаратная вибрация
+                    if (onSwipeBlockedRef.current) onSwipeBlockedRef.current();
+
                     if (typeof window !== 'undefined' && navigator && navigator.vibrate) {
                         navigator.vibrate(15);
                     }
-                    // Визуальная вибрация
                     if (thumbVisualRef.current && thumbVisualRef.current.animate) {
                         isVibratingRef.current = true;
                         const anim = thumbVisualRef.current.animate([
@@ -313,23 +314,19 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
                 }
             }
 
-            // 3. Жестко фиксируем визуальный ползунок на лучшем достигнутом состоянии
             distortionYRef.current = newRatchetY;
 
-            // 4. Если мы перетянули за Y_ideal - излишек конвертируем в честный скролл
             if (isAbove && currentDragY > Y_ideal) {
                 dy_scroll = currentDragY - Math.max(currentDragY - dy_finger, Y_ideal);
             } else if (!isAbove && currentDragY < Y_ideal) {
                 dy_scroll = currentDragY - Math.min(currentDragY - dy_finger, Y_ideal);
             }
 
-            // 5. Проверка попадания в мертвую зону (от лучшего состояния)
             if (Math.abs(Y_ideal - newRatchetY) <= toleranceZone) {
                 isHealedRef.current = true;
             }
 
         } else {
-            // Если все исцелено - 100% честный скролл
             dy_scroll = dy_finger;
             distortionYRef.current += dy_finger;
         }
@@ -391,22 +388,34 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
         <div
             ref={containerRef}
             onScroll={wakeUpScrollbar}
-            className="h-[100dvh] w-full max-w-[100vw] overflow-y-scroll overflow-x-hidden snap-y snap-mandatory relative [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-zinc-950 overscroll-none"
+            // 🟢 ИЗМЕНЕНО: Убрали bg-zinc-950, поставили прозрачный фон (чтобы видеть фон приложения, либо bg-theme-main)
+            className="h-full w-full overflow-y-scroll overflow-x-hidden snap-y snap-mandatory relative [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-theme-main overscroll-none"
         >
             {screens.map((screen, index) => (
                 <div
                     key={screen.id}
                     data-screen-index={index}
-                    className={`h-[100dvh] w-full max-w-full snap-start snap-always relative overflow-x-hidden overflow-y-auto overscroll-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden safe-padding ${screen.bgClass || 'bg-zinc-900'}`}
-                    onScroll={wakeUpScrollbar}
+                    // 🟢 ИЗМЕНЕНО: Используем класс bg-theme-main по умолчанию вместо bg-zinc-900
+                    className={`h-full w-full max-w-full snap-start snap-always relative ${screen.bgClass || 'bg-theme-main'}`}
                 >
-                    {screen.content}
+                    {/* СЛОЙ 1: Скроллируемый контент */}
+                    <div 
+                        data-scroller="true"
+                        className="absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden safe-padding"
+                        onScroll={wakeUpScrollbar}
+                        style={{ contentVisibility: 'auto' }}
+                    >
+                        {screen.content}
+                    </div>
+                    
+                    {/* СЛОЙ 2: Портал-оверлей для фиксированных кнопок */}
+                    <div id={`overlay-${screen.id}`} className="absolute inset-0 pointer-events-none z-[100]"></div>
                 </div>
             ))}
 
             <div
                 ref={trackRef}
-                className="fixed right-0 top-[env(safe-area-inset-top)] bottom-[env(safe-area-inset-bottom)] w-[64px] z-50 touch-none pointer-events-none select-none"
+                className="fixed right-0 top-[env(safe-area-inset-top)] bottom-[env(safe-area-inset-bottom)] w-[64px] z-[120] touch-none pointer-events-none select-none"
                 style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
             >
                 <div
@@ -432,7 +441,8 @@ export const HybridScrollView = memo(({ screens = [] }: HybridScrollViewProps) =
 
                 <div
                     ref={iconsContainerRef}
-                    className="absolute right-[8px] w-[48px] top-0 bottom-0 flex flex-col items-center transition-all duration-300 ease-out pointer-events-none z-20 box-border"
+                    // 🟢 ИЗМЕНЕНО: Добавили text-theme-text, чтобы иконки брали цвет темы
+                    className="absolute right-[8px] w-[48px] top-0 bottom-0 flex flex-col items-center transition-all duration-300 ease-out pointer-events-none z-20 box-border text-theme-text"
                     style={{ opacity: '0' }}
                 >
                     {screens.map((screen) => (
