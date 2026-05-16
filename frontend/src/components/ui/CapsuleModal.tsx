@@ -13,7 +13,7 @@ interface CapsuleModalProps {
     headerLeft: React.ReactNode;
     children: React.ReactNode;
     portalNode?: HTMLElement | null;
-    closeButtonLayoutId?: string; // Полезно, если другая капсула должна "схлопнуться" в эту кнопку
+    closeButtonLayoutId?: string;
 }
 
 export function CapsuleModal({
@@ -34,45 +34,41 @@ export function CapsuleModal({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0, transition: { duration: 0.3 } }}
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
                         style={{ zIndex: 60 }}
                         onClick={onClose}
                     />
 
-                    {/* Сама развернутая капсула */}
+                    {/* Развернутая капсула - теперь строго в цветах темы приложения */}
                     <MorphingCapsule
                         isCapsule={false}
                         targetRadius={32}
                         layoutId={layoutId}
                         transition={sharedSpringTransition}
-                        className="absolute inset-2 sm:inset-4 p-3 sm:p-4 flex flex-col pointer-events-auto shadow-2xl"
+                        className="absolute inset-2 sm:inset-4 p-3 sm:p-4 flex flex-col pointer-events-auto shadow-2xl bg-theme-panel border border-theme-border"
                         style={{ zIndex: 70 }}
                     >
-                        {/* Эффект стекла для карточки */}
-                        <div className="absolute inset-0 bg-white/50 backdrop-blur-2xl border border-white/40 -z-10" />
-
-                        <div className="relative z-10 flex flex-col w-full h-full">
+                        <div className="relative z-10 flex flex-col w-full h-full text-theme-text">
 
                             {/* НЕСКРОЛЛИРУЕМЫЙ ХЕДЕР */}
                             <div className="flex items-center gap-3">
                                 {headerLeft}
 
-                                {/* Кнопка закрытия/свернуть */}
+                                {/* Кнопка закрытия */}
                                 <motion.button
                                     layoutId={closeButtonLayoutId}
                                     transition={sharedSpringTransition}
                                     onClick={onClose}
                                     style={{ borderRadius: 9999 }}
-                                    className="relative w-14 h-14 flex items-center justify-center shrink-0 shadow-md cursor-pointer hover:opacity-80 overflow-hidden ml-auto"
+                                    className="relative w-14 h-14 flex items-center justify-center shrink-0 shadow-sm cursor-pointer hover:opacity-80 overflow-hidden ml-auto bg-theme-main border border-theme-border"
                                 >
-                                    <div className="absolute inset-0 bg-white/60 border border-white/50 -z-10" />
                                     <motion.div layoutId="action-icon" transition={sharedSpringTransition} className="relative z-10">
-                                        <ChevronDown className="w-6 h-6 text-gray-800" />
+                                        <ChevronDown className="w-6 h-6 text-theme-text opacity-70" />
                                     </motion.div>
                                 </motion.button>
                             </div>
 
-                            {/* СКРОЛЛИРУЕМЫЙ ОСНОВНОЙ КОНТЕНТ */}
+                            {/* СКРОЛЛИРУЕМЫЙ КОНТЕНТ */}
                             <motion.div
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0, transition: { delay: 0.1, duration: 0.3, ease: 'easeOut' } }}
@@ -88,7 +84,6 @@ export function CapsuleModal({
         </AnimatePresence>
     );
 
-    // Если передан узел портала — рендерим в него, иначе по месту
     if (portalNode) {
         return createPortal(content, portalNode);
     }

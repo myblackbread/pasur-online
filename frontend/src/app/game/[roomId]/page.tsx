@@ -9,6 +9,10 @@ import { GameRoom, UserProfile, Card, GameState, PlayerState } from '@/types';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
+import { TimerBorder } from '@/components/ui/TimerBorder';
+
+import { CapsuleModal } from '@/components/ui/CapsuleModal';
+import { MorphingCapsule, sharedSpringTransition } from '@/components/ui/MorphingCapsule';
 
 import { useCountdown } from '@/features/game/hooks/useCountdown';
 import { PlayingCard } from '@/features/game/components/PlayingCard';
@@ -35,12 +39,21 @@ export default function GameRoomPage() {
     const [visualGame, setVisualGame] = useState<GameState | null>(null);
     const [allActiveRooms, setAllActiveRooms] = useState<GameRoom[]>([]);
 
+    const [avatarModal, setAvatarModal] = useState<'none' | 'me' | 'opponent'>('none');
+
     const [animationState, setAnimationState] = useState<{
         phase: 'idle' | 'playing' | 'gathering' | 'flying';
         action: any | null;
     }>({ phase: 'idle', action: null });
-    const isAnimatingRef = useRef(false);
+
+    const [actionQueue, setActionQueue] = useState<{ action: any; stateSnapshot: GameState }[]>([]);
+    const isProcessingQueueRef = useRef(false);
     const lastProcessedTimestamp = useRef<number>(0);
+    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+    useEffect(() => {
+        return () => timeoutsRef.current.forEach(clearTimeout);
+    }, []);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -55,16 +68,25 @@ export default function GameRoomPage() {
         if (typeof window !== 'undefined') setMyMask(sessionStorage.getItem(`pasur_mask_${roomId}`));
         let unsubUser: (() => void) | undefined;
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            const currentUser = session?.user;
+        const setupUser = (currentUser: any) => {
             if (currentUser) {
-                unsubUser = realtimeApi.subscribeToUser(currentUser.id, (userData) => {
-                    if (userData) setUser(userData);
-                });
+                if (!unsubUser) {
+                    unsubUser = realtimeApi.subscribeToUser(currentUser.id, (userData) => {
+                        if (userData) setUser(userData);
+                    });
+                }
             } else {
                 if (unsubUser) unsubUser();
                 router.push('/');
             }
+        };
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            setupUser(session?.user);
+        });
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setupUser(session?.user);
         });
 
         return () => { subscription.unsubscribe(); if (unsubUser) unsubUser(); };
@@ -114,86 +136,110 @@ export default function GameRoomPage() {
     }, [user, roomData, myMask, roomId]);
 
     useEffect(() => {
-        const serverGame = roomData?.gameState;
-        if (!serverGame) {
+        if (!roomData?.gameState) {
             setVisualGame(null);
             setAnimationState({ phase: 'idle', action: null });
-            isAnimatingRef.current = false;
+            setActionQueue([]);
+            isProcessingQueueRef.current = false;
             return;
         }
 
-        if (!serverGame.lastAction || serverGame.lastAction.timestamp <= lastProcessedTimestamp.current) {
-            if (!isAnimatingRef.current) {
-                setVisualGame(serverGame);
-                setAnimationState({ phase: 'idle', action: null });
-            }
+        const serverGame = roomData.gameState;
+
+        if (serverGame.lastAction && serverGame.lastAction.timestamp > lastProcessedTimestamp.current) {
+            lastProcessedTimestamp.current = serverGame.lastAction.timestamp;
+            setActionQueue(q => [...q, { action: serverGame.lastAction, stateSnapshot: serverGame }]);
+        } 
+        else if (actionQueue.length === 0 && !isProcessingQueueRef.current) {
+            setVisualGame(JSON.parse(JSON.stringify(serverGame)));
+        }
+    }, [roomData?.gameState, actionQueue.length]);
+
+    useEffect(() => {
+        if (actionQueue.length === 0 || isProcessingQueueRef.current) return;
+
+        isProcessingQueueRef.current = true;
+        
+        const { action, stateSnapshot } = actionQueue[0];
+
+        if (!action || !action.playedCard) {
+            setVisualGame(JSON.parse(JSON.stringify(stateSnapshot)));
+            setPendingMove(null);
+            setAnimationState({ phase: 'idle', action: null });
+            setActionQueue(q => q.slice(1));
+            isProcessingQueueRef.current = false;
             return;
         }
-
-        const action = serverGame.lastAction;
-        lastProcessedTimestamp.current = action.timestamp;
-
-        isAnimatingRef.current = true;
-        let isCancelled = false;
-        const timeouts: NodeJS.Timeout[] = [];
 
         const isCapture = action.capturedCards && action.capturedCards.length > 0;
 
+        const schedule = (cb: () => void, delay: number) => {
+            const id = setTimeout(cb, delay);
+            timeoutsRef.current.push(id);
+        };
+
         setAnimationState({ phase: 'playing', action });
         setVisualGame(prev => {
-            if (!prev) return serverGame;
-            const next = JSON.parse(JSON.stringify(prev));
-            const player = next.players.find((p: any) => p.id === action.playerId);
-            if (player) {
-                player.hand = player.hand.filter((c: any) => c.id !== action.playedCard.id);
+            const playState = prev ? JSON.parse(JSON.stringify(prev)) : JSON.parse(JSON.stringify(stateSnapshot));
+            
+            if (playState.players) {
+                playState.players.forEach((p: any) => {
+                    if (p.hand) {
+                        p.hand = p.hand.filter((c: any) => c.id !== action.playedCard.id);
+                    }
+                });
             }
-            if (!next.table.some((c: any) => c.id === action.playedCard.id)) {
-                next.table.push(action.playedCard);
+            
+            if (playState.table) {
+                if (!playState.table.some((c: any) => c.id === action.playedCard.id)) {
+                    playState.table.push(action.playedCard);
+                }
+            } else {
+                playState.table = [action.playedCard];
             }
-            return next;
+            
+            return playState;
         });
 
-        timeouts.push(setTimeout(() => {
-            if (isCancelled) return;
-
+        schedule(() => {
             if (isCapture) {
                 setAnimationState({ phase: 'gathering', action });
 
-                timeouts.push(setTimeout(() => {
-                    if (isCancelled) return;
-
+                schedule(() => {
                     setAnimationState({ phase: 'flying', action });
+                    
                     setVisualGame(prev => {
-                        if (!prev) return serverGame;
-                        const next = JSON.parse(JSON.stringify(prev));
-                        const capturedIds = [action.playedCard.id, ...action.capturedCards.map((c: any) => c.id)];
-                        next.table = next.table.filter((c: any) => !capturedIds.includes(c.id));
-                        return next;
+                        const flyState = prev ? JSON.parse(JSON.stringify(prev)) : JSON.parse(JSON.stringify(stateSnapshot));
+                        const capturedIds = new Set([action.playedCard.id, ...action.capturedCards.map((c: any) => c.id)]);
+                        
+                        if (flyState.table) {
+                            flyState.table = flyState.table.filter((c: any) => !capturedIds.has(c.id));
+                        }
+                        return flyState;
                     });
 
-                    timeouts.push(setTimeout(() => {
-                        if (isCancelled) return;
-
-                        isAnimatingRef.current = false;
-                        setAnimationState({ phase: 'idle', action: null });
-                        setVisualGame(serverGame);
+                    schedule(() => {
+                        setVisualGame(JSON.parse(JSON.stringify(stateSnapshot)));
                         setPendingMove(null);
-                    }, 600));
-                }, 1000));
-            } else {
-                isAnimatingRef.current = false;
-                setAnimationState({ phase: 'idle', action: null });
-                setVisualGame(serverGame);
-                setPendingMove(null);
-            }
-        }, 500));
+                        setAnimationState({ phase: 'idle', action: null });
+                        
+                        setActionQueue(q => q.slice(1));
+                        isProcessingQueueRef.current = false;
+                    }, 600);
 
-        return () => {
-            isCancelled = true;
-            timeouts.forEach(clearTimeout);
-            isAnimatingRef.current = false;
-        };
-    }, [roomData?.gameState]);
+                }, 1000);
+            } else {
+                setVisualGame(JSON.parse(JSON.stringify(stateSnapshot)));
+                setPendingMove(null);
+                setAnimationState({ phase: 'idle', action: null });
+                
+                setActionQueue(q => q.slice(1));
+                isProcessingQueueRef.current = false;
+            }
+        }, 500);
+
+    }, [actionQueue]);
+
 
     const safeMyId = myMask || user?.uid;
     const isPlayer0 = roomData?.players[0]?.id === safeMyId;
@@ -278,14 +324,17 @@ export default function GameRoomPage() {
             if (card.rank !== 'J' && card.rank !== 'Q' && card.rank !== 'K' && targets.some(c => c.value === 0)) return showAlert(t('game_err_sum11'));
         }
 
+        const currentSelection = [...selectedTableCards];
+        setSelectedTableCards([]);
+        
         setPendingMove({ card, isMe: true });
         isProcessing.current = true;
 
         try {
-            await gameApi.playCard(roomId, card.id, selectedTableCards);
-            setSelectedTableCards([]);
+            await gameApi.playCard(roomId, card.id, currentSelection);
         } catch (e: any) {
             showAlert(t(e.message));
+            setSelectedTableCards(currentSelection);
             setPendingMove(null);
         } finally {
             isProcessing.current = false;
@@ -297,7 +346,7 @@ export default function GameRoomPage() {
         setSelectedTableCards(prev => prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]);
     };
 
-    if (!user || !roomData || !safeMyId) return <div className="h-full flex items-center justify-center font-bold">{t('game_loading')}</div>;
+    if (!user || !roomData || !safeMyId) return <div className="h-full flex items-center justify-center font-bold text-theme-text">{t('game_loading')}</div>;
 
     const meLobbyInfo = roomData.players.find(p => p.id === safeMyId);
     const isAnon = (id: string | null | undefined) => id?.startsWith('anon_');
@@ -306,37 +355,50 @@ export default function GameRoomPage() {
         return isAnon(id) ? '👤' : '😎';
     };
 
-    const renderPlayerHub = (player: PlayerState, isMe: boolean, isTurn: boolean) => {
+    const renderPlayerHub = (player: PlayerState, isMe: boolean, isTurn: boolean, onClick?: () => void) => {
         const captureCount = player.captured.length;
         const hasCaptures = captureCount > 0;
         const hasSurs = visualGame?.ruleSet === 'classic' && player.surs > 0;
+        const progress = turnDurationSec > 0 ? turnTimeLeft / turnDurationSec : 0;
+        
+        const avatarType = isMe ? 'me' : 'opponent';
 
         return (
-            <div className="relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28">
+            <div 
+                className={`relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 ${onClick ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+                onClick={onClick}
+            >
+                <MorphingCapsule
+                    isCapsule={false}
+                    targetRadius={12} // 🟢 ИСПРАВЛЕНИЕ: Выставлено 12px (соответствует rounded-xl Tailwind)
+                    layoutId={`avatar-${avatarType}`}
+                    className="absolute inset-0 rounded-xl"
+                >
+                    <div className={`absolute inset-0 rounded-xl flex flex-col select-none transition-all duration-300
+                        ${isTurn ? 'border-4 border-transparent shadow-[0_0_15px_rgba(251,191,36,0.5)]' : 'border-4 border-theme-border shadow-md'}
+                        ${!hasCaptures && !isTurn ? 'bg-theme-panel/50 opacity-80' : 'bg-theme-main'}
+                    `}>
+                        {hasSurs && (
+                            <div className="w-full bg-purple-500 text-white text-[10px] sm:text-xs font-black py-0.5 flex items-center justify-center gap-1 shadow-sm shrink-0">
+                                ⭐ {player.surs}
+                            </div>
+                        )}
 
-                <div className={`absolute inset-0 rounded-xl border-4 flex flex-col overflow-hidden select-none transition-all duration-300
-                    ${isTurn ? 'border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.5)] scale-105' : 'border-theme-border shadow-md'}
-                    ${!hasCaptures && !isTurn ? 'bg-theme-panel/50 opacity-80' : 'bg-theme-main'}
-                `}>
-
-                    {hasSurs && (
-                        <div className="w-full bg-purple-500 text-white text-[10px] sm:text-xs font-black py-0.5 flex items-center justify-center gap-1 shadow-sm shrink-0">
-                            ⭐ {player.surs}
+                        <div className="flex-1 flex items-center justify-center relative">
+                            <span className="text-2xl sm:text-3xl md:text-4xl transition-transform duration-300">
+                                {renderAvatar(player.id)}
+                            </span>
                         </div>
-                    )}
 
-                    <div className="flex-1 flex items-center justify-center relative">
-                        <span className={`text-2xl sm:text-3xl md:text-4xl transition-transform duration-300 ${isTurn ? 'animate-bounce' : ''}`}>
-                            {renderAvatar(player.id)}
-                        </span>
+                        {hasCaptures && (
+                            <div className="w-full bg-theme-primary text-white text-[10px] sm:text-xs md:text-sm font-black py-0.5 sm:py-1 flex items-center justify-center shadow-inner shrink-0">
+                                {captureCount}
+                            </div>
+                        )}
                     </div>
+                </MorphingCapsule>
 
-                    {hasCaptures && (
-                        <div className="w-full bg-theme-primary text-white text-[10px] sm:text-xs md:text-sm font-black py-0.5 sm:py-1 flex items-center justify-center shadow-inner shrink-0">
-                            {captureCount}
-                        </div>
-                    )}
-                </div>
+                {isTurn && <TimerBorder progress={progress} />}
 
                 {animationState.phase === 'flying' && animationState.action?.playerId === player.id && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
@@ -457,51 +519,32 @@ export default function GameRoomPage() {
     }
 
     const game = visualGame;
-    if (!game) return null;
+    if (!game) return <div className="h-full flex items-center justify-center font-bold text-theme-text">{t('game_loading')}</div>;
 
     const me = game.players.find(p => p.id === safeMyId) || game.players[0];
     const opponent = game.players.find(p => p.teamId !== me.teamId);
     if (!opponent) return null;
 
     const oppIsTurn = !isMyTurnSafe && roomData.status === 'playing';
+    const opponentLobbyInfo = roomData.players.find(p => p.id === opponent.id);
 
     return (
-        // Убрали overflow-hidden из внутреннего контейнера
         <main className="fixed inset-0 w-full h-full flex flex-col bg-theme-main overflow-hidden safe-padding">
-            <div className="flex-1 w-full h-full max-w-5xl mx-auto flex flex-col p-2 sm:p-4 gap-2 sm:gap-4">
+            {isSpectatorSafe && (
+                <button 
+                    onClick={() => router.push('/dashboard')} 
+                    className="absolute top-4 left-4 z-50 bg-theme-panel/80 backdrop-blur-md px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-theme-text shadow-md hover:bg-red-500 hover:text-white transition-colors"
+                >
+                    ◀ {t('game_back_lobby')}
+                </button>
+            )}
 
-                {/* ТОП-БАР */}
-                <div className="flex-none w-full bg-theme-panel p-2 sm:p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                    <div className="font-mono font-black text-xs sm:text-xl text-theme-text flex items-center">
-                        <span className="opacity-70 text-[10px] sm:text-sm mr-1 sm:mr-2">{isSpectatorSafe ? t('game_player_1') : t('game_you')}</span>
-                        <span className="text-theme-primary">{game.matchScores[me.teamId] || 0}</span>
-                        <span className="mx-1 sm:mx-2 opacity-50">:</span>
-                        <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
-                        <span className="opacity-70 text-[10px] sm:text-sm ml-1 sm:ml-2">{isSpectatorSafe ? t('game_player_2') : t('game_opp')}</span>
-                        {roomData.isSuddenDeath && <span className="ml-2 text-amber-500 sm:text-lg opacity-70 animate-pulse" title={t('rule_sudden_death')}>⚡</span>}
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        {!isSpectatorSafe && (
-                            <>
-                                <div className={`px-2 py-1 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black ${isMyTurnSafe ? 'bg-amber-500 text-white shadow-md' : 'bg-theme-main text-theme-text opacity-70'}`}>
-                                    {isMyTurnSafe ? t('game_your_turn') : t('game_wait')} ({turnTimeLeft}с)
-                                </div>
-                                {!isMyTurnSafe && rawTurnTimeLeft === 0 && roomData.status === 'playing' && (
-                                    <div className="bg-red-500 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black shadow-lg animate-pulse">{t('game_time_up')}</div>
-                                )}
-                            </>
-                        )}
-                        <button onClick={isSpectatorSafe ? () => router.push('/dashboard') : handleLeaveOrSurrender} className="bg-theme-main px-2 py-1 sm:px-3 sm:py-1 text-[10px] sm:text-sm rounded-xl hover:bg-red-500 hover:text-white text-theme-text font-bold transition-colors shadow-sm">
-                            {isSpectatorSafe ? t('btn_leave') : (roomData.status === 'finished' ? t('game_leave') : t('btn_surrender'))}
-                        </button>
-                    </div>
-                </div>
+            <div className="flex-1 w-full h-full max-w-5xl mx-auto flex flex-col p-2 sm:p-4 gap-2 sm:gap-4 relative">
 
                 {/* ВЕРХНИЙ ИГРОК (Оппонент) */}
-                <div className="flex-none w-full p-2 sm:p-3 rounded-2xl flex justify-between items-center transition-all duration-300 bg-theme-panel/50">
-
+                <div className="flex-none w-full p-2 sm:p-3 rounded-2xl flex justify-between items-center transition-all duration-300 bg-theme-panel/50 relative z-20 shadow-sm">
                     <div className="flex flex-col items-center w-14 sm:w-24 relative shrink-0">
-                        {renderPlayerHub(opponent, false, oppIsTurn)}
+                        {renderPlayerHub(opponent, false, oppIsTurn, () => setAvatarModal('opponent'))}
                     </div>
 
                     <div className="flex-1 flex flex-col items-center min-w-0">
@@ -530,23 +573,20 @@ export default function GameRoomPage() {
                 </div>
 
                 {/* ИГРОВОЙ СТОЛ */}
-                {/* 🟢 УБРАН overflow-hidden и overflow-y-auto, чтобы карты летали свободно */}
-                <div className="flex-1 w-full rounded-[1.5rem] sm:rounded-[3rem] bg-theme-panel shadow-inner p-3 sm:p-6 relative flex flex-col" id="game-table-container">
+                <div className="flex-1 w-full relative flex flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden z-10" id="game-table-container">
 
-                    {/* Текст теперь просто наслаивается абсолютом и не ломает DOM-дерево */}
                     {game.table.length === 0 && animationState.phase === 'idle' && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-40 text-lg sm:text-2xl font-black uppercase tracking-widest text-theme-text text-center pointer-events-none">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-40 text-lg sm:text-2xl font-black uppercase tracking-widest text-theme-text text-center pointer-events-none z-0">
                             {t('game_table_empty')}
                         </div>
                     )}
 
-                    {/* Контейнер рендерится ВСЕГДА, поэтому карты больше не пропадают при полете на пустой стол */}
-                    <div className="flex flex-wrap gap-1.5 sm:gap-4 justify-center content-center flex-1">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-4 justify-center content-center flex-1 py-8 sm:py-12 z-10 relative">
                         {game.table.map(card => {
                             const isTarget = (animationState.phase === 'gathering') &&
                                 animationState.action &&
-                                (animationState.action.playedCard.id === card.id ||
-                                    animationState.action.capturedCards.some((c: Card) => c.id === card.id));
+                                (animationState.action.playedCard?.id === card.id ||
+                                    animationState.action.capturedCards?.some((c: Card) => c.id === card.id));
 
                             return (
                                 <PlayingCard
@@ -564,10 +604,10 @@ export default function GameRoomPage() {
 
                 {/* НИЖНИЙ ИГРОК (Вы) */}
                 {!isSpectatorSafe && (
-                    <div className="flex-none w-full p-2 sm:p-3 rounded-[1.5rem] flex justify-between items-center transition-all duration-300 bg-theme-panel">
+                    <div className="flex-none w-full p-2 sm:p-3 rounded-[1.5rem] flex justify-between items-center transition-all duration-300 bg-theme-panel relative z-20 shadow-md">
 
                         <div className="flex flex-col items-center w-14 sm:w-24 relative shrink-0">
-                            {renderPlayerHub(me, true, isMyTurnSafe)}
+                            {renderPlayerHub(me, true, isMyTurnSafe, () => setAvatarModal('me'))}
                         </div>
 
                         <div className="flex-1 flex flex-col items-center min-w-0">
@@ -597,7 +637,66 @@ export default function GameRoomPage() {
                 )}
             </div>
 
-            {/* Модалки и Иконки (оставлены без изменений) */}
+            <CapsuleModal
+                isOpen={avatarModal !== 'none'}
+                onClose={() => setAvatarModal('none')}
+                layoutId={`avatar-${avatarModal}`}
+                headerLeft={<span className="text-xl font-black text-theme-text">{avatarModal === 'me' ? t('game_table') : t('game_player')}</span>}
+            >
+                {avatarModal === 'opponent' && (
+                    <div className="flex flex-col gap-4 items-center mt-2">
+                        <div className="text-6xl drop-shadow-md">{renderAvatar(opponent.id)}</div>
+                        <div className="text-2xl font-black text-theme-text text-center">
+                            {opponentLobbyInfo?.name === '__INCOGNITO__' ? t('unknown_player') : (opponentLobbyInfo?.name || t('unknown_player'))}
+                        </div>
+                        
+                        <div className="w-full flex flex-col gap-2 mt-2">
+                            <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                                <span className="font-bold text-theme-text opacity-70">{t('game_score')}</span>
+                                <span className="text-xl font-black text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
+                            </div>
+                            <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                                <span className="font-bold text-theme-text opacity-70">{t('game_captured')}</span>
+                                <span className="text-lg font-black text-theme-text">{opponent.captured.length}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {avatarModal === 'me' && (
+                    <div className="flex flex-col gap-3 mt-2">
+                        <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                            <span className="font-bold text-theme-text opacity-70">{t('game_round')}</span>
+                            <span className="text-xl font-black text-theme-text">{game.roundNumber}</span>
+                        </div>
+                        <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                            <span className="font-bold text-theme-text opacity-70">{t('game_score')}</span>
+                            <div className="flex items-center gap-2 font-black text-xl">
+                                <span className="text-theme-primary">{game.matchScores[me.teamId] || 0}</span>
+                                <span className="opacity-50 text-theme-text">:</span>
+                                <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
+                            </div>
+                        </div>
+                        <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                            <span className="font-bold text-theme-text opacity-70">{t('game_bet')}</span>
+                            <span className="text-xl font-black text-amber-500">{roomData.betAmount} 💰</span>
+                        </div>
+
+                        {roomData.status === 'playing' && (
+                            <button 
+                                onClick={() => {
+                                    setAvatarModal('none');
+                                    handleLeaveOrSurrender();
+                                }}
+                                className="w-full py-4 mt-2 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black shadow-lg transition-colors"
+                            >
+                                {t('btn_surrender')}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </CapsuleModal>
+
             {(game.isRoundOver || game.isMatchOver) && !isSpectatorSafe && animationState.phase === 'idle' && roomData.status !== 'pause_requested' && (
                 <Modal>
                     <div className="text-center">
