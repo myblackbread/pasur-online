@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Transition } from 'framer-motion';
 import { HybridScrollView, ScrollScreen } from '@/components/ui/hybrid-scrollbar';
 
-const spring = { type: 'spring', stiffness: 350, damping: 35 };
+const spring: Transition = { type: 'spring', stiffness: 350, damping: 35 };
 
 function GlassPortalTest() {
     const [isOpen, setIsOpen] = useState(false);
