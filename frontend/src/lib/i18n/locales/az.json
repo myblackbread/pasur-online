@@ -167,5 +167,13 @@
   "MSG_SURRENDERED": "Rəqib təslim oldu! Qələbə sizindir.",
   "MSG_BANNED": "Rəqib bloklandı! Qələbə sizindir.",
   "MSG_GAME_RESUMED": "Oyun bərpa edildi!",
-  "MSG_GAME_STARTED": "Oyun başladı!"
+  "MSG_GAME_STARTED": "Oyun başladı!",
+  "nav_about": "İnfo",
+  "about_title": "Oyun haqqında",
+  "about_authors": "Müəlliflər",
+  "about_credits_text": "Kart oyunları sevənlər üçün sevgi ilə yaradılıb.",
+  "about_developer": "Tərtibatçı",
+  "settings_section_account": "HESAB",
+  "settings_section_app": "TƏTBİQ",
+  "settings_section_danger": "TƏHLÜKƏLİ BÖLGƏ"
 }

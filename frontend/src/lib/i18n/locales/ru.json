@@ -167,5 +167,13 @@
   "MSG_SURRENDERED": "Оппонент сдался! Банк ваш.",
   "MSG_BANNED": "Оппонент заблокирован! Банк ваш.",
   "MSG_GAME_RESUMED": "Игра возобновлена!",
-  "MSG_GAME_STARTED": "Игра началась!"
+  "MSG_GAME_STARTED": "Игра началась!",
+  "nav_about": "Инфо",
+  "about_title": "Об игре",
+  "about_authors": "Авторы",
+  "about_credits_text": "Создано с любовью для фанатов карточных игр.",
+  "about_developer": "Разработчик",
+  "settings_section_account": "АККАУНТ",
+  "settings_section_app": "ПРИЛОЖЕНИЕ",
+  "settings_section_danger": "ДАННЫЕ"
 }

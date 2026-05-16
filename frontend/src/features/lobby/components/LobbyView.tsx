@@ -15,6 +15,7 @@ import { AppleToggle } from '@/components/ui/AppleToggle';
 import { SwipeableActionCard } from '@/components/ui/SwipeableActionCard';
 import { CapsuleModal } from '@/components/ui/CapsuleModal';
 import { NavigationItem } from '@/components/ui/NavigationItem';
+import { InscribedZone } from '@/components/ui/InscribedZone';
 
 const DEFAULT_CONFIG = {
     bet: 100, speed: 30000, players: 2, ruleSet: 'local' as RuleSet,
@@ -135,18 +136,18 @@ export default function LobbyView({ user }: { user: UserProfile }) {
 
         return (
             <div className="space-y-6">
-                <h3 className="text-2xl font-black text-gray-800 mb-2">
+                <h3 className="text-2xl font-black text-theme-text mb-2">
                     {isSearchMode ? "Фильтры поиска" : t('modal_setup_title')}
                 </h3>
 
                 <div>
-                    <label className="block font-bold text-gray-500 mb-2 text-sm uppercase tracking-wider">{t('modal_bet_label')}</label>
+                    <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">{t('modal_bet_label')}</label>
                     <div className="flex flex-wrap gap-2">
                         {GAME_CONFIG.BET_OPTIONS.map(b => (
                             <button
                                 key={b}
                                 onClick={() => updateFn({ ...config, bet: b })}
-                                className={`flex-1 min-w-[70px] py-3 rounded-2xl font-black transition-all border ${config.bet === b ? 'bg-amber-500 text-white shadow-md border-amber-500' : 'bg-white/40 text-gray-600 hover:bg-white/60 border-white/30'}`}
+                                className={`flex-1 min-w-[70px] py-3 rounded-2xl font-black transition-all ${config.bet === b ? 'bg-amber-500 text-white shadow-md' : 'bg-theme-main text-theme-text shadow-sm hover:shadow-md'}`}
                             >
                                 {b}
                             </button>
@@ -155,13 +156,13 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 </div>
 
                 <div>
-                    <label className="block font-bold text-gray-500 mb-2 text-sm uppercase tracking-wider">{t('modal_speed_label')}</label>
+                    <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">{t('modal_speed_label')}</label>
                     <div className="flex gap-2">
                         {GAME_CONFIG.SPEED_OPTIONS.map(s => (
                             <button
                                 key={s.value}
                                 onClick={() => updateFn({ ...config, speed: s.value })}
-                                className={`flex-1 p-3 rounded-2xl flex flex-col items-center justify-center transition-all border ${config.speed === s.value ? 'bg-blue-500 text-white shadow-md border-blue-500' : 'bg-white/40 border-white/30 text-gray-600 hover:bg-white/60'}`}
+                                className={`flex-1 p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${config.speed === s.value ? 'bg-theme-primary text-white shadow-md' : 'bg-theme-main text-theme-text shadow-sm hover:shadow-md'}`}
                             >
                                 <span className="text-2xl mb-1">{s.icon}</span>
                                 <span className="text-xs font-bold whitespace-nowrap">{t(s.labelKey)}</span>
@@ -171,34 +172,34 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/40 border border-white/30 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer hover:bg-white/60 transition-colors" onClick={() => updateFn({ ...config, players: config.players === 2 ? 4 : 2 })}>
+                    <div className="bg-theme-main shadow-sm p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer hover:shadow-md transition-shadow" onClick={() => updateFn({ ...config, players: config.players === 2 ? 4 : 2 })}>
                         <div className="text-3xl">{config.players === 2 ? '👥' : '👨‍👩‍👧‍👦'}</div>
-                        <div className="font-bold text-sm text-gray-700">{config.players} {t('modal_players_count')}</div>
+                        <div className="font-bold text-sm text-theme-text">{config.players} {t('modal_players_count')}</div>
                     </div>
-                    <div className="bg-white/40 border border-white/30 p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer hover:bg-white/60 transition-colors"
+                    <div className="bg-theme-main shadow-sm p-4 rounded-3xl flex flex-col items-center gap-2 cursor-pointer hover:shadow-md transition-shadow"
                         onClick={() => {
                             const newRule = config.ruleSet === 'local' ? 'classic' : 'local';
                             updateFn({ ...config, ruleSet: newRule, isSuddenDeath: newRule === 'classic' ? false : config.isSuddenDeath });
                         }}
                     >
                         <div className="text-3xl">{config.ruleSet === 'local' ? '🏡' : '🏛️'}</div>
-                        <div className="font-bold text-sm text-gray-700">{config.ruleSet === 'local' ? t('rule_local') : t('rule_classic')}</div>
+                        <div className="font-bold text-sm text-theme-text">{config.ruleSet === 'local' ? t('rule_local') : t('rule_classic')}</div>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-1 bg-white/40 border border-white/30 p-2 rounded-3xl">
-                    <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-white/50 rounded-2xl transition-colors">
-                        <span className="font-bold text-gray-700">⚖️ {t('modal_strict_mode')}</span>
+                <div className="flex flex-col gap-1 bg-theme-main shadow-inner p-2 rounded-3xl">
+                    <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-theme-panel rounded-2xl transition-colors">
+                        <span className="font-bold text-theme-text">⚖️ {t('modal_strict_mode')}</span>
                         <AppleToggle checked={config.isStrict} onChange={v => updateFn({ ...config, isStrict: v })} />
                     </label>
                     {config.ruleSet === 'local' && (
-                        <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-white/50 rounded-2xl transition-colors">
-                            <span className="font-bold text-gray-700">⚡ {t('modal_sudden_death')}</span>
+                        <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-theme-panel rounded-2xl transition-colors">
+                            <span className="font-bold text-theme-text">⚡ {t('modal_sudden_death')}</span>
                             <AppleToggle checked={config.isSuddenDeath} onChange={v => updateFn({ ...config, isSuddenDeath: v })} />
                         </label>
                     )}
-                    <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-white/50 rounded-2xl transition-colors">
-                        <span className="font-bold text-gray-700">🔒 {t('modal_private_table')}</span>
+                    <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-theme-panel rounded-2xl transition-colors">
+                        <span className="font-bold text-theme-text">🔒 {t('modal_private_table')}</span>
                         <AppleToggle checked={config.isPrivate} onChange={v => updateFn({ ...config, isPrivate: v })} />
                     </label>
                 </div>
@@ -224,7 +225,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 transition={sharedSpringTransition}
                                 onClick={handleApplySearchFilters}
                                 style={{ borderRadius: 9999 }}
-                                className="h-14 bg-blue-500 flex items-center justify-center shrink-0 shadow-lg cursor-pointer hover:bg-blue-600"
+                                className="h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md cursor-pointer hover:opacity-90"
                             >
                                 <Check className="w-6 h-6 text-white shrink-0" />
                             </motion.button>
@@ -238,11 +239,11 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                         animate={{ opacity: !isInputActive && !hasText ? 0.7 : 1 }}
                         style={{ borderRadius: 9999 }}
                         onClick={() => inputRef.current?.focus()}
-                        className={`relative flex-1 h-14 shadow-sm transition-colors duration-300 overflow-hidden ${!isInputActive && !hasText ? 'cursor-pointer' : 'cursor-text'}`}
+                        className={`relative flex-1 h-14 transition-shadow duration-300 overflow-hidden ${!isInputActive && !hasText ? 'cursor-pointer shadow-sm' : 'cursor-text shadow-inner'}`}
                     >
-                        <div className={`absolute inset-0 transition-colors duration-300 -z-10 border ${!isInputActive && !hasText ? 'bg-white/30 border-white/20' : 'bg-white/60 border-white/40'}`} />
+                        <div className={`absolute inset-0 transition-colors duration-300 -z-10 ${!isInputActive && !hasText ? 'bg-theme-main' : 'bg-theme-panel'}`} />
                         <div className="relative z-10 w-full h-full flex items-center px-4">
-                            <Search className="w-5 h-5 text-gray-500 mr-2 shrink-0" />
+                            <Search className="w-5 h-5 text-theme-text opacity-50 mr-2 shrink-0" />
                             <input
                                 ref={inputRef}
                                 value={privateCode}
@@ -251,7 +252,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 onBlur={() => setIsInputActive(false)}
                                 onKeyDown={(e) => e.key === 'Enter' && requireIncognitoCheck(handleJoinPrivate)}
                                 placeholder={t('lobby_game_code') || "Введите код"}
-                                className="select-text bg-transparent border-none outline-none w-full text-black placeholder:text-gray-500 font-medium text-lg uppercase tracking-wider"
+                                className="select-text bg-transparent border-none outline-none w-full text-theme-text placeholder:text-theme-text placeholder:opacity-50 font-medium text-lg uppercase tracking-wider"
                             />
                         </div>
                     </motion.div>
@@ -267,7 +268,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 transition={sharedSpringTransition}
                                 onClick={() => requireIncognitoCheck(handleJoinPrivate)}
                                 style={{ borderRadius: 9999 }}
-                                className="h-14 bg-blue-500 flex items-center justify-center shrink-0 shadow-lg cursor-pointer hover:bg-blue-600"
+                                className="h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md cursor-pointer hover:opacity-90"
                             >
                                 <Check className="w-6 h-6 text-white shrink-0" />
                             </motion.button>
@@ -287,7 +288,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                         exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.1 } }}
                         style={{ borderRadius: 9999 }}
                         onClick={() => requireIncognitoCheck(handleCreateRoomSubmit)}
-                        className="w-14 h-14 bg-blue-500 flex items-center justify-center shrink-0 shadow-md hover:bg-blue-600 transition-colors overflow-hidden cursor-pointer"
+                        className="w-14 h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:opacity-90 transition-opacity overflow-hidden cursor-pointer"
                     >
                         <Check className="w-6 h-6 text-white" />
                     </motion.button>
@@ -330,13 +331,16 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 layoutId="search-wrapper"
                                 transition={sharedSpringTransition}
                                 onClick={() => setView('search')}
-                                className="relative flex-1 max-w-[280px] h-14 cursor-pointer shadow-lg hover:opacity-90 transition-opacity"
+                                className="relative flex-1 max-w-[280px] h-14 cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
                             >
-                                <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border border-white/50 -z-10" />
-                                <div className="relative z-10 flex items-center px-4 w-full h-full">
-                                    <Search className="w-5 h-5 text-gray-600 mr-2 shrink-0" />
-                                    <span className="text-gray-600 font-bold text-base whitespace-nowrap">{t('lobby_game_code') || 'Код стола или Поиск'}</span>
-                                </div>
+                                <div className="absolute inset-0 bg-theme-panel/80 backdrop-blur-2xl shadow-sm -z-10" />
+                                {/* Математически точная зона выравнивания без грубых паддингов */}
+                                <InscribedZone align="left" className="gap-2">
+                                    <Search className="w-5 h-5 text-theme-text opacity-60 shrink-0" />
+                                    <span className="text-theme-text font-bold text-sm sm:text-base whitespace-nowrap opacity-80">
+                                        {t('lobby_game_code') || 'Код стола или Поиск'}
+                                    </span>
+                                </InscribedZone>
                             </MorphingCapsule>
 
                             <MorphingCapsule
@@ -344,14 +348,14 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 layoutId="create-wrapper"
                                 transition={sharedSpringTransition}
                                 onClick={() => setView('create')}
-                                className="relative w-14 h-14 cursor-pointer shadow-lg hover:opacity-90 transition-opacity"
+                                className="relative w-14 h-14 cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
                             >
-                                <div className="absolute inset-0 bg-black/90 backdrop-blur-xl border border-gray-700 -z-10" />
-                                <div className="relative z-10 flex items-center justify-center w-full h-full">
+                                <div className="absolute inset-0 bg-theme-primary backdrop-blur-xl -z-10" />
+                                <InscribedZone>
                                     <motion.div layoutId="action-icon" transition={sharedSpringTransition}>
                                         <Plus className="w-6 h-6 text-white" />
                                     </motion.div>
-                                </div>
+                                </InscribedZone>
                             </MorphingCapsule>
                         </motion.div>
                     )}
@@ -367,10 +371,10 @@ export default function LobbyView({ user }: { user: UserProfile }) {
 
                 {activeRooms.length > 0 && (
                     <div className="mb-8">
-                        <div className="w-full">
+                        <div className="w-full space-y-3">
                             {activeRooms.map(room => {
                                 const roomId = room.id;
-                                if (!roomId) return null; // 🟢 Строгая проверка для TS
+                                if (!roomId) return null;
 
                                 const isFinished = room.status === 'finished' || room.status === 'waiting';
                                 const actionText = isFinished ? t('btn_leave') || 'Выйти' : t('btn_surrender') || 'Сдаться';
@@ -389,7 +393,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                             </div>
                                         }
                                     >
-                                        <div className="bg-theme-panel p-4 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex flex-row justify-between items-center gap-4 cursor-pointer active:scale-[0.98] transition-all duration-300">
+                                        <div className="bg-theme-panel p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-row justify-between items-center gap-4 cursor-pointer active:scale-[0.98] transition-all duration-300">
                                             <div className="flex-1 text-left min-w-0">
                                                 <div className="font-bold text-lg text-theme-text flex items-center gap-2">
                                                     <span>⏳</span> {t('lobby_your_table') || 'Ваша игра'}
@@ -416,18 +420,18 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 <h2 className="text-xl font-bold mb-4 text-theme-text opacity-70">{t('lobby_open_tables')}</h2>
                 <div className="grid gap-3 sm:gap-4 w-full">
                     {rooms.length === 0 ? (
-                        <div className="text-center py-12 text-theme-text opacity-50 border-4 border-dashed border-theme-border rounded-3xl font-bold">
+                        <div className="text-center py-12 text-theme-text opacity-50 shadow-inner rounded-3xl font-bold">
                             {t('lobby_no_active')}
                         </div>
                     ) : (
                         rooms.map(room => {
                             const roomId = room.id;
-                            if (!roomId) return null; // 🟢 Строгая проверка для TS
+                            if (!roomId) return null;
 
                             return (
                                 <div
                                     key={roomId}
-                                    className="bg-theme-panel p-3 sm:p-4 rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                                    className="bg-theme-panel p-3 sm:p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
                                 >
                                     <NavigationItem
                                         onClick={() => requireIncognitoCheck(() => router.push(`/game/${roomId}`))}
@@ -447,7 +451,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                                 </span>
                                                 {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold">{t('rule_strict')}</span>}
                                                 {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md font-bold">⚡</span>}
-                                                <span className="text-blue-500 font-bold ml-1">({room.players.length}/{room.maxPlayers})</span>
+                                                <span className="text-theme-primary font-bold ml-1">({room.players.length}/{room.maxPlayers})</span>
                                             </div>
                                         </div>
                                     </NavigationItem>

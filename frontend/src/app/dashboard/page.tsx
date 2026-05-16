@@ -9,6 +9,7 @@ import ProfileView from '@/features/profile/components/ProfileView';
 import SettingsView from '@/features/profile/components/SettingsView';
 import { useTranslation } from 'react-i18next';
 import { HybridScrollView, ScrollScreen } from '@/components/ui/hybrid-scrollbar';
+import AboutView from '@/features/about/components/AboutView';
 
 export default function MainAppPage() {
     const { t } = useTranslation();
@@ -58,7 +59,8 @@ export default function MainAppPage() {
         return [
             { id: 'lobby', icon: <span title={t('nav_game')}>🎲</span>, content: <LobbyView user={user} />, bgClass: 'bg-theme-main' },
             { id: 'profile', icon: <span title={t('nav_profile')}>👤</span>, content: <ProfileView user={user} />, bgClass: 'bg-theme-main' },
-            { id: 'settings', icon: <span title={t('nav_settings')}>⚙️</span>, content: <SettingsView user={user} />, bgClass: 'bg-theme-main' }
+            { id: 'settings', icon: <span title={t('nav_settings')}>⚙️</span>, content: <SettingsView user={user} />, bgClass: 'bg-theme-main' },
+            { id: 'about', icon: <span title={t('nav_about')}>ℹ️</span>, content: <AboutView />, bgClass: 'bg-theme-main' } // <--- НОВЫЙ ТАБ
         ];
     }, [user, t]);
 

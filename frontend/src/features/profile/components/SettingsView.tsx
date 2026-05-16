@@ -4,30 +4,27 @@ import { UserProfile } from '@/types';
 import { authApi, supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { useAlert } from '@/components/providers/AlertProvider';
-import { Divider } from '@/components/ui/Divider';
+import { AppleToggle } from '@/components/ui/AppleToggle';
+import { InfoSection, InfoRow } from '@/components/ui/InfoGroup';
+import { Panel } from '@/components/ui/Panel';
+import { Button } from '@/components/ui/Button';
 
 export default function SettingsView({ user }: { user: UserProfile }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const router = useRouter();
     const { showAlert, showConfirm } = useAlert();
 
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [sbUser, setSbUser] = useState<User | null>(null);
     const [isLinking, setIsLinking] = useState(false);
-
     const [isIncognito, setIsIncognito] = useState(user.settings?.isIncognito || false);
 
     useEffect(() => {
-        const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setSbUser(user);
-        };
-        fetchUser();
+        supabase.auth.getUser().then(({ data: { user } }) => setSbUser(user));
     }, []);
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
         showConfirm(t('settings_logout_confirm'), async () => {
             await supabase.auth.signOut();
             localStorage.removeItem('pasurUid');
@@ -47,8 +44,7 @@ export default function SettingsView({ user }: { user: UserProfile }) {
         }
     };
 
-    const toggleIncognito = async () => {
-        const newValue = !isIncognito;
+    const toggleIncognito = async (newValue: boolean) => {
         setIsIncognito(newValue);
         try {
             const newSettings = { ...user.settings, isIncognito: newValue };
@@ -61,89 +57,84 @@ export default function SettingsView({ user }: { user: UserProfile }) {
 
     const hasGoogleLinked = sbUser?.app_metadata?.providers?.includes('google');
 
-    return (
-        <div className="p-4 sm:p-6 max-w-md mx-auto pb-12 sm:pb-24">
-            <h1 className="text-2xl sm:text-3xl font-black mb-4 sm:mb-6">{t('settings_title')}</h1>
-
-            {sbUser && !hasGoogleLinked && (
-                // 🟢 Убрали border-2 border-amber-500. Оставили красивый фон и shadow-md
-                <div className="bg-amber-100 dark:bg-amber-900/40 rounded-2xl p-4 sm:p-5 mb-4 sm:mb-6 shadow-md">
-                    <h3 className="font-black text-amber-600 dark:text-amber-400 flex items-center gap-2 mb-2 text-base sm:text-lg">
-                        <span>⚠️</span> {t('settings_save_progress')}
-                    </h3>
-                    <p className="text-xs sm:text-sm opacity-80 mb-4 font-medium text-amber-900 dark:text-amber-100">
-                        {t('settings_guest_warning')} <span className="font-bold">{user.balance} 💰</span> {t('settings_guest_warning_end')}
-                    </p>
-                    <button
-                        onClick={handleLinkGoogle}
-                        disabled={isLinking}
-                        // 🟢 Добавили shadow-md для кнопки
-                        className="w-full bg-amber-500 text-white font-black py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-amber-600 transition shadow-md disabled:opacity-50"
-                    >
-                        {isLinking ? t('settings_linking') : `🌐 ${t('settings_link_google')}`}
-                    </button>
-                </div>
-            )}
-
-            <div className="bg-theme-panel rounded-3xl shadow-md overflow-hidden mb-4 sm:mb-6 flex flex-col">
-
-                {/* 1. Язык */}
-                <LanguageSwitcher />
-
-                {/* 🟢 Наш новый надежный компонент с отступом */}
-                <Divider indent />
-
-                {/* 2. Инкогнито */}
-                <div className="p-4 flex justify-between items-center bg-theme-panel hover:bg-theme-main transition-colors">
-                    <div>
-                        <div className="font-bold text-sm sm:text-base flex items-center gap-2">
-                            <span className="w-6 text-center">🕵️</span> {t('settings_incognito')}
-                        </div>
-                        <div className="text-[10px] sm:text-xs opacity-60 mt-1 max-w-[200px] font-medium leading-tight ml-8">
-                            {t('settings_incognito_desc')}
-                        </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
-                        <input type="checkbox" className="sr-only peer" checked={isIncognito} onChange={toggleIncognito} />
-                        <div className="w-12 h-7 bg-theme-border/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme-primary shadow-inner"></div>
-                    </label>
-                </div>
-
-                {/* 🟢 Разделитель */}
-                <Divider indent />
-
-                {/* 3. Звуки */}
-                <div className="p-4 flex justify-between items-center bg-theme-panel hover:bg-theme-main transition-colors">
-                    <span className="font-bold text-sm sm:text-base flex items-center gap-2">
-                        <span className="w-6 text-center">🔊</span> {t('settings_sounds')}
-                    </span>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
-                        <input type="checkbox" className="sr-only peer" checked={soundEnabled} onChange={() => setSoundEnabled(!soundEnabled)} />
-                        <div className="w-12 h-7 bg-theme-border/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme-primary shadow-inner"></div>
-                    </label>
-                </div>
-
-                {/* 🟢 Разделитель */}
-                <Divider indent />
-
-                {/* 4. Версия */}
-                <div className="p-4 flex justify-between items-center opacity-50 bg-theme-panel">
-                    <span className="font-bold text-sm sm:text-base flex items-center gap-2">
-                        <span className="w-6 text-center">🌙</span> {t('settings_version')}
-                    </span>
-                    <span className="text-xs sm:text-sm font-mono font-bold">v1.0.0</span>
-                </div>
-            </div>
-
-            {/* 🟢 Кнопка выхода: сделана как "парящая" отдельная карточка */}
-            <div className="bg-theme-panel rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+    const LanguageControl = () => (
+        <div className="flex bg-theme-main p-1 rounded-lg border border-theme-border/50">
+            {['en', 'ru', 'az'].map(lng => (
                 <button
-                    onClick={handleLogout}
-                    className="w-full p-4 text-center text-red-500 font-black hover:bg-red-500/10 transition-colors text-sm sm:text-base flex justify-center items-center gap-2"
+                    key={lng}
+                    onClick={(e) => { e.stopPropagation(); i18n.changeLanguage(lng); }}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all uppercase ${i18n.language === lng ? 'bg-theme-panel shadow text-theme-primary' : 'opacity-60 text-theme-text hover:opacity-100'}`}
                 >
-                    🚪 {t('settings_logout')}
+                    {lng}
                 </button>
-            </div>
+            ))}
+        </div>
+    );
+
+    return (
+        <div className="p-4 sm:p-6 max-w-md mx-auto pb-24">
+            <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('settings_title')}</h1>
+
+            <InfoSection title={t('settings_section_account')}>
+                {!hasGoogleLinked && (
+                    <InfoRow 
+                        icon="🌐" 
+                        iconBg="bg-amber-500" 
+                        title={t('settings_link_google')} 
+                        subtitle={t('settings_guest_warning')}
+                        onClick={handleLinkGoogle}
+                        rightContent={
+                            <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md">
+                                {isLinking ? "..." : t('settings_link_google')}
+                            </span>
+                        }
+                        noDivider
+                    />
+                )}
+                {hasGoogleLinked && (
+                    <InfoRow 
+                        icon="✅" 
+                        iconBg="bg-emerald-500" 
+                        title="Google Account" 
+                        subtitle={sbUser?.email || "Linked successfully"}
+                        noDivider
+                    />
+                )}
+            </InfoSection>
+
+            <InfoSection title={t('settings_section_app')}>
+                <InfoRow 
+                    icon="🌍" 
+                    iconBg="bg-blue-500" 
+                    title={t('language')} 
+                    rightContent={<LanguageControl />} 
+                />
+                <InfoRow 
+                    icon="🕵️‍♀️" 
+                    iconBg="bg-slate-700 dark:bg-slate-500" 
+                    title={t('settings_incognito')} 
+                    subtitle={t('settings_incognito_desc')}
+                    rightContent={<AppleToggle checked={isIncognito} onChange={toggleIncognito} />} 
+                />
+                <InfoRow 
+                    icon="🔊" 
+                    iconBg="bg-rose-500" 
+                    title={t('settings_sounds')} 
+                    rightContent={<AppleToggle checked={soundEnabled} onChange={setSoundEnabled} />} 
+                    noDivider
+                />
+            </InfoSection>
+
+            <InfoSection title={t('settings_section_danger')}>
+                <InfoRow 
+                    icon="🚪" 
+                    iconBg="bg-red-500" 
+                    title={<span className="text-red-500">{t('settings_logout')}</span>} 
+                    onClick={handleLogout}
+                    rightContent={<span className="text-red-500 opacity-50 font-bold">❯</span>}
+                    noDivider
+                />
+            </InfoSection>
         </div>
     );
 }

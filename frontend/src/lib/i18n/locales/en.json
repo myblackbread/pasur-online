@@ -167,5 +167,13 @@
   "MSG_SURRENDERED": "Opponent surrendered! You win.",
   "MSG_BANNED": "Opponent banned! You win.",
   "MSG_GAME_RESUMED": "Game resumed!",
-  "MSG_GAME_STARTED": "Game started!"
+  "MSG_GAME_STARTED": "Game started!",
+  "nav_about": "Info",
+  "about_title": "About Game",
+  "about_authors": "Authors",
+  "about_credits_text": "Made with love for card game fans.",
+  "about_developer": "Developer",
+  "settings_section_account": "ACCOUNT",
+  "settings_section_app": "APP",
+  "settings_section_danger": "DANGER ZONE"
 }

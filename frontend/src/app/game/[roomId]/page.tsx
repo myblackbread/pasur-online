@@ -132,17 +132,17 @@ export default function GameRoomPage() {
 
         const action = serverGame.lastAction;
         lastProcessedTimestamp.current = action.timestamp;
-        
+
         isAnimatingRef.current = true;
         let isCancelled = false;
         const timeouts: NodeJS.Timeout[] = [];
-        
+
         const isCapture = action.capturedCards && action.capturedCards.length > 0;
-        
+
         setAnimationState({ phase: 'playing', action });
         setVisualGame(prev => {
             if (!prev) return serverGame;
-            const next = JSON.parse(JSON.stringify(prev)); 
+            const next = JSON.parse(JSON.stringify(prev));
             const player = next.players.find((p: any) => p.id === action.playerId);
             if (player) {
                 player.hand = player.hand.filter((c: any) => c.id !== action.playedCard.id);
@@ -155,13 +155,13 @@ export default function GameRoomPage() {
 
         timeouts.push(setTimeout(() => {
             if (isCancelled) return;
-            
+
             if (isCapture) {
                 setAnimationState({ phase: 'gathering', action });
-                
+
                 timeouts.push(setTimeout(() => {
                     if (isCancelled) return;
-                    
+
                     setAnimationState({ phase: 'flying', action });
                     setVisualGame(prev => {
                         if (!prev) return serverGame;
@@ -173,20 +173,20 @@ export default function GameRoomPage() {
 
                     timeouts.push(setTimeout(() => {
                         if (isCancelled) return;
-                        
+
                         isAnimatingRef.current = false;
                         setAnimationState({ phase: 'idle', action: null });
                         setVisualGame(serverGame);
                         setPendingMove(null);
-                    }, 600)); 
-                }, 1000)); 
+                    }, 600));
+                }, 1000));
             } else {
                 isAnimatingRef.current = false;
                 setAnimationState({ phase: 'idle', action: null });
                 setVisualGame(serverGame);
                 setPendingMove(null);
             }
-        }, 500)); 
+        }, 500));
 
         return () => {
             isCancelled = true;
@@ -201,7 +201,7 @@ export default function GameRoomPage() {
 
     const rawTurnTimeLeft = useCountdown(roomData?.turnDeadline);
     const turnDurationSec = Math.floor((roomData?.turnDuration || 60000) / 1000);
-    const turnTimeLeft = Math.min(rawTurnTimeLeft, turnDurationSec); 
+    const turnTimeLeft = Math.min(rawTurnTimeLeft, turnDurationSec);
 
     const readyTimeLeft = useCountdown(roomData?.readyDeadline);
 
@@ -306,37 +306,31 @@ export default function GameRoomPage() {
         return isAnon(id) ? '👤' : '😎';
     };
 
-    // 🟢 ИНТЕГРИРОВАННЫЙ ХАБ ИГРОКА (Без обрезки анимации)
     const renderPlayerHub = (player: PlayerState, isMe: boolean, isTurn: boolean) => {
         const captureCount = player.captured.length;
         const hasCaptures = captureCount > 0;
         const hasSurs = visualGame?.ruleSet === 'classic' && player.surs > 0;
 
         return (
-            // Базовый контейнер. ЗДЕСЬ НЕТ overflow-hidden, поэтому вылетающие элементы не обрезаются.
             <div className="relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28">
-                
-                {/* Карточка-хаб. Оформление и обрезка висят только на этом слое */}
+
                 <div className={`absolute inset-0 rounded-xl border-4 flex flex-col overflow-hidden select-none transition-all duration-300
                     ${isTurn ? 'border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.5)] scale-105' : 'border-theme-border shadow-md'}
                     ${!hasCaptures && !isTurn ? 'bg-theme-panel/50 opacity-80' : 'bg-theme-main'}
                 `}>
-                    
-                    {/* Верхняя плашка: Суры (если есть) */}
+
                     {hasSurs && (
                         <div className="w-full bg-purple-500 text-white text-[10px] sm:text-xs font-black py-0.5 flex items-center justify-center gap-1 shadow-sm shrink-0">
                             ⭐ {player.surs}
                         </div>
                     )}
 
-                    {/* Центр: Аватар */}
                     <div className="flex-1 flex items-center justify-center relative">
                         <span className={`text-2xl sm:text-3xl md:text-4xl transition-transform duration-300 ${isTurn ? 'animate-bounce' : ''}`}>
                             {renderAvatar(player.id)}
                         </span>
                     </div>
 
-                    {/* Нижняя плашка: Взятки */}
                     {hasCaptures && (
                         <div className="w-full bg-theme-primary text-white text-[10px] sm:text-xs md:text-sm font-black py-0.5 sm:py-1 flex items-center justify-center shadow-inner shrink-0">
                             {captureCount}
@@ -344,9 +338,8 @@ export default function GameRoomPage() {
                     )}
                 </div>
 
-                {/* Анимация прилета карт (z-[100] вынесена ИЗ overflow-hidden, чтобы лететь на переднем плане) */}
                 {animationState.phase === 'flying' && animationState.action?.playerId === player.id && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[100]">
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
                         <div className="absolute"><PlayingCard card={animationState.action.playedCard} disabled /></div>
                         {animationState.action.capturedCards.map((c: Card) => (
                             <div className="absolute" key={c.id}><PlayingCard card={c} disabled /></div>
@@ -357,7 +350,6 @@ export default function GameRoomPage() {
         );
     };
 
-    // 🟢 ИНТЕГРИРОВАННЫЙ ХАБ КОЛОДЫ
     const renderDeckArea = (currentGame: GameState) => {
         const deckCount = currentGame.deckCount ?? currentGame.deck?.length ?? 0;
         const hasCards = deckCount > 0;
@@ -379,15 +371,14 @@ export default function GameRoomPage() {
         return (
             <div className="relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28">
                 <div className={`absolute inset-0 rounded-xl border-4 flex flex-col overflow-hidden select-none transition-all duration-300 shadow-md ${hasCards ? 'border-theme-border bg-theme-main' : 'border-dashed border-theme-border opacity-40 bg-theme-panel/50'}`}>
-                    
-                    <div 
+
+                    <div
                         className="flex-1 flex items-center justify-center"
                         style={hasCards ? { backgroundImage: 'repeating-linear-gradient(45deg, var(--bg-panel), var(--bg-panel) 10px, transparent 10px, transparent 20px)' } : {}}
                     >
                         {!hasCards && <span className="text-[10px] sm:text-xs font-bold text-theme-text opacity-50 px-1 text-center">{t('game_empty')}</span>}
                     </div>
-                    
-                    {/* Плашка с остатком карт */}
+
                     {hasCards && (
                         <div className="w-full bg-theme-panel border-t-2 border-theme-border text-theme-text text-[10px] sm:text-xs md:text-sm font-black py-0.5 sm:py-1 flex items-center justify-center shadow-inner shrink-0">
                             {deckCount}
@@ -398,9 +389,6 @@ export default function GameRoomPage() {
         );
     };
 
-    // ------------------------------------------
-    // 🟢 ЭКРАН ОЖИДАНИЯ И ЛОББИ СТОЛА
-    // ------------------------------------------
     if (roomData.status === 'waiting' || roomData.status === 'ready_check' || roomData.status === 'ready_check_resume' || roomData.status === 'paused') {
         const isFull = roomData.players.length === roomData.maxPlayers;
         const isPaused = roomData.status === 'paused';
@@ -477,15 +465,13 @@ export default function GameRoomPage() {
 
     const oppIsTurn = !isMyTurnSafe && roomData.status === 'playing';
 
-    // ------------------------------------------
-    // 🟢 ЭКРАН ИГРОВОГО СТОЛА
-    // ------------------------------------------
     return (
+        // Убрали overflow-hidden из внутреннего контейнера
         <main className="fixed inset-0 w-full h-full flex flex-col bg-theme-main overflow-hidden safe-padding">
-            <div className="flex-1 w-full h-full max-w-5xl mx-auto flex flex-col p-2 sm:p-4 gap-2 sm:gap-4 overflow-hidden">
+            <div className="flex-1 w-full h-full max-w-5xl mx-auto flex flex-col p-2 sm:p-4 gap-2 sm:gap-4">
 
                 {/* ТОП-БАР */}
-                <div className="flex-none w-full bg-theme-panel border-4 border-theme-border p-2 sm:p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                <div className="flex-none w-full bg-theme-panel p-2 sm:p-4 rounded-2xl flex justify-between items-center shadow-sm">
                     <div className="font-mono font-black text-xs sm:text-xl text-theme-text flex items-center">
                         <span className="opacity-70 text-[10px] sm:text-sm mr-1 sm:mr-2">{isSpectatorSafe ? t('game_player_1') : t('game_you')}</span>
                         <span className="text-theme-primary">{game.matchScores[me.teamId] || 0}</span>
@@ -497,7 +483,7 @@ export default function GameRoomPage() {
                     <div className="flex items-center gap-2 sm:gap-4">
                         {!isSpectatorSafe && (
                             <>
-                                <div className={`px-2 py-1 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black ${isMyTurnSafe ? 'bg-amber-500 text-white shadow-md' : 'bg-theme-main border-2 border-theme-border text-theme-text opacity-70'}`}>
+                                <div className={`px-2 py-1 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black ${isMyTurnSafe ? 'bg-amber-500 text-white shadow-md' : 'bg-theme-main text-theme-text opacity-70'}`}>
                                     {isMyTurnSafe ? t('game_your_turn') : t('game_wait')} ({turnTimeLeft}с)
                                 </div>
                                 {!isMyTurnSafe && rawTurnTimeLeft === 0 && roomData.status === 'playing' && (
@@ -505,21 +491,19 @@ export default function GameRoomPage() {
                                 )}
                             </>
                         )}
-                        <button onClick={isSpectatorSafe ? () => router.push('/dashboard') : handleLeaveOrSurrender} className="bg-theme-main border-2 border-theme-border px-2 py-1 sm:px-3 sm:py-1 text-[10px] sm:text-sm rounded-xl hover:bg-red-500 hover:text-white hover:border-red-500 text-theme-text font-bold transition-colors">
+                        <button onClick={isSpectatorSafe ? () => router.push('/dashboard') : handleLeaveOrSurrender} className="bg-theme-main px-2 py-1 sm:px-3 sm:py-1 text-[10px] sm:text-sm rounded-xl hover:bg-red-500 hover:text-white text-theme-text font-bold transition-colors shadow-sm">
                             {isSpectatorSafe ? t('btn_leave') : (roomData.status === 'finished' ? t('game_leave') : t('btn_surrender'))}
                         </button>
                     </div>
                 </div>
 
                 {/* ВЕРХНИЙ ИГРОК (Оппонент) */}
-                <div className="flex-none w-full p-2 sm:p-3 rounded-2xl flex justify-between items-center transition-all duration-300 border-4 bg-theme-panel/50 border-theme-border">
-                    
-                    {/* Хаб оппонента (Взятки, аватар) */}
+                <div className="flex-none w-full p-2 sm:p-3 rounded-2xl flex justify-between items-center transition-all duration-300 bg-theme-panel/50">
+
                     <div className="flex flex-col items-center w-14 sm:w-24 relative shrink-0">
                         {renderPlayerHub(opponent, false, oppIsTurn)}
                     </div>
 
-                    {/* Рука (Только карты, идеально по центру) */}
                     <div className="flex-1 flex flex-col items-center min-w-0">
                         <div className="flex justify-center -space-x-6 sm:-space-x-8 md:-space-x-12 w-full px-4">
                             {opponent.hand.map(card => {
@@ -528,7 +512,7 @@ export default function GameRoomPage() {
                                         key={card.id}
                                         layoutId={`card-${card.id}`}
                                         layout
-                                        className={`w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl border-4 border-theme-border shadow-md transition-transform ${oppIsTurn ? 'hover:-translate-y-2' : ''}`}
+                                        className={`w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl shadow-md transition-transform ${oppIsTurn ? 'hover:-translate-y-2' : ''}`}
                                         style={{ backgroundImage: 'repeating-linear-gradient(45deg, var(--bg-panel), var(--bg-panel) 10px, var(--bg-main) 10px, var(--bg-main) 20px)' }}
                                     />
                                 );
@@ -536,7 +520,6 @@ export default function GameRoomPage() {
                         </div>
                     </div>
 
-                    {/* Колода / Валеты дилера (справа для баланса) ИЛИ Пустышка-балансир */}
                     {opponent.id === dealerId ? (
                         <div className="flex flex-col items-center gap-1 w-14 sm:w-24 relative shrink-0">
                             {renderDeckArea(game)}
@@ -546,45 +529,47 @@ export default function GameRoomPage() {
                     )}
                 </div>
 
-                {/* ИГРОВОЙ СТОЛ (Растягивается и забирает все оставшееся место) */}
-                <div className="flex-1 min-h-0 w-full border-4 border-theme-border rounded-[1.5rem] sm:rounded-[3rem] bg-theme-panel shadow-inner overflow-y-auto overflow-x-hidden p-3 sm:p-6 relative" id="game-table-container">
-                    {game.table.length === 0 && animationState.phase === 'idle' ? (
-                        <div className="w-full h-full flex items-center justify-center opacity-40 text-lg sm:text-2xl font-black uppercase tracking-widest text-theme-text text-center">
+                {/* ИГРОВОЙ СТОЛ */}
+                {/* 🟢 УБРАН overflow-hidden и overflow-y-auto, чтобы карты летали свободно */}
+                <div className="flex-1 w-full rounded-[1.5rem] sm:rounded-[3rem] bg-theme-panel shadow-inner p-3 sm:p-6 relative flex flex-col" id="game-table-container">
+
+                    {/* Текст теперь просто наслаивается абсолютом и не ломает DOM-дерево */}
+                    {game.table.length === 0 && animationState.phase === 'idle' && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-40 text-lg sm:text-2xl font-black uppercase tracking-widest text-theme-text text-center pointer-events-none">
                             {t('game_table_empty')}
                         </div>
-                    ) : (
-                        <div className="flex flex-wrap gap-1.5 sm:gap-4 justify-center content-center min-h-full">
-                            {game.table.map(card => {
-                                const isTarget = (animationState.phase === 'gathering') && 
-                                                 animationState.action &&
-                                                 (animationState.action.playedCard.id === card.id || 
-                                                  animationState.action.capturedCards.some((c: Card) => c.id === card.id));
-
-                                return (
-                                    <PlayingCard
-                                        key={card.id}
-                                        card={card}
-                                        disabled={!isMyTurnSafe || isSpectatorSafe || animationState.phase !== 'idle'}
-                                        isSelected={selectedTableCards.includes(card.id)}
-                                        isCapturedTarget={isTarget}
-                                        onClick={() => toggleTableCardSelection(card.id)}
-                                    />
-                                );
-                            })}
-                        </div>
                     )}
+
+                    {/* Контейнер рендерится ВСЕГДА, поэтому карты больше не пропадают при полете на пустой стол */}
+                    <div className="flex flex-wrap gap-1.5 sm:gap-4 justify-center content-center flex-1">
+                        {game.table.map(card => {
+                            const isTarget = (animationState.phase === 'gathering') &&
+                                animationState.action &&
+                                (animationState.action.playedCard.id === card.id ||
+                                    animationState.action.capturedCards.some((c: Card) => c.id === card.id));
+
+                            return (
+                                <PlayingCard
+                                    key={card.id}
+                                    card={card}
+                                    disabled={!isMyTurnSafe || isSpectatorSafe || animationState.phase !== 'idle'}
+                                    isSelected={selectedTableCards.includes(card.id)}
+                                    isCapturedTarget={isTarget}
+                                    onClick={() => toggleTableCardSelection(card.id)}
+                                />
+                            );
+                        })}
+                    </div>
                 </div>
 
                 {/* НИЖНИЙ ИГРОК (Вы) */}
                 {!isSpectatorSafe && (
-                    <div className="flex-none w-full p-2 sm:p-3 rounded-[1.5rem] flex justify-between items-center transition-all duration-300 border-4 bg-theme-panel border-theme-border">
-                        
-                        {/* Хаб игрока (Взятки, аватар) */}
+                    <div className="flex-none w-full p-2 sm:p-3 rounded-[1.5rem] flex justify-between items-center transition-all duration-300 bg-theme-panel">
+
                         <div className="flex flex-col items-center w-14 sm:w-24 relative shrink-0">
                             {renderPlayerHub(me, true, isMyTurnSafe)}
                         </div>
-                        
-                        {/* Ваша рука (идеально по центру) */}
+
                         <div className="flex-1 flex flex-col items-center min-w-0">
                             <div className="flex justify-center -space-x-2 sm:space-x-2 w-full px-2">
                                 {me.hand.map(card => {
@@ -601,7 +586,6 @@ export default function GameRoomPage() {
                             </div>
                         </div>
 
-                        {/* Колода / Валеты дилера (справа для баланса) ИЛИ Пустышка-балансир */}
                         {me.id === dealerId ? (
                             <div className="flex flex-col items-center gap-1 w-14 sm:w-24 relative shrink-0">
                                 {renderDeckArea(game)}
@@ -613,7 +597,7 @@ export default function GameRoomPage() {
                 )}
             </div>
 
-            {/* МОДАЛКА ОКОНЧАНИЯ МАТЧА ИЛИ РАУНДА */}
+            {/* Модалки и Иконки (оставлены без изменений) */}
             {(game.isRoundOver || game.isMatchOver) && !isSpectatorSafe && animationState.phase === 'idle' && roomData.status !== 'pause_requested' && (
                 <Modal>
                     <div className="text-center">
@@ -650,7 +634,6 @@ export default function GameRoomPage() {
                 </Modal>
             )}
 
-            {/* МОДАЛКА: ЗАПРОС НА ПАУЗУ */}
             {roomData.status === 'pause_requested' && !isSpectatorSafe && (
                 <Modal>
                     <div className="text-center">
@@ -670,7 +653,6 @@ export default function GameRoomPage() {
                 </Modal>
             )}
 
-            {/* ИКОНКИ ДРУГИХ АКТИВНЫХ ИГР */}
             {otherRooms.length > 0 && (
                 <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40 pointer-events-none">
                     {otherRooms.map(room => {

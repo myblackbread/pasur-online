@@ -7,6 +7,9 @@ import { supabase } from '@/lib/supabase';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { Panel } from '@/components/ui/Panel';
+import { Button } from '@/components/ui/Button';
+import { Divider } from '@/components/ui/Divider';
 
 export default function AuthPage() {
     const { t } = useTranslation();
@@ -20,17 +23,14 @@ export default function AuthPage() {
 
     useEffect(() => {
         document.documentElement.removeAttribute('data-theme');
-
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (session?.user) router.push('/dashboard');
             else setIsCheckingAuth(false);
         });
-
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) router.push('/dashboard');
             else setIsCheckingAuth(false);
         });
-
         return () => subscription.unsubscribe();
     }, [router]);
 
@@ -59,11 +59,11 @@ export default function AuthPage() {
     return (
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-4 safe-padding overflow-y-auto">
             <div className="w-full max-w-md">
-                <div className="mb-4 rounded-3xl overflow-hidden shadow-sm border-4 border-theme-border">
+                <div className="mb-4 rounded-2xl overflow-hidden shadow-sm border border-theme-border/30 bg-theme-panel">
                     <LanguageSwitcher />
                 </div>
 
-                <div className="bg-theme-panel p-8 rounded-3xl shadow-2xl border-4 border-theme-border text-center">
+                <Panel variant="modal" className="text-center">
                     <h1 className="text-4xl font-extrabold mb-2 text-theme-primary">♠ {t('app_title')} ♥</h1>
                     <p className="opacity-70 mb-6 font-medium text-theme-text">{t('auth_subtitle')}</p>
 
@@ -76,20 +76,40 @@ export default function AuthPage() {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                        <button onClick={() => handleLogin('guest')} disabled={!gender || isLoading} className="bg-amber-500 hover:bg-amber-400 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-lg">🎭 {t('auth_guest')}</button>
+                        <Button variant="amber" size="lg" icon="🎭" onClick={() => handleLogin('guest')} disabled={!gender} isLoading={isLoading && !email}>
+                            {t('auth_guest')}
+                        </Button>
+                        
                         <div className="flex items-center my-2">
-                            <div className="flex-1 border-t-2 border-theme-border opacity-30"></div>
+                            <Divider className="flex-1" />
                             <span className="px-3 opacity-50 text-sm font-bold text-theme-text">{t('auth_or')}</span>
-                            <div className="flex-1 border-t-2 border-theme-border opacity-30"></div>
+                            <Divider className="flex-1" />
                         </div>
-                        <button onClick={() => handleLogin('google')} disabled={!gender || isLoading} className="bg-theme-main border-2 border-theme-border font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-theme-border hover:text-white transition-colors text-theme-text disabled:opacity-50">🌐 {t('auth_google')}</button>
+                        
+                        <Button variant="secondary" icon="🌐" onClick={() => handleLogin('google')} disabled={!gender || isLoading}>
+                            {t('auth_google')}
+                        </Button>
 
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth_email')} className="select-text bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth_password')} className="select-text bg-theme-main border-2 border-theme-border rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium" />
+                        <input 
+                            type="email" 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            placeholder={t('auth_email')} 
+                            className="select-text bg-theme-main shadow-inner rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium transition-shadow" 
+                        />
+                        <input 
+                            type="password" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            placeholder={t('auth_password')} 
+                            className="select-text bg-theme-main shadow-inner rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-medium transition-shadow" 
+                        />
 
-                        <button onClick={() => handleLogin('email')} className="bg-theme-primary hover:opacity-80 text-white font-bold py-3 rounded-xl transition-opacity disabled:opacity-50 shadow-md" disabled={!gender || isLoading}>{t('auth_email_btn')}</button>
+                        <Button variant="primary" onClick={() => handleLogin('email')} disabled={!gender} isLoading={isLoading && !!email}>
+                            {t('auth_email_btn')}
+                        </Button>
                     </div>
-                </div>
+                </Panel>
             </div>
         </div>
     );
