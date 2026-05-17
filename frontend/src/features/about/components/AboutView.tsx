@@ -1,13 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { InfoSection, InfoRow } from '@/components/ui/InfoGroup';
-import { NavigationItem } from '@/components/ui/NavigationItem'; // Оставляем для простых переходов
 
 export default function AboutView() {
     const { t } = useTranslation();
 
     return (
-        <div className="p-4 sm:p-6 max-w-md mx-auto pb-24">
+        <div className="flex flex-col w-full">
             <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('about_title')}</h1>
 
             <InfoSection>

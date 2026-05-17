@@ -72,7 +72,7 @@ export default function SettingsView({ user }: { user: UserProfile }) {
     );
 
     return (
-        <div className="p-4 sm:p-6 max-w-md mx-auto pb-24">
+        <div className="flex flex-col w-full">
             <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('settings_title')}</h1>
 
             <InfoSection title={t('settings_section_account')}>

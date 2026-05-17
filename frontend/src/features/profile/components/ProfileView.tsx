@@ -4,7 +4,7 @@ import { gameApi } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { Panel } from '@/components/ui/Panel';
 import { Button } from '@/components/ui/Button';
-import { InscribedZone } from '@/components/ui/InscribedZone'; // <-- ИМПОРТ
+import { InscribedZone } from '@/components/ui/InscribedZone';
 
 const EMOJIS = ['😎', '👽', '🤖', '🦊', '🐯', '👻', '🤡', '🤠'];
 
@@ -18,16 +18,14 @@ export default function ProfileView({ user }: { user: UserProfile }) {
     };
 
     return (
-        <div className="p-4 sm:p-6 max-w-md mx-auto h-full flex flex-col justify-center pb-24">
-            <h1 className="text-2xl sm:text-3xl font-black mb-6 text-center">{t('profile_title')}</h1>
+        <div className="flex flex-col w-full">
+            <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('profile_title')}</h1>
 
             <Panel variant="elevated" padding="lg" className="text-center">
                 <div
-                    // Убрали border-4, добавили shadow-lg и relative
                     className="w-24 h-24 sm:w-32 sm:h-32 mx-auto bg-theme-main rounded-full cursor-pointer hover:scale-105 transition-transform shadow-lg relative"
                     onClick={() => setIsEditingEmoji(!isEditingEmoji)}
                 >
-                    {/* Геометрически точное центрирование без паддингов */}
                     <InscribedZone>
                         <span className="text-5xl sm:text-6xl leading-none">{user.avatarEmoji || '😎'}</span>
                     </InscribedZone>

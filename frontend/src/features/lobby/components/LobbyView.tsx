@@ -120,7 +120,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                     await gameApi.leaveRoom(roomId, 'surrender');
                 } catch (e: any) {
                     showAlert(`${t('lobby_error')} ${t(e.message)}`);
-                    resetCard?.(); 
+                    resetCard?.();
                 } finally {
                     setIsSurrendering(false);
                 }
@@ -365,102 +365,102 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     );
 
     return (
-        <div className="w-full min-h-full font-sans relative pb-32">
-            <div className="w-full max-w-4xl mx-auto px-4 pt-6 sm:pt-12">
-                <h1 className="text-3xl font-black mb-8 text-theme-text">{t('lobby_title')}</h1>
+        <div className="flex flex-col w-full">
+            <h1 className="text-3xl font-black mb-8 text-theme-text">{t('lobby_title')}</h1>
 
-                {activeRooms.length > 0 && (
-                    <div className="mb-8">
-                        <div className="w-full space-y-3">
-                            {activeRooms.map(room => {
-                                const roomId = room.id;
-                                if (!roomId) return null;
-
-                                const isFinished = room.status === 'finished' || room.status === 'waiting';
-                                const actionText = isFinished ? t('btn_leave') || 'Выйти' : t('btn_surrender') || 'Сдаться';
-
-                                return (
-                                    <SwipeableActionCard
-                                        key={roomId}
-                                        isActionLoading={isSurrendering}
-                                        actionBgColor="bg-red-500 hover:bg-red-600 active:bg-red-700"
-                                        onClick={() => router.push(`/game/${roomId}`)}
-                                        onAction={(resetCard) => handleSurrenderActive(roomId, resetCard)}
-                                        actionContent={
-                                            <div className="flex flex-col items-center justify-center whitespace-nowrap px-4">
-                                                {isFinished ? <LogOut className="w-5 h-5 mb-0.5" /> : <Trash2 className="w-5 h-5 mb-0.5" />}
-                                                <span className="text-[10px] uppercase tracking-wider">{actionText}</span>
-                                            </div>
-                                        }
-                                    >
-                                        <div className="bg-theme-panel p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-row justify-between items-center gap-4 cursor-pointer active:scale-[0.98] transition-all duration-300">
-                                            <div className="flex-1 text-left min-w-0">
-                                                <div className="font-bold text-lg text-theme-text flex items-center gap-2">
-                                                    <span>⏳</span> {t('lobby_your_table') || 'Ваша игра'}
-                                                </div>
-                                                <div className="text-sm text-theme-text opacity-70 font-medium mt-1 truncate">
-                                                    {room.status === 'paused' ? t('status_paused') :
-                                                        room.status === 'pause_requested' ? t('status_pause_req') :
-                                                            room.status === 'finished' ? t('status_finished') : t('status_playing')}
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="flex items-center gap-3 shrink-0">
-                                                <div className="text-amber-500 font-black text-xl">{room.betAmount} 💰</div>
-                                                <ChevronRight className="w-5 h-5 text-theme-text opacity-50" />
-                                            </div>
-                                        </div>
-                                    </SwipeableActionCard>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                <h2 className="text-xl font-bold mb-4 text-theme-text opacity-70">{t('lobby_open_tables')}</h2>
-                <div className="grid gap-3 sm:gap-4 w-full">
-                    {rooms.length === 0 ? (
-                        <div className="text-center py-12 text-theme-text opacity-50 shadow-inner rounded-3xl font-bold">
-                            {t('lobby_no_active')}
-                        </div>
-                    ) : (
-                        rooms.map(room => {
+            {activeRooms.length > 0 && (
+                <div className="mb-8">
+                    <div className="w-full space-y-3">
+                        {activeRooms.map(room => {
                             const roomId = room.id;
                             if (!roomId) return null;
 
+                            const isFinished = room.status === 'finished' || room.status === 'waiting';
+                            const actionText = isFinished ? t('btn_leave') || 'Выйти' : t('btn_surrender') || 'Сдаться';
+
                             return (
-                                <div
+                                <SwipeableActionCard
                                     key={roomId}
-                                    className="bg-theme-panel p-3 sm:p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+                                    isActionLoading={isSurrendering}
+                                    actionBgColor="bg-red-500 hover:bg-red-600 active:bg-red-700"
+                                    onClick={() => router.push(`/game/${roomId}`)}
+                                    onAction={(resetCard) => handleSurrenderActive(roomId, resetCard)}
+                                    actionContent={
+                                        <div className="flex flex-col items-center justify-center whitespace-nowrap px-4">
+                                            {isFinished ? <LogOut className="w-5 h-5 mb-0.5" /> : <Trash2 className="w-5 h-5 mb-0.5" />}
+                                            <span className="text-[10px] uppercase tracking-wider">{actionText}</span>
+                                        </div>
+                                    }
                                 >
-                                    <NavigationItem
-                                        onClick={() => requireIncognitoCheck(() => router.push(`/game/${roomId}`))}
-                                        rightContent={<span className="font-black text-lg sm:text-xl text-amber-500 whitespace-nowrap">{room.betAmount} 💰</span>}
-                                    >
-                                        <div className="text-xl sm:text-2xl shrink-0 bg-theme-main w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-inner">
-                                            🎲
+                                    <div className="bg-theme-panel p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-row justify-between items-center gap-4 cursor-pointer active:scale-[0.98] transition-all duration-300">
+                                        <div className="flex-1 text-left min-w-0">
+                                            <div className="font-bold text-lg text-theme-text flex items-center gap-2">
+                                                <span>⏳</span> {t('lobby_your_table') || 'Ваша игра'}
+                                            </div>
+                                            <div className="text-sm text-theme-text opacity-70 font-medium mt-1 truncate">
+                                                {room.status === 'paused' ? t('status_paused') :
+                                                    room.status === 'pause_requested' ? t('status_pause_req') :
+                                                        room.status === 'finished' ? t('status_finished') : t('status_playing')}
+                                            </div>
                                         </div>
 
-                                        <div className="min-w-0 flex flex-col justify-center text-left">
-                                            <div className="font-bold text-base sm:text-lg text-theme-text truncate w-full">
-                                                {t('lobby_table') || 'Игровой стол'}
-                                            </div>
-                                            <div className="text-[10px] sm:text-xs text-theme-text opacity-70 font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
-                                                <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm">
-                                                    {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
-                                                </span>
-                                                {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold">{t('rule_strict')}</span>}
-                                                {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md font-bold">⚡</span>}
-                                                <span className="text-theme-primary font-bold ml-1">({room.players.length}/{room.maxPlayers})</span>
-                                            </div>
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            <div className="text-amber-500 font-black text-xl">{room.betAmount} 💰</div>
+                                            <ChevronRight className="w-5 h-5 text-theme-text opacity-50" />
                                         </div>
-                                    </NavigationItem>
-                                </div>
+                                    </div>
+                                </SwipeableActionCard>
                             );
-                        })
-                    )}
+                        })}
+                    </div>
                 </div>
+            )}
+
+            <h2 className="text-xl font-bold mb-4 text-theme-text opacity-70">{t('lobby_open_tables')}</h2>
+            <div className="grid gap-3 sm:gap-4 w-full">
+                {rooms.length === 0 ? (
+                    <div className="text-center py-12 text-theme-text opacity-50 shadow-inner rounded-3xl font-bold">
+                        {t('lobby_no_active')}
+                    </div>
+                ) : (
+                    rooms.map(room => {
+                        const roomId = room.id;
+                        if (!roomId) return null;
+
+                        return (
+                            <div
+                                key={roomId}
+                                className="bg-theme-panel p-3 sm:p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+                            >
+                                <NavigationItem
+                                    onClick={() => requireIncognitoCheck(() => router.push(`/game/${roomId}`))}
+                                    rightContent={<span className="font-black text-lg sm:text-xl text-amber-500 whitespace-nowrap">{room.betAmount} 💰</span>}
+                                >
+                                    <div className="text-xl sm:text-2xl shrink-0 bg-theme-main w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-inner">
+                                        🎲
+                                    </div>
+
+                                    <div className="min-w-0 flex flex-col justify-center text-left">
+                                        <div className="font-bold text-base sm:text-lg text-theme-text truncate w-full">
+                                            {t('lobby_table') || 'Игровой стол'}
+                                        </div>
+                                        <div className="text-[10px] sm:text-xs text-theme-text opacity-70 font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
+                                            <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm">
+                                                {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
+                                            </span>
+                                            {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold">{t('rule_strict')}</span>}
+                                            {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md font-bold">⚡</span>}
+                                            <span className="text-theme-primary font-bold ml-1">({room.players.length}/{room.maxPlayers})</span>
+                                        </div>
+                                    </div>
+                                </NavigationItem>
+                            </div>
+                        );
+                    })
+                )}
             </div>
+
+            <div className="h-28 shrink-0 pointer-events-none w-full" aria-hidden="true" />
 
             {portalNode ? createPortal(floatingUI, portalNode) : null}
         </div>
