@@ -8,6 +8,7 @@ import { Card, GameState } from '@/types';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
+import { CapsuleModal } from '@/components/ui/CapsuleModal';
 import { useCountdown } from '@/features/game/hooks/useCountdown';
 import { PlayingCard } from '@/features/game/components/PlayingCard';
 
@@ -174,13 +175,12 @@ export default function GameRoomPage() {
 
     return (
         <main className="fixed inset-0 w-full h-full flex flex-col bg-theme-main overflow-hidden safe-padding">
-            {/* 🟢 Убрали кнопку "Назад в Лобби" даже для зрителей. Зрители могут свайпнуть назад. */}
             
             <div className="flex-1 w-full h-full max-w-5xl mx-auto flex flex-col p-2 sm:p-4 gap-2 sm:gap-4 relative">
                 {/* Оппонент */}
                 <div className="flex-none w-full p-2 sm:p-3 rounded-2xl flex justify-between items-center transition-all duration-300 bg-theme-panel/50 relative z-20 shadow-sm">
                     <div className="flex flex-col items-center w-14 sm:w-24 relative shrink-0">
-                        <PlayerHub player={opponent} isTurn={oppIsTurn} hasSurs={game.ruleSet === 'classic' && opponent.surs > 0} turnDurationSec={turnDurationSec} turnTimeLeft={turnTimeLeft} avatarEmoji={getAvatar(opponent.id)} animationState={animationState} onClick={() => setAvatarModal('opponent')} />
+                        <PlayerHub player={opponent} isTurn={oppIsTurn} hasSurs={game.ruleSet === 'classic' && opponent.surs > 0} turnDurationSec={turnDurationSec} turnTimeLeft={turnTimeLeft} avatarEmoji={getAvatar(opponent.id)} animationState={animationState} onClick={() => setAvatarModal('opponent')} avatarType="opponent" />
                     </div>
 
                     <div className="flex-1 flex flex-col items-center min-w-0">
@@ -230,7 +230,7 @@ export default function GameRoomPage() {
                 {!isSpectatorSafe && (
                     <div className="flex-none w-full p-2 sm:p-3 rounded-[1.5rem] flex justify-between items-center transition-all duration-300 bg-theme-panel relative z-20 shadow-md">
                         <div className="flex flex-col items-center w-14 sm:w-24 relative shrink-0">
-                            <PlayerHub player={me} isTurn={isMyTurnSafe} hasSurs={game.ruleSet === 'classic' && me.surs > 0} turnDurationSec={turnDurationSec} turnTimeLeft={turnTimeLeft} avatarEmoji={getAvatar(me.id)} animationState={animationState} onClick={() => setAvatarModal('me')} />
+                            <PlayerHub player={me} isTurn={isMyTurnSafe} hasSurs={game.ruleSet === 'classic' && me.surs > 0} turnDurationSec={turnDurationSec} turnTimeLeft={turnTimeLeft} avatarEmoji={getAvatar(me.id)} animationState={animationState} onClick={() => setAvatarModal('me')} avatarType="me" />
                         </div>
 
                         <div className="flex-1 flex flex-col items-center min-w-0">
@@ -254,58 +254,57 @@ export default function GameRoomPage() {
                 )}
             </div>
 
-            {/* Классические модалки */}
-            {avatarModal !== 'none' && (
-                <Modal onClose={() => setAvatarModal('none')}>
-                    <div className="flex justify-between items-center mb-4">
-                        <span className="text-2xl font-black text-theme-text">{avatarModal === 'me' ? t('game_table') : t('game_player')}</span>
-                        <button onClick={() => setAvatarModal('none')} className="w-10 h-10 bg-theme-main rounded-full flex items-center justify-center font-bold text-theme-text opacity-70 hover:opacity-100">✕</button>
-                    </div>
-                    {avatarModal === 'opponent' && (
-                        <div className="flex flex-col gap-4 items-center">
-                            <div className="text-6xl drop-shadow-md">{getAvatar(opponent.id)}</div>
-                            <div className="text-2xl font-black text-theme-text text-center">
-                                {opponentLobbyInfo?.name === '__INCOGNITO__' ? t('unknown_player') : (opponentLobbyInfo?.name || t('unknown_player'))}
-                            </div>
-                            <div className="w-full flex flex-col gap-2 mt-2">
-                                <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                                    <span className="font-bold text-theme-text opacity-70">{t('game_score')}</span>
-                                    <span className="text-xl font-black text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
-                                </div>
-                                <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                                    <span className="font-bold text-theme-text opacity-70">{t('game_captured')}</span>
-                                    <span className="text-lg font-black text-theme-text">{opponent.captured.length}</span>
-                                </div>
-                            </div>
+            <CapsuleModal
+                isOpen={avatarModal !== 'none'}
+                onClose={() => setAvatarModal('none')}
+                layoutId={`avatar-${avatarModal}`}
+                headerLeft={<span className="text-xl font-black text-theme-text">{avatarModal === 'me' ? t('game_table') : t('game_player')}</span>}
+            >
+                {avatarModal === 'opponent' && (
+                    <div className="flex flex-col gap-4 items-center mt-2">
+                        <div className="text-6xl drop-shadow-md">{getAvatar(opponent.id)}</div>
+                        <div className="text-2xl font-black text-theme-text text-center">
+                            {opponentLobbyInfo?.name === '__INCOGNITO__' ? t('unknown_player') : (opponentLobbyInfo?.name || t('unknown_player'))}
                         </div>
-                    )}
-                    {avatarModal === 'me' && (
-                        <div className="flex flex-col gap-3">
-                            <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                                <span className="font-bold text-theme-text opacity-70">{t('game_round')}</span>
-                                <span className="text-xl font-black text-theme-text">{game.roundNumber}</span>
-                            </div>
+                        <div className="w-full flex flex-col gap-2 mt-2">
                             <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
                                 <span className="font-bold text-theme-text opacity-70">{t('game_score')}</span>
-                                <div className="flex items-center gap-2 font-black text-xl">
-                                    <span className="text-theme-primary">{game.matchScores[me.teamId] || 0}</span>
-                                    <span className="opacity-50 text-theme-text">:</span>
-                                    <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
-                                </div>
+                                <span className="text-xl font-black text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
                             </div>
                             <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                                <span className="font-bold text-theme-text opacity-70">{t('game_bet')}</span>
-                                <span className="text-xl font-black text-amber-500">{roomData.betAmount} 💰</span>
+                                <span className="font-bold text-theme-text opacity-70">{t('game_captured')}</span>
+                                <span className="text-lg font-black text-theme-text">{opponent.captured.length}</span>
                             </div>
-                            {roomData.status === 'playing' && (
-                                <button onClick={() => { setAvatarModal('none'); handleLeaveOrSurrender(); }} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black shadow-lg transition-colors">
-                                    {t('btn_surrender')}
-                                </button>
-                            )}
                         </div>
-                    )}
-                </Modal>
-            )}
+                    </div>
+                )}
+                
+                {avatarModal === 'me' && (
+                    <div className="flex flex-col gap-3 mt-2">
+                        <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                            <span className="font-bold text-theme-text opacity-70">{t('game_round')}</span>
+                            <span className="text-xl font-black text-theme-text">{game.roundNumber}</span>
+                        </div>
+                        <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                            <span className="font-bold text-theme-text opacity-70">{t('game_score')}</span>
+                            <div className="flex items-center gap-2 font-black text-xl">
+                                <span className="text-theme-primary">{game.matchScores[me.teamId] || 0}</span>
+                                <span className="opacity-50 text-theme-text">:</span>
+                                <span className="text-blue-500">{game.matchScores[opponent.teamId] || 0}</span>
+                            </div>
+                        </div>
+                        <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                            <span className="font-bold text-theme-text opacity-70">{t('game_bet')}</span>
+                            <span className="text-xl font-black text-amber-500">{roomData.betAmount} 💰</span>
+                        </div>
+                        {roomData.status === 'playing' && (
+                            <button onClick={() => { setAvatarModal('none'); handleLeaveOrSurrender(); }} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black shadow-lg transition-colors">
+                                {t('btn_surrender')}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </CapsuleModal>
 
             {(game.isRoundOver || game.isMatchOver) && !isSpectatorSafe && animationState.phase === 'idle' && roomData.status !== 'pause_requested' && (
                 <Modal>
