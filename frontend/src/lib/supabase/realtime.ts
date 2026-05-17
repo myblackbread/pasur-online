@@ -36,6 +36,8 @@ const mapRoom = (data: any): GameRoom => ({
 
 export const realtimeApi = {
     subscribeToUser(uid: string, callback: (user: UserProfile | null) => void) {
+        let isSubscribed = true; // Защита от гонки данных
+
         const fetchAndEnsureUser = async () => {
             const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
 
@@ -60,20 +62,22 @@ export const realtimeApi = {
                 if (insertErr) {
                     if (insertErr.code === '23505') {
                         const { data: existingData } = await supabase.from('users').select('*').eq('id', uid).single();
-                        if (existingData) callback(mapUser(existingData));
+                        if (existingData && isSubscribed) callback(mapUser(existingData));
                         return;
                     }
                     console.error("🔥 Ошибка при создании профиля:", insertErr.message);
-                    callback(null);
+                    if (isSubscribed) callback(null);
                     return;
                 }
 
-                callback(mapUser(newProfile));
+                if (isSubscribed) callback(mapUser(newProfile));
                 return;
             }
 
-            if (data) callback(mapUser(data));
-            else callback(null);
+            if (isSubscribed) {
+                if (data) callback(mapUser(data));
+                else callback(null);
+            }
         };
 
         fetchAndEnsureUser();
@@ -81,21 +85,26 @@ export const realtimeApi = {
         const channelName = `user_changes_${uid}_${Math.random().toString(36).substring(7)}`;
         const channel = supabase.channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${uid}` }, (payload) => {
+                if (!isSubscribed) return;
                 callback(mapUser(payload.new));
             })
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { 
+            isSubscribed = false;
+            supabase.removeChannel(channel); 
+        };
     },
 
     subscribeToPublicRooms(callback: (rooms: GameRoom[]) => void) {
+        let isSubscribed = true;
         let currentRooms: GameRoom[] = [];
 
         const fetchRooms = async () => {
             const { data } = await supabase.from('rooms')
                 .select('*').eq('status', 'waiting').eq('is_private', false)
                 .order('created_at', { ascending: false });
-            if (data) {
+            if (data && isSubscribed) {
                 currentRooms = data.map(mapRoom);
                 callback([...currentRooms]);
             }
@@ -105,6 +114,8 @@ export const realtimeApi = {
 
         const channel = supabase.channel(`public_rooms_${Math.random().toString(36).substring(7)}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: 'is_private=eq.false' }, (payload) => {
+                if (!isSubscribed) return;
+
                 if (payload.eventType === 'INSERT') {
                     if (payload.new.status === 'waiting') {
                         currentRooms = [mapRoom(payload.new), ...currentRooms];
@@ -124,16 +135,24 @@ export const realtimeApi = {
             })
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { 
+            isSubscribed = false;
+            supabase.removeChannel(channel); 
+        };
     },
 
     subscribeToRoomsByIds(roomIds: string[], callback: (rooms: GameRoom[]) => void) {
-        if (!roomIds.length) { callback([]); return () => { }; }
+        let isSubscribed = true;
+        if (!roomIds.length) { 
+            callback([]); 
+            return () => { isSubscribed = false; }; 
+        }
+        
         let currentRooms: GameRoom[] = [];
 
         const fetchRooms = async () => {
             const { data } = await supabase.from('rooms').select('*').in('id', roomIds);
-            if (data) {
+            if (data && isSubscribed) {
                 currentRooms = data.map(mapRoom);
                 callback([...currentRooms]);
             }
@@ -144,6 +163,8 @@ export const realtimeApi = {
         const filterStr = `id=in.(${roomIds.join(',')})`;
         const channel = supabase.channel(`active_rooms_${roomIds.join('_').substring(0, 10)}_${Math.random().toString(36).substring(7)}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: filterStr }, (payload) => {
+                if (!isSubscribed) return;
+
                 if (payload.eventType === 'UPDATE') {
                     currentRooms = currentRooms.map(r => r.id === payload.new.id ? mapRoom(payload.new) : r);
                 } else if (payload.eventType === 'DELETE') {
@@ -153,6 +174,9 @@ export const realtimeApi = {
             })
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { 
+            isSubscribed = false;
+            supabase.removeChannel(channel); 
+        };
     }
 };
