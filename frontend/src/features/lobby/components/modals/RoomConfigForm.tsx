@@ -18,6 +18,22 @@ export function RoomConfigForm({ config, onChange, isSearchMode }: RoomConfigFor
                 {isSearchMode ? "Фильтры поиска" : t('modal_setup_title')}
             </h3>
 
+            {!isSearchMode && (
+                <div>
+                    <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">
+                        Название стола
+                    </label>
+                    <input
+                        type="text"
+                        value={config.name}
+                        onChange={(e) => onChange({ name: e.target.value })}
+                        placeholder="Оставьте пустым для авто-генерации"
+                        maxLength={20}
+                        className="w-full bg-theme-main shadow-inner rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-bold transition-shadow placeholder:opacity-40"
+                    />
+                </div>
+            )}
+
             <div>
                 <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">{t('modal_bet_label')}</label>
                 <div className="flex flex-wrap gap-2">

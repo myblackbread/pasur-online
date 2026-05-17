@@ -2,9 +2,9 @@ import { callApi, supabase } from './client';
 import { UserProfile, RuleSet } from '@/types';
 
 export const gameApi = {
-    async createRoom(creator: UserProfile, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, isSuddenDeath: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
+    async createRoom(creator: UserProfile, name: string, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, isSuddenDeath: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
         if (creator.balance < bet) throw new Error("ERR_NOT_ENOUGH_MONEY");
-        const data = await callApi('secureCreateRoom', { betAmount: bet, ruleSet, isPrivate, isStrict, isSuddenDeath, maxPlayers, turnDuration });
+        const data = await callApi('secureCreateRoom', { name, betAmount: bet, ruleSet, isPrivate, isStrict, isSuddenDeath, maxPlayers, turnDuration });
         if (typeof window !== 'undefined') sessionStorage.setItem(`pasur_mask_${data.roomId}`, data.publicUid);
         return data.roomId;
     },

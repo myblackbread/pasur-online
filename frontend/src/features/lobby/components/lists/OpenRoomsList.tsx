@@ -1,11 +1,56 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { GameRoom } from '@/types';
-import { NavigationItem } from '@/components/ui/NavigationItem';
+import { ChevronRight } from 'lucide-react';
 
 interface OpenRoomsListProps {
     rooms: GameRoom[];
     onOpenRoom: (roomId: string) => void;
+}
+
+const getCardStyle = (room: GameRoom) => {
+    if (room.betAmount >= 5000) return 'border-purple-500/40 bg-purple-500/5 shadow-[0_0_15px_rgba(168,85,247,0.1)]';
+    if (room.betAmount >= 1000) return 'border-amber-500/40 bg-amber-500/5 shadow-[0_0_15px_rgba(245,158,11,0.1)]';
+    return 'border-theme-border/30 bg-theme-panel shadow-sm';
+};
+
+const PlayerSquare = ({ players, maxPlayers }: { players: any[], maxPlayers: number }) => {
+    const isFour = maxPlayers === 4;
+    const seats = Array.from({ length: maxPlayers });
+    
+    if (isFour) {
+        return (
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden grid grid-cols-2 grid-rows-2 gap-[1px] bg-theme-border/40 shrink-0 shadow-sm">
+                {seats.map((_, i) => {
+                    const p = players[i];
+                    return (
+                        <div key={i} className={`flex items-center justify-center transition-colors ${p ? 'bg-theme-main text-theme-text' : 'bg-theme-panel/50 opacity-50'}`}>
+                            {p ? <span className="text-[10px] sm:text-xs drop-shadow-sm leading-none">{p.avatarEmoji || '👤'}</span> : null}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex gap-[1px] bg-theme-border/40 shrink-0 shadow-sm relative">
+            <div className={`relative flex-1 h-full overflow-hidden transition-colors ${players[0] ? 'bg-theme-main text-theme-text' : 'bg-theme-panel/50'}`}>
+                {players[0] && (
+                    <span className="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 text-2xl sm:text-3xl drop-shadow-sm leading-none z-10">
+                        {players[0].avatarEmoji || '👤'}
+                    </span>
+                )}
+            </div>
+            <div className={`relative flex-1 h-full overflow-hidden transition-colors ${players[1] ? 'bg-theme-main text-theme-text' : 'bg-theme-panel/50'}`}>
+                {players[1] && (
+                    <span className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 text-2xl sm:text-3xl drop-shadow-sm leading-none z-10">
+                        {players[1].avatarEmoji || '👤'}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
 }
 
 export function OpenRoomsList({ rooms, onOpenRoom }: OpenRoomsListProps) {
@@ -22,26 +67,43 @@ export function OpenRoomsList({ rooms, onOpenRoom }: OpenRoomsListProps) {
                 ) : (
                     rooms.map(room => {
                         const roomId = room.id!;
+                        const host = room.players[0];
+                        const titleText = host 
+                            ? (host.name === '__INCOGNITO__' ? t('unknown_player') : host.name)
+                            : t('lobby_empty_table');
+
                         return (
                             <div
                                 key={roomId}
                                 onClick={() => onOpenRoom(roomId)}
-                                className="bg-theme-panel p-3 sm:p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer active:scale-[0.98]"
+                                className={`p-3 sm:p-4 rounded-2xl hover:shadow-md transition-all duration-300 cursor-pointer active:scale-[0.98] flex items-center gap-3 sm:gap-4 border ${getCardStyle(room)} overflow-hidden`}
                             >
-                                <NavigationItem rightContent={<span className="font-black text-lg sm:text-xl text-amber-500 whitespace-nowrap">{room.betAmount} 💰</span>}>
-                                    <div className="text-xl sm:text-2xl shrink-0 bg-theme-main w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-inner">🎲</div>
-                                    <div className="min-w-0 flex flex-col justify-center text-left">
-                                        <div className="font-bold text-base sm:text-lg text-theme-text truncate w-full">{t('lobby_table') || 'Игровой стол'}</div>
-                                        <div className="text-[10px] sm:text-xs text-theme-text opacity-70 font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
-                                            <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm">
-                                                {room.ruleSet === 'classic' ? t('rule_classic') : t('rule_local')}
-                                            </span>
-                                            {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold">{t('rule_strict')}</span>}
-                                            {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md font-bold">⚡</span>}
-                                            <span className="text-theme-primary font-bold ml-1">({room.players.length}/{room.maxPlayers})</span>
-                                        </div>
+                                <PlayerSquare players={room.players} maxPlayers={room.maxPlayers} />
+                                
+                                <div className="flex-1 min-w-0 flex flex-col justify-center text-left">
+                                    <div className="font-bold text-base sm:text-lg text-theme-text truncate w-full flex items-center gap-2">
+                                        <span className="truncate">{room.name || "Игровой стол"}</span>
                                     </div>
-                                </NavigationItem>
+                                    
+                                    <div className="flex flex-nowrap items-center gap-1.5 mt-1.5 overflow-hidden [mask-image:linear-gradient(to_right,#000_85%,transparent)] pr-4">
+                                        <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm text-[10px] sm:text-xs font-bold text-theme-text opacity-80 shrink-0">
+                                            {room.ruleSet === 'classic' ? '🏛️' : '🏡'}
+                                        </span>
+                                        {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('rule_strict')}>⚖️</span>}
+                                        {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('rule_sudden_death')}>⚡</span>}
+                                        {room.isPrivate && <span className="bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('modal_private_table')}>🔒</span>}
+                                        <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm text-[10px] sm:text-xs opacity-70 font-medium shrink-0">
+                                            {room.turnDuration === 15000 ? '⚡ 15с' : room.turnDuration === 60000 ? '☕ 60с' : '⏱ 30с'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-1">
+                                    <div className="font-black text-lg sm:text-xl text-amber-500 whitespace-nowrap drop-shadow-sm">
+                                        {room.betAmount} <span className="opacity-80 text-sm">💰</span>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-theme-text opacity-30 shrink-0" />
+                                </div>
                             </div>
                         );
                     })

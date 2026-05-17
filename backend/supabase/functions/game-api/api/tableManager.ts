@@ -16,10 +16,13 @@ export function calculateWinPayout(bet: number, totalPlayers: number, winnersCou
 }
 
 export async function resolveTable(adminDb: any, roomId: string, reason: LeaveReason, targetPublicId: string | null = null) {
+    const { data: preLockRoom } = await adminDb.from("rooms").select("status").eq("id", roomId).single();
+    if (!preLockRoom || preLockRoom.status === 'resolving') return { success: false, message: "Room locked or already resolved" };
+    const originalStatus = preLockRoom.status;
     const { data: room, error: lockErr } = await adminDb.from("rooms")
         .update({ status: 'resolving' })
         .eq("id", roomId)
-        .neq("status", "resolving") 
+        .eq("status", originalStatus)
         .select("*")
         .single();
         
@@ -29,7 +32,6 @@ export async function resolveTable(adminDb: any, roomId: string, reason: LeaveRe
     if (!secretDoc) return { success: false };
 
     const secrets = secretDoc.real_uids || {};
-    const originalStatus = room.status; 
 
     if (reason === 'admin_delete') {
         for (const player of room.players) {

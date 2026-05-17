@@ -16,6 +16,7 @@ const mapUser = (data: any): UserProfile => ({
 
 const mapRoom = (data: any): GameRoom => ({
     id: data.id,
+    name: data.name,
     status: data.status,
     maxPlayers: data.max_players,
     betAmount: data.bet_amount,

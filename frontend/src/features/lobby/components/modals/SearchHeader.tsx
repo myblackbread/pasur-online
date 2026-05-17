@@ -14,32 +14,35 @@ interface SearchHeaderProps {
 export function SearchHeader({ privateCode, setPrivateCode, onApplyFilters, onJoinPrivate }: SearchHeaderProps) {
     const { t } = useTranslation();
     const [isInputActive, setIsInputActive] = useState(false);
+    const [isOpening, setIsOpening] = useState(true);
     const inputRef = useRef<HTMLInputElement>(null);
     const hasText = privateCode.trim().length > 0;
 
     useEffect(() => {
-        // Задержка фокуса: даем MorphingCapsule 300мс на красивый разлет, 
-        // прежде чем iOS поднимет клавиатуру и сдвинет весь экран.
         const timer = setTimeout(() => {
+            setIsOpening(false);
             if (inputRef.current) inputRef.current.focus();
-        }, 300);
+        }, 400);
         return () => clearTimeout(timer);
     }, []);
+
+    const showApplyButton = !isOpening && !isInputActive && !hasText;
+    const isInputVisualActive = isOpening || isInputActive || hasText;
 
     return (
         <div className="flex-1 flex items-center overflow-hidden">
             <AnimatePresence>
-                {!isInputActive && !hasText && (
+                {showApplyButton && (
                     <motion.button
                         key="filter-action-btn"
                         layout
-                        initial={{ opacity: 0, scale: 0.5, width: 0, marginRight: 0 }}
-                        animate={{ opacity: 1, scale: 1, width: 56, marginRight: 12 }}
-                        exit={{ opacity: 0, scale: 0.5, width: 0, marginRight: 0 }}
+                        initial={{ opacity: 0, width: 0, marginRight: 0 }}
+                        animate={{ opacity: 1, width: 56, marginRight: 12 }}
+                        exit={{ opacity: 0, width: 0, marginRight: 0 }}
                         transition={sharedSpringTransition}
                         onClick={onApplyFilters}
                         style={{ borderRadius: 9999 }}
-                        className="h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md cursor-pointer hover:opacity-90"
+                        className="h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md cursor-pointer hover:opacity-90 overflow-hidden"
                     >
                         <Check className="w-6 h-6 text-white shrink-0" />
                     </motion.button>
@@ -50,12 +53,12 @@ export function SearchHeader({ privateCode, setPrivateCode, onApplyFilters, onJo
                 layout
                 transition={sharedSpringTransition}
                 initial={{ opacity: 0 }}
-                animate={{ opacity: !isInputActive && !hasText ? 0.7 : 1 }}
+                animate={{ opacity: isInputVisualActive ? 1 : 0.7 }}
                 style={{ borderRadius: 9999 }}
                 onClick={() => inputRef.current?.focus()}
-                className={`relative flex-1 h-14 transition-shadow duration-300 overflow-hidden ${!isInputActive && !hasText ? 'cursor-pointer shadow-sm' : 'cursor-text shadow-inner'}`}
+                className={`relative flex-1 h-14 transition-shadow duration-300 overflow-hidden ${isInputVisualActive ? 'cursor-text shadow-inner' : 'cursor-pointer shadow-sm'}`}
             >
-                <div className={`absolute inset-0 transition-colors duration-300 -z-10 ${!isInputActive && !hasText ? 'bg-theme-main' : 'bg-theme-panel'}`} />
+                <div className={`absolute inset-0 transition-colors duration-300 -z-10 ${isInputVisualActive ? 'bg-theme-panel' : 'bg-theme-main'}`} />
                 <div className="relative z-10 w-full h-full flex items-center px-4">
                     <Search className="w-5 h-5 text-theme-text opacity-50 mr-2 shrink-0" />
                     <input
@@ -65,7 +68,7 @@ export function SearchHeader({ privateCode, setPrivateCode, onApplyFilters, onJo
                         onFocus={() => setIsInputActive(true)}
                         onBlur={() => setIsInputActive(false)}
                         onKeyDown={(e) => e.key === 'Enter' && onJoinPrivate()}
-                        placeholder={t('lobby_game_code') || "Введите код"}
+                        placeholder={t('lobby_search_table', 'Поиск стола')}
                         className="select-text bg-transparent border-none outline-none w-full text-theme-text placeholder:text-theme-text placeholder:opacity-50 font-medium text-lg uppercase tracking-wider"
                     />
                 </div>
@@ -76,13 +79,13 @@ export function SearchHeader({ privateCode, setPrivateCode, onApplyFilters, onJo
                     <motion.button
                         key="text-action-btn"
                         layout
-                        initial={{ opacity: 0, scale: 0.5, width: 0, marginLeft: 0 }}
-                        animate={{ opacity: 1, scale: 1, width: 56, marginLeft: 12 }}
-                        exit={{ opacity: 0, scale: 0.5, width: 0, marginLeft: 0 }}
+                        initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                        animate={{ opacity: 1, width: 56, marginLeft: 12 }}
+                        exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                         transition={sharedSpringTransition}
                         onClick={onJoinPrivate}
                         style={{ borderRadius: 9999 }}
-                        className="h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md cursor-pointer hover:opacity-90"
+                        className="h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md cursor-pointer hover:opacity-90 overflow-hidden"
                     >
                         <Check className="w-6 h-6 text-white shrink-0" />
                     </motion.button>

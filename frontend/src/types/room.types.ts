@@ -6,10 +6,12 @@ export interface PlayerInfo {
     id: string;
     name: string;
     isReady: boolean;
+    avatarEmoji?: string;
 }
 
 export interface GameRoom {
     id?: string;
+    name?: string;
     players: PlayerInfo[];
     maxPlayers: number;
     betAmount: number;
