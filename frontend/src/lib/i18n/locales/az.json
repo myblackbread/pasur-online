@@ -162,7 +162,7 @@
   "ERR_INVALID_MOVE": "Yanlış gediş və ya siz hazır deyilsiniz.",
   "ERR_NOT_YOUR_TURN": "Sizin sıranız deyil!",
   "ERR_WRONG_ROUND_STATE": "Oyun vəziyyəti dəyişdi. Yenidən cəhd edin.",
-  "ERR_PAUSE_ALREADY_ACTIVE": "Oyun artıq dayandırılıb.",
+  "ERR_PAUSE_ALREADY_ACTIVE": "Fasilə tələbi artıq göndərilib.",
   "MSG_AFK_KICKED": "Rəqib hərəkətsizliyə görə xaric edildi! Qələbə sizindir.",
   "MSG_SURRENDERED": "Rəqib təslim oldu! Qələbə sizindir.",
   "MSG_BANNED": "Rəqib bloklandı! Qələbə sizindir.",

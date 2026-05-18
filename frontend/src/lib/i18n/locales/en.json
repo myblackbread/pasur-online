@@ -162,7 +162,7 @@
   "ERR_INVALID_MOVE": "Invalid move or you are not ready.",
   "ERR_NOT_YOUR_TURN": "It's not your turn!",
   "ERR_WRONG_ROUND_STATE": "Game state changed. Try again.",
-  "ERR_PAUSE_ALREADY_ACTIVE": "Game is already paused.",
+  "ERR_PAUSE_ALREADY_ACTIVE": "Pause request already sent.",
   "MSG_AFK_KICKED": "Opponent kicked for inactivity! You win.",
   "MSG_SURRENDERED": "Opponent surrendered! You win.",
   "MSG_BANNED": "Opponent banned! You win.",

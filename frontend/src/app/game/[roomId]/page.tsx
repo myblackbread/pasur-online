@@ -69,7 +69,7 @@ export default function GameRoomPage() {
                 sessionStorage.setItem(`pasur_mask_${roomId}`, mask);
                 setMyMask(mask);
             }
-        } catch (e: any) { showAlert(t(e.message)); } 
+        } catch (e: any) { showAlert(t(e.message)); }
         finally { setIsJoining(false); }
     };
 
@@ -81,7 +81,7 @@ export default function GameRoomPage() {
                 sessionStorage.removeItem(`pasur_mask_${roomId}`);
                 setMyMask(null);
                 router.replace('/dashboard');
-            } catch (e: any) { showAlert(t(e.message)); } 
+            } catch (e: any) { showAlert(t(e.message)); }
             finally { setIsJoining(false); }
         });
     };
@@ -101,7 +101,7 @@ export default function GameRoomPage() {
         setPendingMove({ card, isMe: true });
         isProcessing.current = true;
 
-        try { await gameApi.playCard(roomId, card.id, currentSelection); } 
+        try { await gameApi.playCard(roomId, card.id, currentSelection); }
         catch (e: any) {
             showAlert(t(e.message));
             setSelectedTableCards(currentSelection);
@@ -112,6 +112,19 @@ export default function GameRoomPage() {
     const toggleTableCardSelection = (cardId: string) => {
         if (!isMyTurnSafe || animationState.phase !== 'idle') return;
         setSelectedTableCards(prev => prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]);
+    };
+
+    const handleProposePause = async () => {
+        if (isProcessing.current) return;
+
+        isProcessing.current = true;
+        try {
+            await gameApi.proposePause(roomId);
+        } catch (e: any) {
+            showAlert(t(e.message));
+        } finally {
+            isProcessing.current = false;
+        }
     };
 
     const renderDeckArea = (currentGame: GameState) => {
@@ -169,13 +182,13 @@ export default function GameRoomPage() {
     const oppIsTurn = !isMyTurnSafe && roomData.status === 'playing';
     const opponentLobbyInfo = roomData.players.find(p => p.id === opponent.id);
     const meLobbyInfo = roomData.players.find(p => p.id === safeMyId);
-    
+
     const isAnon = (id: string | null | undefined) => id?.startsWith('anon_');
     const getAvatar = (id: string | null | undefined) => id === safeMyId ? (user.avatarEmoji || '😎') : (isAnon(id) ? '👤' : '😎');
 
     return (
         <main className="fixed inset-0 w-full h-full flex flex-col bg-theme-main overflow-hidden safe-padding">
-            
+
             <div className="flex-1 w-full h-full max-w-5xl mx-auto flex flex-col p-2 sm:p-4 gap-2 sm:gap-4 relative">
                 {/* Оппонент */}
                 <div className="flex-none w-full p-2 sm:p-3 rounded-2xl flex justify-between items-center transition-all duration-300 bg-theme-panel/50 relative z-20 shadow-sm">
@@ -278,7 +291,7 @@ export default function GameRoomPage() {
                         </div>
                     </div>
                 )}
-                
+
                 {avatarModal === 'me' && (
                     <div className="flex flex-col gap-3 mt-2">
                         <div className="w-full bg-theme-main rounded-2xl p-4 flex justify-between items-center shadow-sm">
@@ -298,8 +311,12 @@ export default function GameRoomPage() {
                             <span className="text-xl font-black text-amber-500">{roomData.betAmount} 💰</span>
                         </div>
                         {roomData.status === 'playing' && (
-                            <button onClick={() => { setAvatarModal('none'); handleLeaveOrSurrender(); }} className="w-full py-4 mt-2 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black shadow-lg transition-colors">
-                                {t('btn_surrender')}
+                            <button
+                                onClick={handleProposePause}
+                                disabled={isProcessing.current}
+                                className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2"
+                            >
+                                {t('game_pause_btn')}
                             </button>
                         )}
                     </div>
@@ -329,7 +346,12 @@ export default function GameRoomPage() {
                                 <div className="flex flex-col gap-3">
                                     {isPlayer0 ? <button onClick={() => gameApi.nextRound(roomId).catch(e => showAlert(t(e.message)))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
                                     {roomData.status === 'playing' && (
-                                        <button onClick={() => gameApi.proposePause(roomId)} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2">{t('game_pause_btn')}</button>
+                                        <button
+                                            onClick={() => gameApi.proposePause(roomId).catch(e => showAlert(t(e.message)))}
+                                            className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-3 rounded-xl font-bold hover:bg-theme-border transition-colors mt-2"
+                                        >
+                                            {t('game_pause_btn')}
+                                        </button>
                                     )}
                                 </div>
                             </>

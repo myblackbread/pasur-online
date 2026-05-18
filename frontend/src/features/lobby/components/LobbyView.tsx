@@ -139,7 +139,6 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 isOpen={view !== 'none'}
                 onClose={() => setView('none')}
                 layoutId={lastViewRef.current === 'search' ? "search-wrapper" : "create-wrapper"}
-                closeButtonLayoutId={lastViewRef.current === 'search' ? "create-wrapper" : undefined}
                 headerLeft={renderLeftHeaderForModals()}
             >
                 {lastViewRef.current === 'search' && <div className="mt-2"><RoomConfigForm config={searchConfig} onChange={(u) => setSearchConfig(p => ({ ...p, ...u }))} isSearchMode={true} /></div>}
