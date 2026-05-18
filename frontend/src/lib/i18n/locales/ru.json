@@ -175,5 +175,16 @@
   "about_developer": "Разработчик",
   "settings_section_account": "АККАУНТ",
   "settings_section_app": "ПРИЛОЖЕНИЕ",
-  "settings_section_danger": "ДАННЫЕ"
+  "settings_section_danger": "ДАННЫЕ",
+  "modal_setup_title": "Новый стол",
+  "modal_search_title": "Фильтры поиска",
+  "modal_bet_label": "Ставка",
+  "modal_speed_label": "Таймер хода",
+  "modal_name_label": "Псевдоним стола",
+  "modal_rules_label": "Режим игры",
+  "modal_players_label": "Количество игроков",
+  "modal_players_count": "Игрока",
+  "speed_fast": "Блиц 15с",
+  "speed_normal": "Стандарт 30с",
+  "speed_slow": "Релакс 60с"
 }

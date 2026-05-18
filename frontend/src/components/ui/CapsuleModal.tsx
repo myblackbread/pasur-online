@@ -26,83 +26,109 @@ export function CapsuleModal({
     const y = useMotionValue(0);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Сбрасываем позицию при открытии
     useEffect(() => {
         if (isOpen) y.set(0);
     }, [isOpen, y]);
 
-    // Логика умного свайпа вниз (Pull-to-close)
+    // 🟢 УМНЫЙ СВАЙП: Полностью исправленная логика
     useEffect(() => {
         const el = scrollRef.current;
         if (!el || !isOpen) return;
 
         let startY = 0;
         let lastY = 0;
-        let isPulling = false;
-        let pullStartY = 0;
         let lastTime = 0;
         let velocity = 0;
+        let canPull = false; // Разрешено ли тянуть окно вниз (если начали сверху)
+        let isPulling = false; // Тянем ли мы его прямо сейчас
+        let activeScroller: HTMLElement | null = null;
 
-        const handleStart = (clientY: number) => {
+        // Ищем внутренний скроллящийся элемент (например, список эмодзи)
+        const getScrollableElement = (target: HTMLElement | null): HTMLElement => {
+            let current = target;
+            while (current && current !== el) {
+                if (current.scrollHeight > current.clientHeight) {
+                    const style = window.getComputedStyle(current);
+                    if (style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflowY === 'overlay') {
+                        return current;
+                    }
+                }
+                current = current.parentElement;
+            }
+            return el;
+        };
+
+        const handleStart = (clientY: number, target: HTMLElement) => {
+            activeScroller = getScrollableElement(target);
+            
             startY = clientY;
-            lastY = startY;
+            lastY = clientY;
             lastTime = performance.now();
             velocity = 0;
+            isPulling = false;
 
-            if (el.scrollTop <= 1) {
-                isPulling = true;
-                pullStartY = startY;
-            } else {
-                isPulling = false;
-            }
+            // 🟢 ВАЖНО: Разрешаем тянуть окно, ТОЛЬКО если в момент прикосновения скролл уже на самом верху
+            canPull = activeScroller.scrollTop <= 1;
         };
 
         const handleMove = (clientY: number, e: Event) => {
-            const dy = clientY - lastY;
+            if (!canPull) return; // Если начали скроллить из середины списка - полностью игнорируем закрытие
+
+            const dy = clientY - startY;
+            const stepY = clientY - lastY;
+            
             const now = performance.now();
             const dt = now - lastTime;
-
-            if (dt > 0) velocity = dy / (dt / 1000);
-
+            if (dt > 0) velocity = stepY / (dt / 1000);
+            
             lastY = clientY;
             lastTime = now;
 
-            if (el.scrollTop <= 1 && dy > 0 && !isPulling) {
-                isPulling = true;
-                pullStartY = clientY;
+            // Если мы находились в самом верху, но пользователь потянул палец ВВЕРХ (скролля список вниз)
+            // Мы навсегда запрещаем pull-to-close для этого касания
+            if (dy < -5 && !isPulling) {
+                canPull = false;
+                return;
             }
 
-            if (isPulling) {
-                const pullDistance = clientY - pullStartY;
-                if (pullDistance > 0) {
-                    y.set(pullDistance * 0.8);
-                    if (e.cancelable) e.preventDefault();
-                } else {
-                    isPulling = false;
-                    y.set(0);
-                }
+            // Тянем окно вниз
+            if (dy > 0) {
+                isPulling = true;
+                y.set(dy * 0.7); // Коэффициент сопротивления
+                if (e.cancelable) e.preventDefault(); // Блокируем нативную "резинку" iOS
+            } 
+            // Передумали и вернули палец выше начальной точки
+            else {
+                isPulling = false;
+                y.set(0);
             }
         };
 
         const handleEnd = () => {
             if (isPulling) {
-                if (y.get() > 120 || velocity > 400) {
+                // Если оттянули достаточно далеко ИЛИ резко смахнули вниз
+                if (y.get() > 100 || (y.get() > 20 && velocity > 400)) {
                     onClose();
                 } else {
-                    animate(y, 0, { type: "spring", stiffness: 350, damping: 35 });
+                    // Возвращаем на место
+                    animate(y, 0, { type: "spring", stiffness: 400, damping: 40 });
                 }
             }
+            canPull = false;
             isPulling = false;
+            activeScroller = null;
         };
 
-        const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientY);
+        // 1. Touch (телефоны)
+        const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientY, e.target as HTMLElement);
         const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientY, e);
 
+        // 2. Mouse (десктоп)
         let isMouseDown = false;
         const onMouseDown = (e: MouseEvent) => {
             if (e.button !== 0) return;
             isMouseDown = true;
-            handleStart(e.clientY);
+            handleStart(e.clientY, e.target as HTMLElement);
         };
         const onMouseMove = (e: MouseEvent) => {
             if (!isMouseDown) return;
@@ -114,32 +140,35 @@ export function CapsuleModal({
             handleEnd();
         };
 
+        // 3. Wheel (Трекпады и колесико)
         let wheelTimeout: NodeJS.Timeout;
         const onWheel = (e: WheelEvent) => {
-            if (el.scrollTop <= 1 && e.deltaY < 0) {
-                const currentY = y.get();
-                const pullAmount = -e.deltaY * 0.8;
-                const newY = currentY + pullAmount;
-
-                if (newY > 0) {
-                    y.set(newY);
-                    if (e.cancelable) e.preventDefault();
-                }
+            const scroller = getScrollableElement(e.target as HTMLElement);
+            
+            // Если находимся на самом верху и скроллим вверх (пытаясь оттянуть контент вниз)
+            if (scroller.scrollTop <= 1 && e.deltaY < 0) {
+                const pullAmount = -e.deltaY * 0.6;
+                y.set(y.get() + pullAmount);
+                if (e.cancelable) e.preventDefault();
 
                 clearTimeout(wheelTimeout);
                 wheelTimeout = setTimeout(() => {
-                    if (y.get() > 120) {
-                        onClose();
-                    } else if (y.get() > 0) {
-                        animate(y, 0, { type: "spring", stiffness: 350, damping: 35 });
-                    }
+                    if (y.get() > 80) onClose();
+                    else animate(y, 0, { type: "spring", stiffness: 400, damping: 40 });
                 }, 150);
-            } else if (y.get() > 0 && e.deltaY > 0) {
-                const currentY = y.get();
-                const pullAmount = -e.deltaY * 0.8;
-                const newY = Math.max(0, currentY + pullAmount);
+            } 
+            // Если окно уже оттянуто и мы скроллим обратно
+            else if (y.get() > 0 && e.deltaY > 0) {
+                const pullAmount = -e.deltaY * 0.6;
+                const newY = Math.max(0, y.get() + pullAmount);
                 y.set(newY);
                 if (e.cancelable) e.preventDefault();
+                
+                clearTimeout(wheelTimeout);
+                wheelTimeout = setTimeout(() => {
+                    if (y.get() > 80) onClose();
+                    else animate(y, 0, { type: "spring", stiffness: 400, damping: 40 });
+                }, 150);
             }
         };
 
@@ -199,30 +228,22 @@ export function CapsuleModal({
                         className="absolute inset-2 sm:inset-4 flex flex-col pointer-events-auto shadow-2xl bg-theme-panel"
                     >
                         <div className="relative z-10 w-full h-full text-theme-text overflow-hidden rounded-[inherit]">
-                            
-                            {/* Скроллируемый контент (теперь он на весь экран и заезжает под шапку) */}
                             <motion.div
                                 ref={scrollRef}
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0, transition: { delay: 0.1, duration: 0.3, ease: 'easeOut' } }}
                                 exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                                className="absolute inset-0 overflow-y-auto overscroll-none pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                className="absolute inset-0 overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                             >
-                                <div className="h-20 sm:h-24 w-full shrink-0" /> {/* Спейсер для шапки */}
-                                <div className="px-4 sm:px-6">
-                                    {children}
-                                </div>
+                                <div className="h-20 sm:h-24 w-full shrink-0" />
+                                {children}
                             </motion.div>
 
-                            {/* ПАРЯЩАЯ ШАПКА (с градиентом) */}
                             <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-                                {/* Градиент для плавного растворения контента */}
                                 <div className="absolute inset-0 bg-gradient-to-b from-theme-panel via-theme-panel/90 to-transparent h-28 -z-10" />
-                                
                                 <div
                                     className="pt-4 pb-2 px-4 sm:px-6 flex items-center relative pointer-events-auto touch-none cursor-grab active:cursor-grabbing"
                                     onPointerDown={(e) => {
-                                        // Разрешаем кликать по кнопкам и вводу внутри шапки
                                         const target = e.target as HTMLElement;
                                         if (target.closest('button') || target.closest('input')) return;
                                         dragControls.start(e);
@@ -234,7 +255,6 @@ export function CapsuleModal({
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </MorphingCapsule>
                 </>

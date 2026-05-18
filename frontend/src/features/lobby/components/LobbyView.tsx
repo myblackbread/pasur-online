@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Check } from 'lucide-react';
 import { gameApi } from '@/lib/supabase';
-import { UserProfile, RuleSet } from '@/types';
+import { UserProfile, RuleSet, GameRoom } from '@/types';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 import { MorphingCapsule, sharedSpringTransition } from '@/components/ui/MorphingCapsule';
@@ -45,11 +45,11 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     const [privateCode, setPrivateCode] = useState('');
     const [createConfig, setCreateConfig] = useState({ ...DEFAULT_CONFIG });
     const [searchConfig, setSearchConfig] = useState({ ...DEFAULT_CONFIG });
+    const [defaultRoomName, setDefaultRoomName] = useState('');
 
+    const [searchResults, setSearchResults] = useState<GameRoom[] | null>(null);
     const [isSurrendering, setIsSurrendering] = useState(false);
     const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
-
-    // Храним маски для активных столов, чтобы определять наш ход
     const [masks, setMasks] = useState<Record<string, string>>({});
 
     const lastViewRef = useRef<'search' | 'create'>('search');
@@ -67,17 +67,11 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     useEffect(() => {
         activeRooms.forEach(r => {
             const roomId = r.id;
-
             if (roomId && !fetchedMasks.current.has(roomId)) {
                 fetchedMasks.current.add(roomId);
-
                 gameApi.getMyMask(roomId).then(mask => {
-                    if (mask) {
-                        setMasks(prev => ({ ...prev, [roomId]: mask }));
-                    }
-                }).catch(() => {
-                    fetchedMasks.current.delete(roomId);
-                });
+                    if (mask) setMasks(prev => ({ ...prev, [roomId]: mask }));
+                }).catch(() => fetchedMasks.current.delete(roomId));
             }
         });
     }, [activeRooms]);
@@ -91,7 +85,7 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     const handleCreateRoom = async () => {
         if (user.balance < createConfig.bet) return showAlert(t('lobby_not_enough_money'));
         try {
-            const finalName = createConfig.name.trim() || generateRandomRoomName();
+            const finalName = createConfig.name.trim() || defaultRoomName;
             const roomId = await gameApi.createRoom(
                 user, finalName, createConfig.bet, createConfig.ruleSet,
                 createConfig.isPrivate, createConfig.isStrict,
@@ -111,6 +105,23 @@ export default function LobbyView({ user }: { user: UserProfile }) {
         } else showAlert(t('lobby_room_not_found'));
     };
 
+    const handleApplyFilters = async () => {
+        try {
+            const results = await gameApi.searchRooms({
+                bet: searchConfig.bet,
+                speed: searchConfig.speed,
+                players: searchConfig.players,
+                ruleSet: searchConfig.ruleSet,
+                isStrict: searchConfig.isStrict,
+                isSuddenDeath: searchConfig.ruleSet === 'local' ? searchConfig.isSuddenDeath : undefined
+            });
+            setSearchResults(results);
+            setView('none');
+        } catch (e: any) {
+            showAlert(`${t('lobby_error')} ${t(e.message)}`);
+        }
+    };
+
     const handleSurrender = (roomId: string, resetCard?: () => void) => {
         showConfirm(t('lobby_surrender_confirm'), async () => {
             setIsSurrendering(true);
@@ -121,10 +132,12 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     };
 
     const renderLeftHeaderForModals = () => {
-        if (lastViewRef.current === 'search') return <SearchHeader privateCode={privateCode} setPrivateCode={setPrivateCode} onApplyFilters={() => setView('none')} onJoinPrivate={() => requireIncognitoCheck(handleJoinPrivate)} />;
+        if (lastViewRef.current === 'search') return <SearchHeader privateCode={privateCode} setPrivateCode={setPrivateCode} onApplyFilters={handleApplyFilters} onJoinPrivate={() => requireIncognitoCheck(handleJoinPrivate)} />;
+        
         if (lastViewRef.current === 'create') return (
             <>
-                <motion.button layoutId="create-left-action" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} onClick={() => requireIncognitoCheck(handleCreateRoom)} className="w-14 h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:opacity-90 rounded-full cursor-pointer">
+                {/* 🟢 Добавили layout, чтобы иконка не искажалась, но без layoutId, чтобы не летала */}
+                <motion.button layout initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} onClick={() => requireIncognitoCheck(handleCreateRoom)} className="w-14 h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:opacity-90 rounded-full cursor-pointer">
                     <Check className="w-6 h-6 text-white" />
                 </motion.button>
                 <div className="flex-1" />
@@ -141,8 +154,16 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 layoutId={lastViewRef.current === 'search' ? "search-wrapper" : "create-wrapper"}
                 headerLeft={renderLeftHeaderForModals()}
             >
-                {lastViewRef.current === 'search' && <div className="mt-2"><RoomConfigForm config={searchConfig} onChange={(u) => setSearchConfig(p => ({ ...p, ...u }))} isSearchMode={true} /></div>}
-                {lastViewRef.current === 'create' && <RoomConfigForm config={createConfig} onChange={(u) => setCreateConfig(p => ({ ...p, ...u }))} isSearchMode={false} />}
+                <div className="px-4 sm:px-6 pb-4">
+                    {lastViewRef.current === 'search' && (
+                        <div className="mt-2">
+                            <RoomConfigForm config={searchConfig} onChange={(u) => setSearchConfig(p => ({ ...p, ...u }))} isSearchMode={true} />
+                        </div>
+                    )}
+                    {lastViewRef.current === 'create' && (
+                        <RoomConfigForm config={createConfig} onChange={(u) => setCreateConfig(p => ({ ...p, ...u }))} isSearchMode={false} defaultRoomName={defaultRoomName} />
+                    )}
+                </div>
             </CapsuleModal>
 
             <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none px-4 z-[80]">
@@ -157,9 +178,24 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                                 </span>
                             </MorphingCapsule>
                             
-                            <MorphingCapsule isCapsule layoutId="create-wrapper" transition={sharedSpringTransition} onClick={() => setView('create')} className="relative w-14 h-14 cursor-pointer shadow-lg hover:shadow-xl transition-shadow">
+                            <MorphingCapsule 
+                                isCapsule 
+                                layoutId="create-wrapper" 
+                                transition={sharedSpringTransition} 
+                                onClick={() => {
+                                    // 🟢 Генерируем имя ОДНОВРЕМЕННО с открытием модалки
+                                    setDefaultRoomName(generateRandomRoomName());
+                                    setView('create');
+                                }} 
+                                className="relative w-14 h-14 cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
+                            >
                                 <div className="absolute inset-0 bg-theme-primary backdrop-blur-xl -z-10" />
-                                <InscribedZone><motion.div layoutId="action-icon" transition={sharedSpringTransition}><Plus className="w-6 h-6 text-white" /></motion.div></InscribedZone>
+                                <InscribedZone>
+                                    {/* 🟢 Добавили layout обратно для правильного скейлинга */}
+                                    <motion.div layout transition={sharedSpringTransition}>
+                                        <Plus className="w-6 h-6 text-white" />
+                                    </motion.div>
+                                </InscribedZone>
                             </MorphingCapsule>
                         </motion.div>
                     )}
@@ -181,7 +217,9 @@ export default function LobbyView({ user }: { user: UserProfile }) {
             />
 
             <OpenRoomsList
-                rooms={openRooms}
+                rooms={searchResults !== null ? searchResults : openRooms}
+                title={searchResults !== null ? t('lobby_search_results', 'Результаты поиска') : undefined}
+                onClear={searchResults !== null ? () => setSearchResults(null) : undefined}
                 onOpenRoom={(id) => requireIncognitoCheck(() => router.push(`/game/${id}`))}
             />
 

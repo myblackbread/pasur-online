@@ -88,7 +88,6 @@ export async function secureToggleReady(data: any, user: any, adminDb: any) {
                 players: updatedPlayers,
                 status: 'playing',
                 game_state: JSON.parse(JSON.stringify(game)),
-                // 🟢 Накидываем время за начальную раздачу
                 turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) + GAME_CONFIG.ANIMATION_DELAYS.DEAL_CARDS,
                 admin_message: `ALL|MSG_GAME_STARTED|${Date.now()}`,
                 version: (roomData.version || 1) + 1
@@ -152,7 +151,6 @@ export async function secureRematch(data: any, user: any, adminDb: any) {
             players: updatedPlayers.map((p: any) => ({ ...p, isReady: false })), 
             status: 'playing',
             game_state: JSON.parse(JSON.stringify(game)),
-            // 🟢 Накидываем время за начальную раздачу
             turn_deadline: Date.now() + (roomData.turn_duration || GAME_CONFIG.DEFAULT_TURN_DURATION) + GAME_CONFIG.ANIMATION_DELAYS.DEAL_CARDS,
             version: (roomData.version || 1) + 1
         }).eq("id", roomId);
@@ -200,4 +198,31 @@ export async function secureResolveReadyTimeout(data: any, user: any, adminDb: a
     }
 
     return { success: true };
+}
+
+// 🟢 НОВЫЙ ЭНДПОИНТ ДЛЯ ПОИСКА ПО ФИЛЬТРАМ
+export async function secureSearchRooms(data: any, user: any, adminDb: any) {
+    const { bet, speed, players, ruleSet, isStrict, isSuddenDeath } = data;
+
+    let query = adminDb.from('rooms')
+        .select('*')
+        .eq('status', 'waiting')
+        .eq('is_private', false); // Ищем только публичные столы
+
+    // Применяем переданные фильтры
+    if (bet !== undefined) query = query.eq('bet_amount', bet);
+    if (speed !== undefined) query = query.eq('turn_duration', speed);
+    if (players !== undefined) query = query.eq('max_players', players);
+    if (ruleSet) query = query.eq('rule_set', ruleSet);
+    if (isStrict !== undefined) query = query.eq('is_strict', isStrict);
+    if (isSuddenDeath !== undefined) query = query.eq('is_sudden_death', isSuddenDeath);
+
+    const { data: rooms, error } = await query.order('created_at', { ascending: false }).limit(50);
+
+    if (error) {
+        console.error("🔥 Ошибка при поиске комнат:", error);
+        throw new GameError(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    return { success: true, rooms: rooms || [] };
 }

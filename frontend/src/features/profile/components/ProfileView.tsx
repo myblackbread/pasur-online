@@ -9,16 +9,7 @@ import { MorphingCapsule, sharedSpringTransition } from '@/components/ui/Morphin
 import { CapsuleModal } from '@/components/ui/CapsuleModal';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
-
-const EMOJIS = [
-    '😎', '👽', '🤖', '🦊', '🐯', '👻', '🤡', '🤠',
-    '🤓', '🤩', '🥸', '🤬', '🤯', '🥶', '😱', '🤫',
-    '🦁', '🐶', '🐱', '🐭', '🐹', '🐰', '🐻', '🐼',
-    '🐻‍❄️', '🐨', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦',
-    '🦄', '🐴', '🐗', '🐺', '🦇', '🦉', '🦅', '🦆',
-    '🍎', '🍕', '🍔', '🍟', '🌭', '🍿', '🥓', '🌮',
-    '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉'
-];
+import EmojiPicker, { Theme, EmojiStyle, SkinTones } from 'emoji-picker-react';
 
 export default function ProfileView({ user }: { user: UserProfile }) {
     const { t } = useTranslation();
@@ -40,9 +31,10 @@ export default function ProfileView({ user }: { user: UserProfile }) {
             <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('profile_title')}</h1>
 
             <Panel variant="elevated" padding="lg" className="text-center">
-                {/* 🟢 ИСПРАВЛЕНО: Убрали targetRadius={9999} и включили isCapsule */}
+                {/* 🟢 ИСПРАВЛЕНО: Вернули isCapsule={false} и targetRadius={9999} для идеального расширения круга */}
                 <MorphingCapsule
-                    isCapsule
+                    isCapsule={false}
+                    targetRadius={9999}
                     layoutId="avatar-editor"
                     transition={sharedSpringTransition}
                     onClick={() => {
@@ -75,32 +67,48 @@ export default function ProfileView({ user }: { user: UserProfile }) {
                     layoutId="avatar-editor"
                     portalNode={portalNode}
                     headerLeft={
-                        <motion.button
-                            layoutId="avatar-confirm-btn"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.5 }}
-                            onClick={() => changeEmoji(tempEmoji)}
-                            className="w-14 h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:opacity-90 rounded-full cursor-pointer"
-                        >
-                            <Check className="w-6 h-6 text-white" />
-                        </motion.button>
+                        <div className="flex items-center gap-4">
+                            <motion.button
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.5 }}
+                                onClick={() => changeEmoji(tempEmoji)}
+                                className="w-14 h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:opacity-90 rounded-full cursor-pointer"
+                            >
+                                <Check className="w-6 h-6 text-white" />
+                            </motion.button>
+                            
+                            <motion.div 
+                                initial={{ opacity: 0, x: -10 }} 
+                                animate={{ opacity: 1, x: 0 }}
+                                className="text-4xl bg-theme-main w-14 h-14 rounded-full flex items-center justify-center shadow-inner shrink-0"
+                            >
+                                {tempEmoji}
+                            </motion.div>
+                        </div>
                     }
                 >
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-3 sm:gap-4 pt-4 pb-12 justify-items-center">
-                        {EMOJIS.map(e => (
-                            <button
-                                key={e}
-                                onClick={() => setTempEmoji(e)}
-                                className={`w-14 h-14 sm:w-16 sm:h-16 text-3xl sm:text-4xl flex items-center justify-center rounded-2xl transition-all ${
-                                    tempEmoji === e 
-                                        ? 'bg-theme-primary/20 scale-110 shadow-inner border border-theme-primary/30' 
-                                        : 'hover:scale-110 hover:bg-theme-main/50'
-                                }`}
-                            >
-                                {e}
-                            </button>
-                        ))}
+                    <div className="w-full h-[calc(100%-5rem)] sm:h-[calc(100%-6rem)] flex flex-col">
+                        <EmojiPicker 
+                            onEmojiClick={(emojiData) => setTempEmoji(emojiData.emoji)}
+                            autoFocusSearch={false}
+                            theme={Theme.AUTO}
+                            emojiStyle={EmojiStyle.NATIVE}
+                            defaultSkinTone={SkinTones.NEUTRAL}
+                            skinTonesDisabled={true}
+                            previewConfig={{ showPreview: false }}
+                            searchDisabled={true}
+                            width="100%"
+                            height="100%"
+                            lazyLoadEmojis={true}
+                            style={{
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                '--epr-bg-color': 'transparent',
+                                '--epr-category-label-bg-color': 'transparent',
+                                '--epr-picker-border-color': 'transparent'
+                            } as React.CSSProperties}
+                        />
                     </div>
                 </CapsuleModal>
             )}

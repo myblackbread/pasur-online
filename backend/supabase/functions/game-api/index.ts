@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import "@supabase/functions-js/edge-runtime.d.ts";
 
 import { secureCreateRoom, devAddMoney } from "./api/roomCreation.ts";
-import { secureJoinRoom, secureToggleReady, secureResolveReadyTimeout, secureRematch } from "./api/roomLobby.ts";
+import { secureJoinRoom, secureToggleReady, secureResolveReadyTimeout, secureRematch, secureSearchRooms } from "./api/roomLobby.ts";
 import { secureProposePause, secureAnswerPauseRequest, secureResolvePauseTimeout, securePlayCard, secureLeaveRoom, secureNextRound, secureGetMyMask, secureSendReaction } from "./api/roomGameplay.ts";
 import { adminDeleteUser } from "./api/admin.ts";
 import { runGlobalCleanup } from "./api/cron.ts";
@@ -19,7 +19,7 @@ const apiRoutes: Record<string, Function> = {
     secureResolveReadyTimeout, secureProposePause, secureAnswerPauseRequest,
     secureResolvePauseTimeout, securePlayCard, secureLeaveRoom, secureNextRound,
     secureGetMyMask, secureSendReaction, secureRematch, adminDeleteUser, 
-    runGlobalCleanup 
+    runGlobalCleanup, secureSearchRooms // 🟢 Регистрируем новый роут
 };
 
 serve(async (req) => {

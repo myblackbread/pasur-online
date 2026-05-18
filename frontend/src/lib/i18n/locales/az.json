@@ -175,5 +175,16 @@
   "about_developer": "Tərtibatçı",
   "settings_section_account": "HESAB",
   "settings_section_app": "TƏTBİQ",
-  "settings_section_danger": "TƏHLÜKƏLİ BÖLGƏ"
+  "settings_section_danger": "TƏHLÜKƏLİ BÖLGƏ",
+  "modal_setup_title": "Yeni masa",
+  "modal_search_title": "Axtarış filtrləri",
+  "modal_bet_label": "Mərc",
+  "modal_speed_label": "Gediş taymeri",
+  "modal_name_label": "Masa ləqəbi",
+  "modal_rules_label": "Oyun rejimi",
+  "modal_players_label": "Oyunçu sayı",
+  "modal_players_count": "Oyunçu",
+  "speed_fast": "Blits 15s",
+  "speed_normal": "Standart 30s",
+  "speed_slow": "Relaks 60s"
 }

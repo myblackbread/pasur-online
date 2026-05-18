@@ -175,5 +175,16 @@
   "about_developer": "Developer",
   "settings_section_account": "ACCOUNT",
   "settings_section_app": "APP",
-  "settings_section_danger": "DANGER ZONE"
+  "settings_section_danger": "DANGER ZONE",
+  "modal_setup_title": "New Table",
+  "modal_search_title": "Search Filters",
+  "modal_bet_label": "Bet",
+  "modal_speed_label": "Turn Timer",
+  "modal_name_label": "Table Alias",
+  "modal_rules_label": "Game Mode",
+  "modal_players_label": "Number of Players",
+  "modal_players_count": "Players",
+  "speed_fast": "Blitz 15s",
+  "speed_normal": "Standard 30s",
+  "speed_slow": "Relax 60s"
 }

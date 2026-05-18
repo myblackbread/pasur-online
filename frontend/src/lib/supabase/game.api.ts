@@ -1,5 +1,5 @@
 import { callApi, supabase } from './client';
-import { UserProfile, RuleSet } from '@/types';
+import { UserProfile, RuleSet, GameRoom } from '@/types';
 
 export const gameApi = {
     async createRoom(creator: UserProfile, name: string, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, isSuddenDeath: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
@@ -46,5 +46,10 @@ export const gameApi = {
 
     async playCard(roomId: string, cardId: string, targetCardIds: string[]): Promise<void> {
         await callApi('securePlayCard', { roomId, cardId, targetCardIds });
+    },
+
+    async searchRooms(filters: any): Promise<GameRoom[]> {
+        const data = await callApi('secureSearchRooms', filters);
+        return data?.rooms || [];
     }
 };

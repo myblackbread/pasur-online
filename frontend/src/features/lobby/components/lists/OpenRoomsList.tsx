@@ -6,6 +6,8 @@ import { ChevronRight } from 'lucide-react';
 interface OpenRoomsListProps {
     rooms: GameRoom[];
     onOpenRoom: (roomId: string) => void;
+    title?: string;
+    onClear?: () => void;
 }
 
 const getCardStyle = (room: GameRoom) => {
@@ -53,25 +55,30 @@ const PlayerSquare = ({ players, maxPlayers }: { players: any[], maxPlayers: num
     );
 }
 
-export function OpenRoomsList({ rooms, onOpenRoom }: OpenRoomsListProps) {
+export function OpenRoomsList({ rooms, onOpenRoom, title, onClear }: OpenRoomsListProps) {
     const { t } = useTranslation();
 
     return (
         <>
-            <h2 className="text-xl font-bold mb-4 text-theme-text opacity-70">{t('lobby_open_tables')}</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-theme-text opacity-70">
+                    {title || t('lobby_open_tables')}
+                </h2>
+                {onClear && (
+                    <button onClick={onClear} className="text-xs sm:text-sm font-bold text-red-500 hover:text-white hover:bg-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                        {t('lobby_clear_search', 'Сбросить')}
+                    </button>
+                )}
+            </div>
+            
             <div className="grid gap-3 sm:gap-4 w-full">
                 {rooms.length === 0 ? (
-                    <div className="text-center py-12 text-theme-text opacity-50 shadow-inner rounded-3xl font-bold">
+                    <div className="text-center py-12 text-theme-text opacity-50 shadow-inner rounded-3xl font-bold bg-theme-panel/50">
                         {t('lobby_no_active')}
                     </div>
                 ) : (
                     rooms.map(room => {
                         const roomId = room.id!;
-                        const host = room.players[0];
-                        const titleText = host 
-                            ? (host.name === '__INCOGNITO__' ? t('unknown_player') : host.name)
-                            : t('lobby_empty_table');
-
                         return (
                             <div
                                 key={roomId}
