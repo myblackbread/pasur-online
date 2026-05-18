@@ -9,7 +9,7 @@ export async function devAddMoney(user: any, adminDb: any) {
 
 export async function secureCreateRoom(data: any, user: any, adminDb: any) {
     // 🟢 ИСПРАВЛЕНО: Достаем isSuddenDeath из data
-    const { betAmount, ruleSet, isPrivate, maxPlayers = 2, isStrict = true, isSuddenDeath = false, turnDuration = GAME_CONFIG.DEFAULT_TURN_DURATION } = data;
+    const { name, betAmount, ruleSet, isPrivate, maxPlayers = 2, isStrict = true, isSuddenDeath = false, turnDuration = GAME_CONFIG.DEFAULT_TURN_DURATION } = data;
 
     if (!GAME_CONFIG.ALLOWED_BETS.includes(betAmount)) throw new GameError(ErrorCode.INVALID_REQUEST, "Invalid bet amount");
     if (!GAME_CONFIG.ALLOWED_SPEEDS.includes(turnDuration)) throw new GameError(ErrorCode.INVALID_REQUEST, "Invalid turn duration");
@@ -25,6 +25,7 @@ export async function secureCreateRoom(data: any, user: any, adminDb: any) {
     const publicUid = shouldHide ? `anon_${Math.random().toString(36).substring(2, 12)}` : uid;
 
     const { data: roomData, error: roomErr } = await adminDb.from('rooms').insert({
+        name: name,
         bet_amount: betAmount,
         rule_set: ruleSet,
         is_private: !!isPrivate,
