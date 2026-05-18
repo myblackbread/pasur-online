@@ -40,9 +40,9 @@ export default function ProfileView({ user }: { user: UserProfile }) {
             <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('profile_title')}</h1>
 
             <Panel variant="elevated" padding="lg" className="text-center">
+                {/* 🟢 ИСПРАВЛЕНО: Убрали targetRadius={9999} и включили isCapsule */}
                 <MorphingCapsule
-                    isCapsule={false}
-                    targetRadius={9999}
+                    isCapsule
                     layoutId="avatar-editor"
                     transition={sharedSpringTransition}
                     onClick={() => {
@@ -87,7 +87,6 @@ export default function ProfileView({ user }: { user: UserProfile }) {
                         </motion.button>
                     }
                 >
-                    {/* 🟢 ИСПРАВЛЕНО: Умный CSS-grid с жестко заданными размерами кнопок */}
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-3 sm:gap-4 pt-4 pb-12 justify-items-center">
                         {EMOJIS.map(e => (
                             <button
