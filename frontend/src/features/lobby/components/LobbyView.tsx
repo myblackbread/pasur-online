@@ -183,12 +183,12 @@ export default function LobbyView({ user }: { user: UserProfile }) {
                 <div className="px-4 sm:px-6 pb-4">
                     {lastViewRef.current === 'filter' && (
                         <div className="mt-2">
-                            <RoomConfigForm config={searchConfig} onChange={(u) => setSearchConfig(p => ({ ...p, ...u }))} isSearchMode={true} />
+                            <RoomConfigForm config={searchConfig} onChange={(u) => setSearchConfig(p => ({ ...p, ...u }))} defaultRoomName={null}/>
                         </div>
                     )}
                     {lastViewRef.current === 'create' && (
                         <div className="mt-2">
-                            <RoomConfigForm config={createConfig} onChange={(u) => setCreateConfig(p => ({ ...p, ...u }))} isSearchMode={false} defaultRoomName={defaultRoomName} />
+                            <RoomConfigForm config={createConfig} onChange={(u) => setCreateConfig(p => ({ ...p, ...u }))} defaultRoomName={defaultRoomName} />
                         </div>
                     )}
                 </div>

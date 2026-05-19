@@ -11,11 +11,10 @@ import { Divider } from '@/components/ui/Divider';
 interface RoomConfigFormProps {
     config: any;
     onChange: (updates: any) => void;
-    isSearchMode: boolean;
-    defaultRoomName?: string;
+    defaultRoomName?: string | null;
 }
 
-export function RoomConfigForm({ config, onChange, isSearchMode, defaultRoomName }: RoomConfigFormProps) {
+export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfigFormProps) {
     const { t } = useTranslation();
 
     const betOptions: PickerOption[] = useMemo(() => {
@@ -37,17 +36,17 @@ export function RoomConfigForm({ config, onChange, isSearchMode, defaultRoomName
     return (
         <div className="w-full">
             <div className='flex flex-col gap-4 mt-2'>
-                <InfoSection title={t('modal_modifiers', 'Псевдоним')}>
-                    {!isSearchMode && (
+                {defaultRoomName !== null && (
+                    <InfoSection title={t('modal_modifiers', 'Псевдоним')}>
                         <InputRow
                             value={config.name}
                             onChange={(e) => onChange({ name: e.target.value })}
                             placeholder={defaultRoomName}
                             maxLength={20}
                         />
-                    )}
-                </InfoSection>
-                
+                    </InfoSection>
+                )}
+
                 <InfoSection title={t('modal_rules_label', 'Основные')}>
                     <SegmentRow
                         options={[
