@@ -1,6 +1,7 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    // variant надо унифицировать
     variant?: 'primary' | 'secondary' | 'danger' | 'amber';
     size?: 'sm' | 'md' | 'lg';
     icon?: React.ReactNode;
@@ -8,6 +9,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     isLoading?: boolean;
 }
 
+// !!! Ну этот баттон точно надо делить на части, на разные компоненты
+// !!! fullWidth - мусор
+// !!! isLoading - костыль
 export function Button({
     children,
     variant = 'primary',

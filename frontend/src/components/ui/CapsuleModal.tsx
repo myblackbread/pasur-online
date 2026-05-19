@@ -30,7 +30,7 @@ export function CapsuleModal({
         if (isOpen) y.set(0);
     }, [isOpen, y]);
 
-    // 🟢 УМНЫЙ СВАЙП: Полностью исправленная логика
+    // 🟢 УМНЫЙ СВАЙП: Оставили только Touch и MouseDrag. Wheel убран для защиты от случайных закрытий.
     useEffect(() => {
         const el = scrollRef.current;
         if (!el || !isOpen) return;
@@ -39,11 +39,10 @@ export function CapsuleModal({
         let lastY = 0;
         let lastTime = 0;
         let velocity = 0;
-        let canPull = false; // Разрешено ли тянуть окно вниз (если начали сверху)
-        let isPulling = false; // Тянем ли мы его прямо сейчас
+        let canPull = false; 
+        let isPulling = false; 
         let activeScroller: HTMLElement | null = null;
 
-        // Ищем внутренний скроллящийся элемент (например, список эмодзи)
         const getScrollableElement = (target: HTMLElement | null): HTMLElement => {
             let current = target;
             while (current && current !== el) {
@@ -67,12 +66,11 @@ export function CapsuleModal({
             velocity = 0;
             isPulling = false;
 
-            // 🟢 ВАЖНО: Разрешаем тянуть окно, ТОЛЬКО если в момент прикосновения скролл уже на самом верху
             canPull = activeScroller.scrollTop <= 1;
         };
 
         const handleMove = (clientY: number, e: Event) => {
-            if (!canPull) return; // Если начали скроллить из середины списка - полностью игнорируем закрытие
+            if (!canPull) return;
 
             const dy = clientY - startY;
             const stepY = clientY - lastY;
@@ -84,20 +82,16 @@ export function CapsuleModal({
             lastY = clientY;
             lastTime = now;
 
-            // Если мы находились в самом верху, но пользователь потянул палец ВВЕРХ (скролля список вниз)
-            // Мы навсегда запрещаем pull-to-close для этого касания
             if (dy < -5 && !isPulling) {
                 canPull = false;
                 return;
             }
 
-            // Тянем окно вниз
             if (dy > 0) {
                 isPulling = true;
-                y.set(dy * 0.7); // Коэффициент сопротивления
-                if (e.cancelable) e.preventDefault(); // Блокируем нативную "резинку" iOS
+                y.set(dy * 0.7);
+                if (e.cancelable) e.preventDefault();
             } 
-            // Передумали и вернули палец выше начальной точки
             else {
                 isPulling = false;
                 y.set(0);
@@ -106,11 +100,9 @@ export function CapsuleModal({
 
         const handleEnd = () => {
             if (isPulling) {
-                // Если оттянули достаточно далеко ИЛИ резко смахнули вниз
                 if (y.get() > 100 || (y.get() > 20 && velocity > 400)) {
                     onClose();
                 } else {
-                    // Возвращаем на место
                     animate(y, 0, { type: "spring", stiffness: 400, damping: 40 });
                 }
             }
@@ -123,7 +115,7 @@ export function CapsuleModal({
         const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientY, e.target as HTMLElement);
         const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientY, e);
 
-        // 2. Mouse (десктоп)
+        // 2. Mouse (десктоп - drag)
         let isMouseDown = false;
         const onMouseDown = (e: MouseEvent) => {
             if (e.button !== 0) return;
@@ -140,38 +132,6 @@ export function CapsuleModal({
             handleEnd();
         };
 
-        // 3. Wheel (Трекпады и колесико)
-        let wheelTimeout: NodeJS.Timeout;
-        const onWheel = (e: WheelEvent) => {
-            const scroller = getScrollableElement(e.target as HTMLElement);
-            
-            // Если находимся на самом верху и скроллим вверх (пытаясь оттянуть контент вниз)
-            if (scroller.scrollTop <= 1 && e.deltaY < 0) {
-                const pullAmount = -e.deltaY * 0.6;
-                y.set(y.get() + pullAmount);
-                if (e.cancelable) e.preventDefault();
-
-                clearTimeout(wheelTimeout);
-                wheelTimeout = setTimeout(() => {
-                    if (y.get() > 80) onClose();
-                    else animate(y, 0, { type: "spring", stiffness: 400, damping: 40 });
-                }, 150);
-            } 
-            // Если окно уже оттянуто и мы скроллим обратно
-            else if (y.get() > 0 && e.deltaY > 0) {
-                const pullAmount = -e.deltaY * 0.6;
-                const newY = Math.max(0, y.get() + pullAmount);
-                y.set(newY);
-                if (e.cancelable) e.preventDefault();
-                
-                clearTimeout(wheelTimeout);
-                wheelTimeout = setTimeout(() => {
-                    if (y.get() > 80) onClose();
-                    else animate(y, 0, { type: "spring", stiffness: 400, damping: 40 });
-                }, 150);
-            }
-        };
-
         el.addEventListener('touchstart', onTouchStart, { passive: true });
         el.addEventListener('touchmove', onTouchMove, { passive: false });
         el.addEventListener('touchend', handleEnd, { passive: true });
@@ -180,8 +140,6 @@ export function CapsuleModal({
         el.addEventListener('mousedown', onMouseDown, { passive: true });
         window.addEventListener('mousemove', onMouseMove, { passive: false });
         window.addEventListener('mouseup', onMouseUp, { passive: true });
-
-        el.addEventListener('wheel', onWheel, { passive: false });
 
         return () => {
             el.removeEventListener('touchstart', onTouchStart);
@@ -192,9 +150,6 @@ export function CapsuleModal({
             el.removeEventListener('mousedown', onMouseDown);
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
-
-            el.removeEventListener('wheel', onWheel);
-            clearTimeout(wheelTimeout);
         };
     }, [isOpen, y, onClose]);
 

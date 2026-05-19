@@ -38,8 +38,8 @@ export function ExpandableCarouselRow({
     return (
         <motion.div layout className={`w-full flex flex-col ${className}`}>
 
-            {/* ШАПКА КАРУСЕЛИ */}
-            <InfoRow onClick={() => setIsOpen(!isOpen)} className="relative z-10 px-3">
+            {/* !!! Зачем здесь z-10? Без него работает */}
+            <InfoRow onClick={() => setIsOpen(!isOpen)} className="relative z-10">
                 <motion.div layout="position" className="flex items-center gap-3 flex-1 min-w-0">
                     {label}
                 </motion.div>
@@ -52,7 +52,7 @@ export function ExpandableCarouselRow({
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            className="w-8 h-8 flex items-center justify-center bg-theme-panel rounded-full shadow-sm shrink-0 ml-3"
+                            className="min-w-0 px-4 h-8 flex items-center justify-center bg-theme-panel rounded-full shadow-sm shrink-0 ml-3"
                         >
                             <span className="text-base leading-none">{activeOption.content}</span>
                         </motion.div>
@@ -71,7 +71,6 @@ export function ExpandableCarouselRow({
                 </AnimatePresence>
             </InfoRow>
 
-            {/* ВЫПАДАЮЩЕЕ ТЕЛО КАРУСЕЛИ */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -82,7 +81,7 @@ export function ExpandableCarouselRow({
                     >
                         <motion.div
                             layoutId={morphId}
-                            className="w-full bg-theme-panel shadow-md rounded-[24px] py-4 mt-1 border border-theme-border/30"
+                            className="w-full bg-theme-panel shadow-md rounded-3xl py-4 mt-1 border border-theme-border/30"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <CarouselPicker

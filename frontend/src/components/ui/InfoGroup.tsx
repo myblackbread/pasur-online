@@ -10,9 +10,9 @@ interface InfoSectionProps {
 
 export function InfoSection({ title, footer, children, className = '' }: InfoSectionProps) {
     return (
-        <div className={`mb-6 ${className}`}>
+        <div className={`flex flex-col ${className}`}>
             {title && <h3 className="uppercase text-[10px] sm:text-xs font-bold text-theme-text opacity-50 ml-4 mb-2 tracking-wider">{title}</h3>}
-            <div className="bg-theme-main p-1 rounded-[28px] shadow-inner border border-theme-border/30 flex flex-col gap-1">
+            <div className="bg-theme-main p-1 rounded-[28px] shadow-inner flex flex-col gap-1">
                 {children}
             </div>
             {footer && <p className="text-[10px] sm:text-xs text-theme-text opacity-50 ml-4 mt-2 font-medium">{footer}</p>}
@@ -28,12 +28,13 @@ interface InfoRowProps {
 }
 
 export function InfoRow({ children, onClick, className = '', variant = 'default' }: InfoRowProps) {
+    // !!! Надо сделать через флаг. 
     const padding = variant === 'default' ? 'px-3' : '';
     
     return (
         <div 
             onClick={onClick} 
-            className={`flex items-center justify-between min-h-[48px] w-full rounded-full transition-all ${padding} ${
+            className={`flex items-center justify-between min-h-12 w-full rounded-full transition-all ${padding} ${
                 onClick ? 'cursor-pointer' : ''
             } ${className}`}
         >

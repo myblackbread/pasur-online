@@ -9,12 +9,11 @@ interface AlertState {
     type: AlertType;
     message: string;
     onConfirm?: () => void;
-    onCancel?: () => void; // 🟢 Добавили onCancel в стейт
+    onCancel?: () => void;
 }
 
 interface AlertContextType {
     showAlert: (message: string) => void;
-    // 🟢 Добавили 3-й опциональный аргумент
     showConfirm: (message: string, onConfirm: () => void, onCancel?: () => void) => void;
 }
 
@@ -28,7 +27,6 @@ export function AlertProvider({ children }: { children: ReactNode }) {
         setAlertState({ type: 'alert', message });
     }, []);
 
-    // 🟢 Принимаем onCancel и сохраняем его в стейт
     const showConfirm = useCallback((message: string, onConfirm: () => void, onCancel?: () => void) => {
         setAlertState({ type: 'confirm', message, onConfirm, onCancel });
     }, []);
@@ -40,7 +38,6 @@ export function AlertProvider({ children }: { children: ReactNode }) {
         close();
     };
 
-    // 🟢 Создаем хендлер для отмены
     const handleCancel = () => {
         if (alertState?.onCancel) alertState.onCancel();
         close();

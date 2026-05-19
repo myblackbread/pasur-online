@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/Input';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { InfoSection } from '@/components/ui/InfoGroup';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { AuthCredentials, AuthProviderType } from '../hooks/useAuthAction';
 
 interface AuthFormProps {
     isLoading: boolean;
-    onSubmit: (provider: 'google' | 'email' | 'guest', credentials?: any) => void;
+    onSubmit: (provider: AuthProviderType, credentials: AuthCredentials) => void;
 }
 
 export function AuthForm({ isLoading, onSubmit }: AuthFormProps) {
@@ -20,23 +21,23 @@ export function AuthForm({ isLoading, onSubmit }: AuthFormProps) {
     const [password, setPassword] = useState('');
     const [gender, setGender] = useState<'male' | 'female' | null>(null);
 
-    const handleLogin = (provider: 'google' | 'email' | 'guest') => {
-        onSubmit(provider, { email, password, gender });
+    const handleLogin = (provider: AuthProviderType) => {
+        onSubmit(provider, { email, password, gender: gender || undefined });
     };
 
     return (
-        <div className="flex flex-col w-full px-2 sm:px-4 pb-8">
+        <div className="flex flex-col w-full px-2 sm:px-4 gap-4">
             
-            <div className="text-center mt-4 mb-8">
+            <div className="text-center my-4">
                 <h1 className="text-4xl font-extrabold mb-2 text-theme-primary">♠ {t('app_title')} ♥</h1>
                 <p className="opacity-70 font-medium text-theme-text">{t('auth_subtitle')}</p>
             </div>
 
-            <InfoSection title={t('settings_section_app', 'Приложение')}>
+            <InfoSection title={t('settings_section_app')}>
                 <LanguageSwitcher />
             </InfoSection>
 
-            <InfoSection title={t('auth_gender', 'Пол')}>
+            <InfoSection title={t('auth_gender')}>
                 <SegmentedControl
                     options={[
                         { value: 'male', label: '👨 ' + t('auth_male') },
@@ -47,14 +48,15 @@ export function AuthForm({ isLoading, onSubmit }: AuthFormProps) {
                 />
             </InfoSection>
 
-            <div className="flex flex-col gap-4 mb-8">
+            <div className="flex flex-col my-4">
                 <Button
                     variant="amber"
                     icon={<span className="text-xl">🎭</span>}
                     onClick={() => handleLogin('guest')}
                     disabled={!gender}
                     isLoading={isLoading && !email}
-                    className="!h-14 !rounded-full text-sm sm:text-base"
+                    className="!rounded-full text-sm sm:text-base"
+                    fullWidth
                 >
                     {t('auth_guest')}
                 </Button>
@@ -66,7 +68,8 @@ export function AuthForm({ isLoading, onSubmit }: AuthFormProps) {
                     icon={<span className="text-xl">🌐</span>}
                     onClick={() => handleLogin('google')}
                     disabled={!gender || isLoading}
-                    className="!h-14 !rounded-full shadow-sm hover:shadow-md text-sm sm:text-base"
+                    className="!rounded-full shadow-sm hover:shadow-md text-sm sm:text-base"
+                    fullWidth
                 >
                     {t('auth_google')}
                 </Button>
@@ -93,6 +96,7 @@ export function AuthForm({ isLoading, onSubmit }: AuthFormProps) {
                 disabled={!gender}
                 isLoading={isLoading && !!email}
                 className="!h-14 !rounded-full text-sm sm:text-base"
+                fullWidth
             >
                 {t('auth_email_btn')}
             </Button>

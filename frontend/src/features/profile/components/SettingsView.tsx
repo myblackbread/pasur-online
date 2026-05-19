@@ -6,9 +6,9 @@ import { User } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/components/providers/AlertProvider';
 
-// Импортируем наши обновленные компоненты
-import { InfoSection, InfoRow, RowLabel } from '@/components/ui/InfoGroup';
+import { InfoSection } from '@/components/ui/InfoGroup';
 import { SwitchRow } from '@/components/ui/SwitchRow';
+import { ActionRow } from '@/components/ui/ActionRow';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 export default function SettingsView({ user }: { user: UserProfile }) {
@@ -64,26 +64,25 @@ export default function SettingsView({ user }: { user: UserProfile }) {
 
             <InfoSection title={t('settings_section_account')}>
                 {!hasGoogleLinked ? (
-                    <InfoRow onClick={handleLinkGoogle} className="px-3">
-                        <RowLabel
-                            icon="🌐" iconBg="bg-amber-500"
-                            title={t('settings_link_google')}
-                            subtitle={t('settings_guest_warning')}
-                        />
-                        <div className="shrink-0 ml-3 flex items-center pointer-events-none">
+                    <ActionRow
+                        icon="🌐" iconBg="bg-amber-500"
+                        title={t('settings_link_google')}
+                        subtitle={t('settings_guest_warning')}
+                        onClick={handleLinkGoogle}
+                        rightContent={
                             <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md">
                                 {isLinking ? "..." : t('settings_link_google')}
                             </span>
-                        </div>
-                    </InfoRow>
+                        }
+                        showArrow={false}
+                    />
                 ) : (
-                    <InfoRow>
-                        <RowLabel 
-                            icon="✅" iconBg="bg-emerald-500" 
-                            title="Google Account" 
-                            subtitle={sbUser?.email || "Linked successfully"}
-                        />
-                    </InfoRow>
+                    <ActionRow
+                        icon="✅" iconBg="bg-emerald-500"
+                        title="Google Account"
+                        subtitle={sbUser?.email || "Linked successfully"}
+                        showArrow={false}
+                    />
                 )}
             </InfoSection>
 
@@ -107,15 +106,11 @@ export default function SettingsView({ user }: { user: UserProfile }) {
             </InfoSection>
 
             <InfoSection title={t('settings_section_danger')}>
-                <InfoRow onClick={handleLogout}>
-                    <RowLabel 
-                        icon="🚪" iconBg="bg-red-500" 
-                        title={<span className="text-red-500">{t('settings_logout')}</span>} 
-                    />
-                    <div className="shrink-0 ml-3 flex items-center">
-                        <span className="text-red-500 opacity-50 font-bold">❯</span>
-                    </div>
-                </InfoRow>
+                <ActionRow
+                    icon="🚪" iconBg="bg-red-500"
+                    title={<span className="text-red-500">{t('settings_logout')}</span>}
+                    onClick={handleLogout}
+                />
             </InfoSection>
         </div>
     );

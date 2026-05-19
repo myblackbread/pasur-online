@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Check } from 'lucide-react';
+import { Search, Plus, Check, SlidersHorizontal, ArrowRight } from 'lucide-react';
 import { gameApi } from '@/lib/supabase';
 import { UserProfile, RuleSet, GameRoom } from '@/types';
 import { useAlert } from '@/components/providers/AlertProvider';
@@ -41,8 +41,10 @@ export default function LobbyView({ user }: { user: UserProfile }) {
 
     const { activeRooms, openRooms } = useLobbyData(user);
 
-    const [view, setView] = useState<'none' | 'search' | 'create'>('none');
+    const [view, setView] = useState<'none' | 'filter' | 'create'>('none');
     const [privateCode, setPrivateCode] = useState('');
+
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [createConfig, setCreateConfig] = useState({ ...DEFAULT_CONFIG });
     const [searchConfig, setSearchConfig] = useState({ ...DEFAULT_CONFIG });
     const [defaultRoomName, setDefaultRoomName] = useState('');
@@ -52,8 +54,8 @@ export default function LobbyView({ user }: { user: UserProfile }) {
     const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
     const [masks, setMasks] = useState<Record<string, string>>({});
 
-    const lastViewRef = useRef<'search' | 'create'>('search');
-    if (view === 'search' || view === 'create') lastViewRef.current = view;
+    const lastViewRef = useRef<'filter' | 'create'>('filter');
+    if (view === 'filter' || view === 'create') lastViewRef.current = view;
 
     useEffect(() => { setPortalNode(document.getElementById('overlay-lobby')); }, []);
 
@@ -131,18 +133,42 @@ export default function LobbyView({ user }: { user: UserProfile }) {
         }, () => resetCard?.());
     };
 
+
+
+    const handleClearSearch = () => {
+        setSearchResults(null);
+        setPrivateCode('');
+    };
+
+    const filteredOpenRooms = openRooms.filter(r => {
+        if (!privateCode) return true;
+        const q = privateCode.toUpperCase();
+        return r.name?.toUpperCase().includes(q) || r.id?.toUpperCase().includes(q);
+    });
+
+    const displayedRooms = searchResults !== null ? searchResults : filteredOpenRooms;
+
+
+
     const renderLeftHeaderForModals = () => {
-        if (lastViewRef.current === 'search') return <SearchHeader privateCode={privateCode} setPrivateCode={setPrivateCode} onApplyFilters={handleApplyFilters} onJoinPrivate={() => requireIncognitoCheck(handleJoinPrivate)} />;
-        
+        if (lastViewRef.current === 'filter') return (
+            <>
+                <motion.button layout initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} onClick={handleApplyFilters} className="w-14 h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:opacity-90 rounded-full cursor-pointer">
+                    <Check className="w-6 h-6 text-white" />
+                </motion.button>
+                <h2 className="text-xl sm:text-2xl font-black text-theme-text ml-4">{t('modal_search_title', 'Фильтры')}</h2>
+            </>
+        );
+
         if (lastViewRef.current === 'create') return (
             <>
-                {/* 🟢 Добавили layout, чтобы иконка не искажалась, но без layoutId, чтобы не летала */}
                 <motion.button layout initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} onClick={() => requireIncognitoCheck(handleCreateRoom)} className="w-14 h-14 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:opacity-90 rounded-full cursor-pointer">
                     <Check className="w-6 h-6 text-white" />
                 </motion.button>
-                <div className="flex-1" />
+                <h2 className="text-xl sm:text-2xl font-black text-theme-text ml-4">{t('modal_create_title', 'Новый стол')}</h2>
             </>
         );
+
         return null;
     };
 
@@ -151,56 +177,106 @@ export default function LobbyView({ user }: { user: UserProfile }) {
             <CapsuleModal
                 isOpen={view !== 'none'}
                 onClose={() => setView('none')}
-                layoutId={lastViewRef.current === 'search' ? "search-wrapper" : "create-wrapper"}
+                layoutId={lastViewRef.current === 'filter' ? "filter-btn" : "create-btn"}
                 headerLeft={renderLeftHeaderForModals()}
             >
                 <div className="px-4 sm:px-6 pb-4">
-                    {lastViewRef.current === 'search' && (
+                    {lastViewRef.current === 'filter' && (
                         <div className="mt-2">
                             <RoomConfigForm config={searchConfig} onChange={(u) => setSearchConfig(p => ({ ...p, ...u }))} isSearchMode={true} />
                         </div>
                     )}
                     {lastViewRef.current === 'create' && (
-                        <RoomConfigForm config={createConfig} onChange={(u) => setCreateConfig(p => ({ ...p, ...u }))} isSearchMode={false} defaultRoomName={defaultRoomName} />
+                        <div className="mt-2">
+                            <RoomConfigForm config={createConfig} onChange={(u) => setCreateConfig(p => ({ ...p, ...u }))} isSearchMode={false} defaultRoomName={defaultRoomName} />
+                        </div>
                     )}
                 </div>
             </CapsuleModal>
 
-            <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none px-4 z-[80]">
-                <AnimatePresence>
-                    {view === 'none' && (
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex justify-center gap-3 w-full max-w-md pointer-events-auto">
-                            <MorphingCapsule isCapsule layoutId="search-wrapper" transition={sharedSpringTransition} onClick={() => setView('search')} className="relative flex-1 max-w-[280px] h-14 cursor-pointer shadow-lg hover:shadow-xl transition-shadow flex items-center px-5 gap-3">
-                                <div className="absolute inset-0 bg-theme-panel/80 backdrop-blur-2xl shadow-sm -z-10" />
-                                <Search className="w-5 h-5 opacity-60 shrink-0 text-theme-text" />
-                                <span className="font-bold text-sm sm:text-base opacity-80 whitespace-nowrap text-theme-text truncate">
-                                    {t('lobby_search_table', 'Поиск стола')}
-                                </span>
-                            </MorphingCapsule>
-                            
-                            <MorphingCapsule 
-                                isCapsule 
-                                layoutId="create-wrapper" 
-                                transition={sharedSpringTransition} 
-                                onClick={() => {
-                                    // 🟢 Генерируем имя ОДНОВРЕМЕННО с открытием модалки
-                                    setDefaultRoomName(generateRandomRoomName());
-                                    setView('create');
-                                }} 
-                                className="relative w-14 h-14 cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
-                            >
-                                <div className="absolute inset-0 bg-theme-primary backdrop-blur-xl -z-10" />
-                                <InscribedZone>
-                                    {/* 🟢 Добавили layout обратно для правильного скейлинга */}
-                                    <motion.div layout transition={sharedSpringTransition}>
-                                        <Plus className="w-6 h-6 text-white" />
-                                    </motion.div>
-                                </InscribedZone>
-                            </MorphingCapsule>
+            {view === 'none' && (
+                <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none px-4 z-80">
+                    <div className="flex justify-center gap-3 w-full max-w-md pointer-events-auto h-14 items-center">
+
+                        {!isSearchFocused && (
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="shrink-0"
+                                >
+                                    <MorphingCapsule
+                                        isCapsule
+                                        layoutId="filter-btn"
+                                        transition={sharedSpringTransition}
+                                        onClick={() => setView('filter')}
+                                        className="w-14 h-14 cursor-pointer shadow-lg bg-theme-panel/80 backdrop-blur-2xl flex items-center justify-center"
+                                    >
+                                        <SlidersHorizontal className="w-6 h-6 text-theme-text opacity-80" />
+                                    </MorphingCapsule>
+                                </motion.div>
+                            </AnimatePresence>
+                        )}
+
+
+                        <motion.div
+                            layoutId="search-bar"
+                            transition={sharedSpringTransition}
+                            className="relative flex-1 flex items-center h-14 bg-theme-panel/80 backdrop-blur-2xl shadow-lg rounded-full overflow-hidden"
+                        >
+                            <Search className="absolute left-4 w-5 h-5 opacity-60 text-theme-text pointer-events-none" />
+                            <input
+                                value={privateCode}
+                                onChange={(e) => setPrivateCode(e.target.value.toUpperCase())}
+                                onFocus={() => setIsSearchFocused(true)}
+                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                                placeholder={t('lobby_search_table', 'Поиск стола')}
+                                className="w-full h-full bg-transparent outline-none pl-12 pr-14 font-bold text-theme-text placeholder:opacity-60 uppercase tracking-wider"
+                            />
+
+                            <AnimatePresence>
+                                {privateCode.trim().length > 0 && (
+                                    <motion.button
+                                        initial={{ opacity: 0, scale: 0.5 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.5 }}
+                                        onClick={() => requireIncognitoCheck(handleJoinPrivate)}
+                                        className="absolute right-2 w-10 h-10 bg-theme-primary rounded-full flex items-center justify-center shadow-md hover:opacity-90"
+
+                                    >
+                                        <ArrowRight className="w-5 h-5 text-white" />
+                                    </motion.button>
+                                )}
+                            </AnimatePresence>
                         </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+
+                        {!isSearchFocused && (
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="shrink-0"
+                                >
+                                    <MorphingCapsule
+                                        isCapsule
+                                        layoutId="create-btn"
+                                        transition={sharedSpringTransition}
+                                        onClick={() => {
+                                            setDefaultRoomName(generateRandomRoomName());
+                                            setView('create');
+                                        }}
+                                        className="w-14 h-14 cursor-pointer shadow-lg bg-theme-primary flex items-center justify-center"
+                                    >
+                                        <Plus className="w-6 h-6 text-white" />
+                                    </MorphingCapsule>
+                                </motion.div>
+                            </AnimatePresence>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 
@@ -217,9 +293,9 @@ export default function LobbyView({ user }: { user: UserProfile }) {
             />
 
             <OpenRoomsList
-                rooms={searchResults !== null ? searchResults : openRooms}
-                title={searchResults !== null ? t('lobby_search_results', 'Результаты поиска') : undefined}
-                onClear={searchResults !== null ? () => setSearchResults(null) : undefined}
+                rooms={searchResults !== null ? searchResults : displayedRooms}
+                title={searchResults !== null || privateCode ? t('lobby_search_results') : undefined}
+                onClear={searchResults !== null || privateCode ? handleClearSearch : undefined}
                 onOpenRoom={(id) => requireIncognitoCheck(() => router.push(`/game/${id}`))}
             />
 

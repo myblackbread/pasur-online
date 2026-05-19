@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { InfoSection, InfoRow, RowLabel } from '@/components/ui/InfoGroup'; // 🟢 Добавили импорт RowLabel
+import { InfoSection } from '@/components/ui/InfoGroup';
+import { ActionRow } from '@/components/ui/ActionRow';
 import { CapsuleModal } from '@/components/ui/CapsuleModal';
 import { MorphingCapsule, sharedSpringTransition } from '@/components/ui/MorphingCapsule';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,7 +17,6 @@ export default function AboutView() {
         setPortalNode(document.getElementById('overlay-root'));
     }, []);
 
-    // Сбрасываем вкладку на "Классику" при закрытии окна
     useEffect(() => {
         if (!isRulesOpen) {
             setTimeout(() => setRulesMode('classic'), 300);
@@ -36,28 +36,21 @@ export default function AboutView() {
                     transition={sharedSpringTransition}
                     className="w-full"
                 >
-                    <InfoRow onClick={() => setIsRulesOpen(true)} className="px-3">
-                        <RowLabel 
-                            icon="📜"
-                            iconBg="bg-blue-500"
-                            title={t('profile_rules')}
-                        />
-                        <div className="shrink-0 ml-3 flex items-center">
-                            <span className="text-theme-text opacity-50 font-bold">❯</span>
-                        </div>
-                    </InfoRow>
+                    <ActionRow
+                        icon="📜" iconBg="bg-blue-500"
+                        title={t('profile_rules')}
+                        onClick={() => setIsRulesOpen(true)}
+                    />
                 </MorphingCapsule>
             </InfoSection>
 
             <InfoSection title={t('about_authors')}>
-                <InfoRow className="px-3">
-                    <RowLabel 
-                        icon="👨‍💻"
-                        iconBg="bg-theme-main text-xl shadow-inner border border-theme-border/30"
-                        title="Ту ту туууу"
-                        subtitle={t('about_developer')}
-                    />
-                </InfoRow>
+                <ActionRow
+                    icon="👨‍💻" iconBg="bg-theme-main text-xl shadow-inner border border-theme-border/30"
+                    title="Ту ту туууу"
+                    subtitle={t('about_developer')}
+                    showArrow={false}
+                />
                 <div className="p-4 text-sm font-medium text-theme-text opacity-70 leading-relaxed">
                     {t('about_credits_text')}
                 </div>
@@ -69,7 +62,7 @@ export default function AboutView() {
                 <div className="font-mono text-xs mt-1">v1.0.0</div>
             </div>
 
-            {/* Модальное окно с правилами */}
+            {/* Модальное окно с правилами остается без изменений... */}
             {portalNode && (
                 <CapsuleModal
                     isOpen={isRulesOpen}
@@ -91,9 +84,9 @@ export default function AboutView() {
                         </div>
                     }
                 >
+                    {/* ... Контент правил ... */}
                     <div className="flex flex-col px-4 pb-8 text-theme-text mt-4">
                         
-                        {/* Переключатель режимов */}
                         <div className="flex bg-theme-main p-1 rounded-2xl border border-theme-border/50 shadow-inner mb-6 shrink-0">
                             <button 
                                 onClick={() => setRulesMode('classic')}
@@ -109,7 +102,6 @@ export default function AboutView() {
                             </button>
                         </div>
 
-                        {/* Контент правил */}
                         <AnimatePresence mode="wait">
                             <motion.div 
                                 key={rulesMode}

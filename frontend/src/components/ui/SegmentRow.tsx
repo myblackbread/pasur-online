@@ -10,7 +10,7 @@ interface SegmentRowProps<T> {
 
 export function SegmentRow<T extends string | number>({ options, value, onChange }: SegmentRowProps<T>) {
     return (
-        <InfoRow> 
+        <InfoRow variant={'none'}> 
             <SegmentedControl options={options} value={value} onChange={onChange} />
         </InfoRow>
     );
