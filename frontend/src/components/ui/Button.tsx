@@ -21,7 +21,6 @@ export function Button({
 }: ButtonProps) {
     const baseStyles = "font-black flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none";
     
-    // Убрали border-2 из secondary, заменили на тень
     const variants = {
         primary: "bg-theme-primary text-white shadow-md hover:shadow-lg hover:opacity-90",
         secondary: "bg-theme-panel text-theme-text shadow-sm hover:shadow-md",

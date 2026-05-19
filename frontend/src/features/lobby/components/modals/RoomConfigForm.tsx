@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GAME_CONFIG } from '@/utils/constants';
 import { AppleToggle } from '@/components/ui/AppleToggle';
+import { ExpandableCarouselRow, PickerOption } from '@/components/ui/carousel-picker';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { InfoSection, InfoRow } from '@/components/ui/InfoGroup';
+import { Input } from '@/components/ui/Input';
 
 interface RoomConfigFormProps {
     config: any;
@@ -13,125 +17,104 @@ interface RoomConfigFormProps {
 export function RoomConfigForm({ config, onChange, isSearchMode, defaultRoomName }: RoomConfigFormProps) {
     const { t } = useTranslation();
 
+    const betOptions: PickerOption[] = useMemo(() => {
+        return GAME_CONFIG.BET_OPTIONS.map(b => ({
+            id: String(b),
+            content: <span className="text-lg font-black text-amber-500">{b}</span>,
+            description: `${b} 💰`
+        }));
+    }, []);
+
+    const speedOptions: PickerOption[] = useMemo(() => {
+        return GAME_CONFIG.SPEED_OPTIONS.map(s => ({
+            id: String(s.value),
+            content: <span className="text-xl">{s.icon}</span>,
+            description: t(s.labelKey)
+        }));
+    }, [t]);
+
     return (
-        <div className="space-y-6">
-            <h3 className="text-2xl font-black text-theme-text mb-2">
+        <div className="w-full">
+            <h3 className="text-2xl font-black text-theme-text mb-6 px-2">
                 {isSearchMode ? t('modal_search_title', 'Фильтры поиска') : t('modal_setup_title', 'Новый стол')}
             </h3>
 
-            {/* 1. РЕЖИМ ИГРЫ (Подняли на самый верх) */}
-            <div>
-                <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">
-                    {t('modal_rules_label', 'Режим игры')}
-                </label>
-                <div className="flex bg-theme-main p-1 rounded-2xl border border-theme-border/50 shadow-inner">
-                    <button 
-                        onClick={() => onChange({ ruleSet: 'classic', isSuddenDeath: false })}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-black transition-all ${config.ruleSet === 'classic' ? 'bg-theme-primary text-white shadow-md' : 'text-theme-text opacity-60 hover:opacity-100'}`}
-                    >
-                        🏛️ {t('rule_classic')}
-                    </button>
-                    <button 
-                        onClick={() => onChange({ ruleSet: 'local' })}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-black transition-all ${config.ruleSet === 'local' ? 'bg-theme-primary text-white shadow-md' : 'text-theme-text opacity-60 hover:opacity-100'}`}
-                    >
-                        🏡 {t('rule_local')}
-                    </button>
-                </div>
-            </div>
+            <InfoSection title={t('modal_rules_label', 'Основные')}>
+                <SegmentedControl
+                    options={[
+                        { value: 'classic', label: '🏛️ ' + t('rule_classic') },
+                        { value: 'local', label: '🏡 ' + t('rule_local') }
+                    ]}
+                    value={config.ruleSet}
+                    onChange={v => onChange({ ruleSet: v })}
+                />
 
-            {/* 2. ИМЯ СТОЛА (Псевдоним) */}
-            {!isSearchMode && (
-                <div>
-                    <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">
-                        {t('modal_name_label', 'Псевдоним стола')}
-                    </label>
-                    <input
-                        type="text"
+                <SegmentedControl
+                    options={[
+                        { value: 2, label: '👥 2 Игрока' },
+                        { value: 4, label: '👨‍👩‍👧‍👦 4 Игрока' }
+                    ]}
+                    value={config.players}
+                    onChange={v => onChange({ players: v })}
+                />
+            </InfoSection>
+
+            <InfoSection title={t('modal_modifiers', 'Дополнительно')}>
+                {!isSearchMode && (
+                    <Input
                         value={config.name}
                         onChange={(e) => onChange({ name: e.target.value })}
                         placeholder={defaultRoomName}
                         maxLength={20}
-                        className="w-full bg-theme-main shadow-inner rounded-xl py-3 px-4 focus:ring-2 focus:ring-theme-primary outline-none text-theme-text font-bold transition-shadow placeholder:opacity-30"
                     />
-                </div>
-            )}
-
-            {/* 3. КОЛИЧЕСТВО ИГРОКОВ */}
-            <div>
-                <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">
-                    {t('modal_players_label', 'Количество игроков')}
-                </label>
-                <div className="flex bg-theme-main p-1 rounded-2xl border border-theme-border/50 shadow-inner">
-                    <button 
-                        onClick={() => onChange({ players: 2 })}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-black transition-all ${config.players === 2 ? 'bg-blue-500 text-white shadow-md' : 'text-theme-text opacity-60 hover:opacity-100'}`}
-                    >
-                        👥 2
-                    </button>
-                    <button 
-                        onClick={() => onChange({ players: 4 })}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-black transition-all ${config.players === 4 ? 'bg-blue-500 text-white shadow-md' : 'text-theme-text opacity-60 hover:opacity-100'}`}
-                    >
-                        👨‍👩‍👧‍👦 4
-                    </button>
-                </div>
-            </div>
-
-            {/* 4. СТАВКА */}
-            <div>
-                <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">
-                    {t('modal_bet_label', 'Ставка')}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                    {GAME_CONFIG.BET_OPTIONS.map(b => (
-                        <button
-                            key={b}
-                            onClick={() => onChange({ bet: b })}
-                            className={`flex-1 min-w-[70px] py-3 rounded-2xl font-black transition-all ${config.bet === b ? 'bg-amber-500 text-white shadow-md' : 'bg-theme-main text-theme-text shadow-sm hover:shadow-md'}`}
-                        >
-                            {b}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* 5. ТАЙМЕР ХОДА */}
-            <div>
-                <label className="block font-bold text-theme-text opacity-50 mb-2 text-sm uppercase tracking-wider">
-                    {t('modal_speed_label', 'Таймер хода')}
-                </label>
-                <div className="flex gap-2">
-                    {GAME_CONFIG.SPEED_OPTIONS.map(s => (
-                        <button
-                            key={s.value}
-                            onClick={() => onChange({ speed: s.value })}
-                            className={`flex-1 p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${config.speed === s.value ? 'bg-theme-primary text-white shadow-md' : 'bg-theme-main text-theme-text shadow-sm hover:shadow-md'}`}
-                        >
-                            <span className="text-2xl mb-1">{s.icon}</span>
-                            <span className="text-xs font-bold whitespace-nowrap">{t(s.labelKey)}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* 6. ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ */}
-            <div className="flex flex-col gap-1 bg-theme-main shadow-inner p-2 rounded-3xl">
-                <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-theme-panel rounded-2xl transition-colors">
-                    <span className="font-bold text-theme-text">⚖️ {t('modal_strict_mode')}</span>
-                    <AppleToggle checked={config.isStrict} onChange={v => onChange({ isStrict: v })} />
-                </label>
-                {config.ruleSet === 'local' && (
-                    <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-theme-panel rounded-2xl transition-colors">
-                        <span className="font-bold text-theme-text">⚡ {t('modal_sudden_death')}</span>
-                        <AppleToggle checked={config.isSuddenDeath} onChange={v => onChange({ isSuddenDeath: v })} />
-                    </label>
                 )}
-                <label className="flex justify-between items-center cursor-pointer p-3 hover:bg-theme-panel rounded-2xl transition-colors">
-                    <span className="font-bold text-theme-text">🔒 {t('modal_private_table')}</span>
-                    <AppleToggle checked={config.isPrivate} onChange={v => onChange({ isPrivate: v })} />
-                </label>
-            </div>
+
+                <ExpandableCarouselRow
+                    morphId="config-bet-morph"
+                    label={
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm bg-amber-500 text-sm">💰</div>
+                            <span className="font-bold text-sm text-theme-text">{t('modal_bet_label', 'Ставка')}</span>
+                        </div>
+                    }
+                    options={betOptions}
+                    value={String(config.bet)}
+                    onChange={(val) => onChange({ bet: Number(val) })}
+                    requireConfirm={true}
+                />
+
+                <ExpandableCarouselRow
+                    morphId="config-speed-morph"
+                    label={
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm bg-blue-500 text-sm">⏱</div>
+                            <span className="font-bold text-sm text-theme-text">{t('modal_speed_label', 'Таймер хода')}</span>
+                        </div>
+                    }
+                    options={speedOptions}
+                    value={String(config.speed)}
+                    onChange={(val) => onChange({ speed: Number(val) })}
+                    requireConfirm={false}
+                />
+
+                <InfoRow
+                    title={t('modal_strict_mode')}
+                    icon="⚖️" iconBg="bg-red-500"
+                    rightContent={<AppleToggle checked={config.isStrict} onChange={v => onChange({ isStrict: v })} />}
+                />
+                {config.ruleSet === 'local' && (
+                    <InfoRow
+                        title={t('modal_sudden_death')}
+                        icon="⚡" iconBg="bg-amber-500"
+                        rightContent={<AppleToggle checked={config.isSuddenDeath} onChange={v => onChange({ isSuddenDeath: v })} />}
+                    />
+                )}
+                <InfoRow
+                    title={t('modal_private_table')}
+                    icon="🔒" iconBg="bg-slate-500"
+                    rightContent={<AppleToggle checked={config.isPrivate} onChange={v => onChange({ isPrivate: v })} />}
+                />
+            </InfoSection>
         </div>
     );
 }

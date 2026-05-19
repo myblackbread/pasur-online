@@ -7,11 +7,10 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { AppleToggle } from '@/components/ui/AppleToggle';
 import { InfoSection, InfoRow } from '@/components/ui/InfoGroup';
-import { Panel } from '@/components/ui/Panel';
-import { Button } from '@/components/ui/Button';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 export default function SettingsView({ user }: { user: UserProfile }) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const router = useRouter();
     const { showAlert, showConfirm } = useAlert();
 
@@ -57,82 +56,56 @@ export default function SettingsView({ user }: { user: UserProfile }) {
 
     const hasGoogleLinked = sbUser?.app_metadata?.providers?.includes('google');
 
-    const LanguageControl = () => (
-        <div className="flex bg-theme-main p-1 rounded-lg border border-theme-border/50">
-            {['en', 'ru', 'az'].map(lng => (
-                <button
-                    key={lng}
-                    onClick={(e) => { e.stopPropagation(); i18n.changeLanguage(lng); }}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all uppercase ${i18n.language === lng ? 'bg-theme-panel shadow text-theme-primary' : 'opacity-60 text-theme-text hover:opacity-100'}`}
-                >
-                    {lng}
-                </button>
-            ))}
-        </div>
-    );
-
     return (
         <div className="flex flex-col w-full">
-            <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('settings_title')}</h1>
+            <h1 className="text-2xl sm:text-3xl font-black mb-6 px-2">{t('settings_title')}</h1>
 
             <InfoSection title={t('settings_section_account')}>
                 {!hasGoogleLinked && (
                     <InfoRow 
-                        icon="🌐" 
-                        iconBg="bg-amber-500" 
+                        icon="🌐" iconBg="bg-amber-500" 
                         title={t('settings_link_google')} 
                         subtitle={t('settings_guest_warning')}
                         onClick={handleLinkGoogle}
                         rightContent={
-                            <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md">
+                            <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md">
                                 {isLinking ? "..." : t('settings_link_google')}
                             </span>
                         }
-                        noDivider
                     />
                 )}
                 {hasGoogleLinked && (
                     <InfoRow 
-                        icon="✅" 
-                        iconBg="bg-emerald-500" 
+                        icon="✅" iconBg="bg-emerald-500" 
                         title="Google Account" 
                         subtitle={sbUser?.email || "Linked successfully"}
-                        noDivider
                     />
                 )}
             </InfoSection>
 
             <InfoSection title={t('settings_section_app')}>
+                {/* LanguageSwitcher уже содержит внутри ExpandableCarouselRow, мы просто кладем его в обертку секции */}
+                <LanguageSwitcher />
+                
                 <InfoRow 
-                    icon="🌍" 
-                    iconBg="bg-blue-500" 
-                    title={t('language')} 
-                    rightContent={<LanguageControl />} 
-                />
-                <InfoRow 
-                    icon="🕵️‍♀️" 
-                    iconBg="bg-slate-700 dark:bg-slate-500" 
+                    icon="🕵️‍♀️" iconBg="bg-slate-700 dark:bg-slate-500" 
                     title={t('settings_incognito')} 
                     subtitle={t('settings_incognito_desc')}
                     rightContent={<AppleToggle checked={isIncognito} onChange={toggleIncognito} />} 
                 />
                 <InfoRow 
-                    icon="🔊" 
-                    iconBg="bg-rose-500" 
+                    icon="🔊" iconBg="bg-rose-500" 
                     title={t('settings_sounds')} 
                     rightContent={<AppleToggle checked={soundEnabled} onChange={setSoundEnabled} />} 
-                    noDivider
                 />
             </InfoSection>
 
             <InfoSection title={t('settings_section_danger')}>
                 <InfoRow 
-                    icon="🚪" 
-                    iconBg="bg-red-500" 
+                    icon="🚪" iconBg="bg-red-500" 
                     title={<span className="text-red-500">{t('settings_logout')}</span>} 
                     onClick={handleLogout}
                     rightContent={<span className="text-red-500 opacity-50 font-bold">❯</span>}
-                    noDivider
                 />
             </InfoSection>
         </div>
