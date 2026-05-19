@@ -18,7 +18,7 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffec
 
 interface MorphingCapsuleProps extends HTMLMotionProps<"div"> {
     isCapsule?: boolean;
-    targetRadius?: number; // Радиус в пикселях для развернутого состояния (по умолчанию 40px = 2.5rem)
+    targetRadius?: number;
 }
 
 export const MorphingCapsule = React.forwardRef<HTMLDivElement, MorphingCapsuleProps>(

@@ -1,4 +1,7 @@
-import React from 'react';
+'use client';
+
+import React, { useRef, useState, useId } from 'react';
+import { motion } from 'framer-motion';
 
 export interface SegmentOption<T> {
     value: T;
@@ -13,23 +16,89 @@ interface SegmentedControlProps<T> {
 }
 
 export function SegmentedControl<T extends string | number>({ options, value, onChange, className = '' }: SegmentedControlProps<T>) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    
+    // Уникальный ID для Framer Motion, чтобы анимации разных сегментов не конфликтовали
+    const layoutId = useId();
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!isDragging || !containerRef.current) return;
+        
+        const rect = containerRef.current.getBoundingClientRect();
+        // Вычисляем координату касания внутри контейнера
+        let x = e.clientX - rect.left;
+        x = Math.max(0, Math.min(x, rect.width - 1));
+        
+        // Вычисляем, над каким вариантом сейчас находится палец
+        const segmentWidth = rect.width / options.length;
+        const index = Math.floor(x / segmentWidth);
+        
+        const hoveredValue = options[index]?.value;
+        if (hoveredValue !== undefined && hoveredValue !== value) {
+            onChange(hoveredValue);
+        }
+    };
+
     return (
-        <div className={`flex gap-1 w-full ${className}`}>
+        <div 
+            ref={containerRef}
+            className={`relative flex w-full p-1 bg-theme-panel/50 rounded-full touch-none select-none shadow-inner ${className}`}
+            // Обработчики касаний
+            onPointerDown={(e) => {
+                e.stopPropagation();
+                setIsDragging(true);
+                
+                const rect = containerRef.current!.getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                x = Math.max(0, Math.min(x, rect.width - 1));
+                const segmentWidth = rect.width / options.length;
+                const index = Math.floor(x / segmentWidth);
+                
+                const clickedValue = options[index]?.value;
+                if (clickedValue !== undefined && clickedValue !== value) {
+                    onChange(clickedValue);
+                }
+                
+                // Захватываем фокус пальца, чтобы свайп не прерывался при выходе за границы элемента
+                e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={handlePointerMove}
+            onPointerUp={(e) => {
+                e.stopPropagation();
+                setIsDragging(false);
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            }}
+            onPointerCancel={(e) => {
+                e.stopPropagation();
+                setIsDragging(false);
+                e.currentTarget.releasePointerCapture(e.pointerId);
+            }}
+        >
             {options.map((opt) => {
                 const isActive = value === opt.value;
                 return (
-                    <button
+                    <div
                         key={String(opt.value)}
-                        onClick={(e) => { e.stopPropagation(); onChange(opt.value); }}
-                        type="button"
-                        className={`flex-1 h-12 rounded-full text-sm font-black transition-all flex items-center justify-center gap-2 ${
-                            isActive
-                                ? 'bg-theme-primary text-white shadow-md'
-                                : 'text-theme-text opacity-60 hover:opacity-100 hover:bg-theme-panel'
-                        }`}
+                        className="relative flex-1 h-10 flex items-center justify-center cursor-pointer"
                     >
-                        {opt.label}
-                    </button>
+                        {/* Плавающая плашка */}
+                        {isActive && (
+                            <motion.div
+                                layoutId={layoutId}
+                                className="absolute inset-0 bg-theme-primary rounded-full shadow-md"
+                                transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                            />
+                        )}
+                        {/* Текст */}
+                        <span 
+                            className={`relative z-10 text-sm font-black transition-colors duration-300 flex items-center gap-2 ${
+                                isActive ? 'text-white' : 'text-theme-text opacity-60 hover:opacity-100'
+                            }`}
+                        >
+                            {opt.label}
+                        </span>
+                    </div>
                 );
             })}
         </div>

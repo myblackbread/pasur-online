@@ -31,7 +31,6 @@ export default function ProfileView({ user }: { user: UserProfile }) {
             <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('profile_title')}</h1>
             
             <Panel variant="elevated" padding="lg" className="text-center">
-                {/* 🟢 ИСПРАВЛЕНО: Вернули isCapsule={false} и targetRadius={9999} для идеального расширения круга */}
                 <MorphingCapsule
                     isCapsule={false}
                     targetRadius={9999}
