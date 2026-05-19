@@ -5,8 +5,10 @@ import { authApi, supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/components/providers/AlertProvider';
-import { AppleToggle } from '@/components/ui/AppleToggle';
-import { InfoSection, InfoRow } from '@/components/ui/InfoGroup';
+
+// Импортируем наши обновленные компоненты
+import { InfoSection, InfoRow, RowLabel } from '@/components/ui/InfoGroup';
+import { SwitchRow } from '@/components/ui/SwitchRow';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 export default function SettingsView({ user }: { user: UserProfile }) {
@@ -61,52 +63,59 @@ export default function SettingsView({ user }: { user: UserProfile }) {
             <h1 className="text-2xl sm:text-3xl font-black mb-6 px-2">{t('settings_title')}</h1>
 
             <InfoSection title={t('settings_section_account')}>
-                {!hasGoogleLinked && (
-                    <InfoRow 
-                        icon="🌐" iconBg="bg-amber-500" 
-                        title={t('settings_link_google')} 
-                        subtitle={t('settings_guest_warning')}
-                        onClick={handleLinkGoogle}
-                        rightContent={
+                {!hasGoogleLinked ? (
+                    <InfoRow onClick={handleLinkGoogle} className="px-3">
+                        <RowLabel
+                            icon="🌐" iconBg="bg-amber-500"
+                            title={t('settings_link_google')}
+                            subtitle={t('settings_guest_warning')}
+                        />
+                        <div className="shrink-0 ml-3 flex items-center pointer-events-none">
                             <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md">
                                 {isLinking ? "..." : t('settings_link_google')}
                             </span>
-                        }
-                    />
-                )}
-                {hasGoogleLinked && (
-                    <InfoRow 
-                        icon="✅" iconBg="bg-emerald-500" 
-                        title="Google Account" 
-                        subtitle={sbUser?.email || "Linked successfully"}
-                    />
+                        </div>
+                    </InfoRow>
+                ) : (
+                    <InfoRow>
+                        <RowLabel 
+                            icon="✅" iconBg="bg-emerald-500" 
+                            title="Google Account" 
+                            subtitle={sbUser?.email || "Linked successfully"}
+                        />
+                    </InfoRow>
                 )}
             </InfoSection>
 
             <InfoSection title={t('settings_section_app')}>
-                {/* LanguageSwitcher уже содержит внутри ExpandableCarouselRow, мы просто кладем его в обертку секции */}
                 <LanguageSwitcher />
                 
-                <InfoRow 
+                <SwitchRow 
                     icon="🕵️‍♀️" iconBg="bg-slate-700 dark:bg-slate-500" 
                     title={t('settings_incognito')} 
                     subtitle={t('settings_incognito_desc')}
-                    rightContent={<AppleToggle checked={isIncognito} onChange={toggleIncognito} />} 
+                    checked={isIncognito} 
+                    onChange={toggleIncognito} 
                 />
-                <InfoRow 
+                
+                <SwitchRow 
                     icon="🔊" iconBg="bg-rose-500" 
                     title={t('settings_sounds')} 
-                    rightContent={<AppleToggle checked={soundEnabled} onChange={setSoundEnabled} />} 
+                    checked={soundEnabled} 
+                    onChange={setSoundEnabled} 
                 />
             </InfoSection>
 
             <InfoSection title={t('settings_section_danger')}>
-                <InfoRow 
-                    icon="🚪" iconBg="bg-red-500" 
-                    title={<span className="text-red-500">{t('settings_logout')}</span>} 
-                    onClick={handleLogout}
-                    rightContent={<span className="text-red-500 opacity-50 font-bold">❯</span>}
-                />
+                <InfoRow onClick={handleLogout}>
+                    <RowLabel 
+                        icon="🚪" iconBg="bg-red-500" 
+                        title={<span className="text-red-500">{t('settings_logout')}</span>} 
+                    />
+                    <div className="shrink-0 ml-3 flex items-center">
+                        <span className="text-red-500 opacity-50 font-bold">❯</span>
+                    </div>
+                </InfoRow>
             </InfoSection>
         </div>
     );

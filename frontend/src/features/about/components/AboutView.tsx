@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { InfoSection, InfoRow } from '@/components/ui/InfoGroup';
+import { InfoSection, InfoRow, RowLabel } from '@/components/ui/InfoGroup'; // 🟢 Добавили импорт RowLabel
 import { CapsuleModal } from '@/components/ui/CapsuleModal';
 import { MorphingCapsule, sharedSpringTransition } from '@/components/ui/MorphingCapsule';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,23 +36,28 @@ export default function AboutView() {
                     transition={sharedSpringTransition}
                     className="w-full"
                 >
-                    <InfoRow 
-                        icon="📜"
-                        iconBg="bg-blue-500"
-                        title={t('profile_rules')}
-                        onClick={() => setIsRulesOpen(true)}
-                        rightContent={<span className="text-theme-text opacity-50 font-bold">❯</span>}
-                    />
+                    <InfoRow onClick={() => setIsRulesOpen(true)} className="px-3">
+                        <RowLabel 
+                            icon="📜"
+                            iconBg="bg-blue-500"
+                            title={t('profile_rules')}
+                        />
+                        <div className="shrink-0 ml-3 flex items-center">
+                            <span className="text-theme-text opacity-50 font-bold">❯</span>
+                        </div>
+                    </InfoRow>
                 </MorphingCapsule>
             </InfoSection>
 
             <InfoSection title={t('about_authors')}>
-                <InfoRow 
-                    icon="👨‍💻"
-                    iconBg="bg-theme-main text-xl shadow-inner border border-theme-border/30"
-                    title="Your Name / Team"
-                    subtitle={t('about_developer')}
-                />
+                <InfoRow className="px-3">
+                    <RowLabel 
+                        icon="👨‍💻"
+                        iconBg="bg-theme-main text-xl shadow-inner border border-theme-border/30"
+                        title="Ту ту туууу"
+                        subtitle={t('about_developer')}
+                    />
+                </InfoRow>
                 <div className="p-4 text-sm font-medium text-theme-text opacity-70 leading-relaxed">
                     {t('about_credits_text')}
                 </div>

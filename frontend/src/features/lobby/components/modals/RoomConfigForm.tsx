@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GAME_CONFIG } from '@/utils/constants';
-import { AppleToggle } from '@/components/ui/AppleToggle';
 import { ExpandableCarouselRow, PickerOption } from '@/components/ui/carousel-picker';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { InfoSection, InfoRow } from '@/components/ui/InfoGroup';
+import { SegmentRow } from '@/components/ui/SegmentRow';
+import { SwitchRow } from '@/components/ui/SwitchRow';
+import { InfoRow, InfoSection, RowLabel } from '@/components/ui/InfoGroup';
 import { Input } from '@/components/ui/Input';
 
 interface RoomConfigFormProps {
@@ -40,7 +40,7 @@ export function RoomConfigForm({ config, onChange, isSearchMode, defaultRoomName
             </h3>
 
             <InfoSection title={t('modal_rules_label', 'Основные')}>
-                <SegmentedControl
+                <SegmentRow
                     options={[
                         { value: 'classic', label: '🏛️ ' + t('rule_classic') },
                         { value: 'local', label: '🏡 ' + t('rule_local') }
@@ -49,7 +49,7 @@ export function RoomConfigForm({ config, onChange, isSearchMode, defaultRoomName
                     onChange={v => onChange({ ruleSet: v })}
                 />
 
-                <SegmentedControl
+                <SegmentRow
                     options={[
                         { value: 2, label: '👥 2 Игрока' },
                         { value: 4, label: '👨‍👩‍👧‍👦 4 Игрока' }
@@ -61,22 +61,23 @@ export function RoomConfigForm({ config, onChange, isSearchMode, defaultRoomName
 
             <InfoSection title={t('modal_modifiers', 'Дополнительно')}>
                 {!isSearchMode && (
-                    <Input
-                        value={config.name}
-                        onChange={(e) => onChange({ name: e.target.value })}
-                        placeholder={defaultRoomName}
-                        maxLength={20}
-                    />
+                    <InfoRow className="px-3">
+                        <div className="flex-1 min-w-0">
+                            <Input
+                                value={config.name}
+                                onChange={(e) => onChange({ name: e.target.value })}
+                                placeholder={defaultRoomName}
+                                maxLength={20}
+                                // Убираем лишние паддинги внутри инпута, если они мешают
+                                className="!px-0 !bg-transparent"
+                            />
+                        </div>
+                    </InfoRow>
                 )}
 
                 <ExpandableCarouselRow
                     morphId="config-bet-morph"
-                    label={
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm bg-amber-500 text-sm">💰</div>
-                            <span className="font-bold text-sm text-theme-text">{t('modal_bet_label', 'Ставка')}</span>
-                        </div>
-                    }
+                    label={<RowLabel icon="💰" iconBg="bg-amber-500" title={t('modal_bet_label', 'Ставка')} />}
                     options={betOptions}
                     value={String(config.bet)}
                     onChange={(val) => onChange({ bet: Number(val) })}
@@ -85,34 +86,32 @@ export function RoomConfigForm({ config, onChange, isSearchMode, defaultRoomName
 
                 <ExpandableCarouselRow
                     morphId="config-speed-morph"
-                    label={
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm bg-blue-500 text-sm">⏱</div>
-                            <span className="font-bold text-sm text-theme-text">{t('modal_speed_label', 'Таймер хода')}</span>
-                        </div>
-                    }
+                    label={<RowLabel icon="⏱" iconBg="bg-blue-500" title={t('modal_speed_label', 'Таймер хода')} />}
                     options={speedOptions}
                     value={String(config.speed)}
                     onChange={(val) => onChange({ speed: Number(val) })}
-                    requireConfirm={false}
+                    requireConfirm={true}
                 />
 
-                <InfoRow
+                <SwitchRow
                     title={t('modal_strict_mode')}
                     icon="⚖️" iconBg="bg-red-500"
-                    rightContent={<AppleToggle checked={config.isStrict} onChange={v => onChange({ isStrict: v })} />}
+                    checked={config.isStrict}
+                    onChange={v => onChange({ isStrict: v })}
                 />
                 {config.ruleSet === 'local' && (
-                    <InfoRow
+                    <SwitchRow
                         title={t('modal_sudden_death')}
                         icon="⚡" iconBg="bg-amber-500"
-                        rightContent={<AppleToggle checked={config.isSuddenDeath} onChange={v => onChange({ isSuddenDeath: v })} />}
+                        checked={config.isSuddenDeath}
+                        onChange={v => onChange({ isSuddenDeath: v })}
                     />
                 )}
-                <InfoRow
+                <SwitchRow
                     title={t('modal_private_table')}
                     icon="🔒" iconBg="bg-slate-500"
-                    rightContent={<AppleToggle checked={config.isPrivate} onChange={v => onChange({ isPrivate: v })} />}
+                    checked={config.isPrivate}
+                    onChange={v => onChange({ isPrivate: v })}
                 />
             </InfoSection>
         </div>

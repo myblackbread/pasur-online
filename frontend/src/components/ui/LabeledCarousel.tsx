@@ -21,7 +21,7 @@ export default function LanguageSwitcher() {
                 options={LANGUAGE_OPTIONS}
                 value={i18n.language}
                 onChange={(lng) => i18n.changeLanguage(lng)}
-                requireConfirm={false} // Язык переключается мгновенно
+                requireConfirm={true} // Язык переключается мгновенно
             />
         </div>
     );
