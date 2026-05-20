@@ -1,6 +1,13 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useRef, useEffect } from 'react';
+import { motion, Transition } from 'framer-motion';
+import { Info, X } from 'lucide-react';
 
-// 1. Обертка для секции (осталась без изменений)
+const springTransition = { 
+    type: 'spring', 
+    stiffness: 350, 
+    damping: 30 
+} as const satisfies Transition;
+
 interface InfoSectionProps {
     title?: string;
     footer?: string;
@@ -10,13 +17,27 @@ interface InfoSectionProps {
 
 export function InfoSection({ title, footer, children, className = '' }: InfoSectionProps) {
     return (
-        <div className={`flex flex-col ${className}`}>
-            {title && <h3 className="uppercase text-[10px] sm:text-xs font-bold text-theme-text opacity-50 ml-4 mb-2 tracking-wider">{title}</h3>}
-            <div className="bg-theme-main p-1 rounded-[28px] shadow-inner flex flex-col gap-1">
+        <motion.div layout transition={springTransition} className={`flex flex-col ${className}`}>
+            {title && (
+                <motion.h3 layout="position" transition={springTransition} className="uppercase text-[11px] sm:text-xs font-bold text-theme-muted ml-4 mb-2 tracking-wider">
+                    {title}
+                </motion.h3>
+            )}
+            
+            <motion.div 
+                layout 
+                transition={springTransition} 
+                className="bg-theme-panel rounded-[28px] flex flex-col p-1"
+            >
                 {children}
-            </div>
-            {footer && <p className="text-[10px] sm:text-xs text-theme-text opacity-50 ml-4 mt-2 font-medium">{footer}</p>}
-        </div>
+            </motion.div>
+
+            {footer && (
+                <motion.p layout="position" transition={springTransition} className="text-[11px] sm:text-xs text-theme-muted ml-4 mt-2 font-medium leading-snug">
+                    {footer}
+                </motion.p>
+            )}
+        </motion.div>
     );
 }
 
@@ -28,20 +49,22 @@ interface InfoRowProps {
 }
 
 export function InfoRow({ children, onClick, className = '', variant = 'default' }: InfoRowProps) {
-    // !!! Надо сделать через флаг. 
-    const padding = variant === 'default' ? 'px-3' : '';
+    const padding = variant === 'default' ? 'px-3 py-3' : '';
     
     return (
-        <div 
+        <motion.div 
+            layout
+            transition={springTransition}
             onClick={onClick} 
-            className={`flex items-center justify-between min-h-12 w-full rounded-full transition-all ${padding} ${
-                onClick ? 'cursor-pointer' : ''
-            } ${className}`}
+            className={`flex items-center justify-between min-h-12 w-full rounded-[20px] transition-colors ${
+                onClick ? 'cursor-pointer hover:bg-theme-main active:opacity-70' : ''
+            } ${padding} ${className}`}
         >
             {children}
-        </div>
+        </motion.div>
     );
 }
+
 interface RowLabelProps {
     icon?: ReactNode;
     iconBg?: string;
@@ -50,16 +73,58 @@ interface RowLabelProps {
 }
 
 export function RowLabel({ icon, iconBg = 'bg-theme-primary', title, subtitle }: RowLabelProps) {
+    // ... логика isExpanded остается без изменений ...
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isOverflowing, setIsOverflowing] = useState(false);
+    const textRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const checkOverflow = () => {
+            if (textRef.current && !isExpanded) {
+                setIsOverflowing(textRef.current.scrollHeight > textRef.current.clientHeight + 2);
+            }
+        };
+        checkOverflow();
+        const timeout = setTimeout(checkOverflow, 100);
+        window.addEventListener('resize', checkOverflow);
+        return () => { clearTimeout(timeout); window.removeEventListener('resize', checkOverflow); };
+    }, [subtitle, isExpanded]);
+
+    const handleToggle = (e: React.MouseEvent) => {
+        if (isOverflowing || isExpanded) {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+        }
+    };
+
     return (
         <div className="flex items-center gap-3 flex-1 min-w-0">
             {icon && (
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm ${iconBg}`}>
+                <motion.div layout="position" transition={springTransition} className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 ${iconBg}`}>
                     <span className="text-sm leading-none">{icon}</span>
-                </div>
+                </motion.div>
             )}
-            <div className="flex flex-col justify-center text-left">
-                <span className="font-bold text-sm text-theme-text leading-tight truncate">{title}</span>
-                {subtitle && <span className="text-[10px] text-theme-text opacity-50 font-medium leading-tight truncate mt-0.5">{subtitle}</span>}
+            <div className="flex flex-col justify-center text-left flex-1 min-w-0">
+                <motion.span layout="position" transition={springTransition} className="font-bold text-sm text-theme-text leading-tight break-words">
+                    {title}
+                </motion.span>
+                
+                {subtitle && (
+                    <motion.div layout transition={springTransition} className={`flex items-end gap-2 mt-0.5 w-full min-w-0 ${isOverflowing || isExpanded ? 'cursor-pointer' : ''}`} onClick={handleToggle}>
+                        <motion.div layout transition={springTransition} className="flex-1 min-w-0">
+                            <div ref={textRef} className={`text-[11px] sm:text-xs text-theme-muted font-medium leading-snug break-words whitespace-normal ${isExpanded ? '' : 'line-clamp-2'}`}>
+                                {subtitle}
+                            </div>
+                        </motion.div>
+                        
+                        {(isOverflowing || isExpanded) && (
+                            <motion.div layout="position" transition={springTransition} className="shrink-0 text-theme-primary flex items-center justify-center py-1">
+                                {isExpanded ? <X className="w-4 h-4"/> : <Info className="w-4 h-4"/>}
+                            </motion.div>
+                        )}
+                    </motion.div>
+                )}
             </div>
         </div>
     );

@@ -1,54 +1,52 @@
 @import "tailwindcss";
 
+/* 🛠️ РЕГИСТРИРУЕМ ЦВЕТА ДЛЯ TAILWIND V4 */
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
+  /* Эти строчки говорят Tailwind автоматически создать классы: 
+     bg-theme-main, text-theme-main, border-theme-main и т.д. */
   --color-theme-main: var(--bg-main);
   --color-theme-panel: var(--bg-panel);
   --color-theme-primary: var(--color-primary);
   --color-theme-text: var(--color-text);
+  --color-theme-muted: var(--color-muted); /* <-- ДОБАВИЛИ НОВЫЙ ЦВЕТ */
   --color-theme-border: var(--color-border);
 }
 
 @layer base {
-  /* БАЗОВАЯ (ПО УМОЛЧАНИЮ = МУЖСКАЯ ТЕМА) */
+  /* ☀️ СВЕТЛАЯ ТЕМА (ПО УМОЛЧАНИЮ) */
   :root {
-    --bg-main: #f1f5f9;
-    --bg-panel: #ffffff;
-    --color-primary: #3b82f6;
-    --color-text: #0f172a;
-    --color-border: #e2e8f0;
+    --bg-main: #f1f5f9;       /* Мягкий фон приложения (slate-100) */
+    --bg-panel: #ffffff;      /* Белый фон для карточек */
+    --color-primary: #3b82f6; /* Акцентный цвет (синий) */
+    --color-text: #0f172a;    /* Темный текст (slate-900) */
+    --color-muted: #64748b;   /* Приглушенный текст (slate-500) */
+    --color-border: #e2e8f0;  /* Светлый разделитель (slate-200) */
 
-    /* Сразу определяем safe-area переменные здесь */
     --safe-top: max(env(safe-area-inset-top), 1rem);
     --safe-bottom: max(env(safe-area-inset-bottom), 1rem);
     --safe-left: max(env(safe-area-inset-left), 1rem);
     --safe-right: max(env(safe-area-inset-right), 1rem);
   }
 
-  /* ЖЕНСКАЯ ТЕМА */
-  :root[data-theme="female"] {
-    --bg-main: #fff1f2;
-    --bg-panel: #ffffff;
-    --color-primary: #f43f5e;
-    --color-text: #4c0519;
-    --color-border: #ffe4e6;
-  }
-
-  /* Дублируем мужскую для явного переключения, если потребуется */
-  :root[data-theme="male"] {
-    --bg-main: #f1f5f9;
-    --bg-panel: #ffffff;
-    --color-primary: #3b82f6;
-    --color-text: #0f172a;
-    --color-border: #e2e8f0;
+  /* 🌙 ТЕМНАЯ ТЕМА (Подхватывается автоматически из настроек телефона/ОС) */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-main: #0f172a;     /* Темный фон приложения (slate-900) */
+      --bg-panel: #1e293b;    /* Фон карточек (slate-800) */
+      --color-primary: #3b82f6; /* Акцентный синий (оставим ярким) */
+      --color-text: #f8fafc;  /* Светлый текст (slate-50) */
+      --color-muted: #94a3b8; /* Приглушенный текст (slate-400) */
+      --color-border: #334155;/* Темный разделитель (slate-700) */
+    }
   }
 
   body {
     background-color: var(--bg-main);
     color: var(--color-text);
-    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 }
 
