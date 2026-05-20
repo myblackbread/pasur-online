@@ -5,25 +5,23 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
-  /* Эти строчки говорят Tailwind автоматически создать классы: 
-     bg-theme-main, text-theme-main, border-theme-main и т.д. */
   --color-theme-main: var(--bg-main);
   --color-theme-panel: var(--bg-panel);
   --color-theme-primary: var(--color-primary);
   --color-theme-text: var(--color-text);
-  --color-theme-muted: var(--color-muted); /* <-- ДОБАВИЛИ НОВЫЙ ЦВЕТ */
+  --color-theme-muted: var(--color-muted);
   --color-theme-border: var(--color-border);
 }
 
 @layer base {
-  /* ☀️ СВЕТЛАЯ ТЕМА (ПО УМОЛЧАНИЮ) */
+  /* 👨 ☀️ СВЕТЛАЯ ТЕМА - МУЖСКАЯ (ПО УМОЛЧАНИЮ) */
   :root {
-    --bg-main: #f1f5f9;       /* Мягкий фон приложения (slate-100) */
-    --bg-panel: #ffffff;      /* Белый фон для карточек */
-    --color-primary: #3b82f6; /* Акцентный цвет (синий) */
-    --color-text: #0f172a;    /* Темный текст (slate-900) */
-    --color-muted: #64748b;   /* Приглушенный текст (slate-500) */
-    --color-border: #e2e8f0;  /* Светлый разделитель (slate-200) */
+    --bg-main: #f1f5f9;       /* slate-100 */
+    --bg-panel: #ffffff;      /* белый */
+    --color-primary: #3b82f6; /* blue-500 */
+    --color-text: #0f172a;    /* slate-900 */
+    --color-muted: #64748b;   /* slate-500 */
+    --color-border: #e2e8f0;  /* slate-200 */
 
     --safe-top: max(env(safe-area-inset-top), 1rem);
     --safe-bottom: max(env(safe-area-inset-bottom), 1rem);
@@ -31,18 +29,41 @@
     --safe-right: max(env(safe-area-inset-right), 1rem);
   }
 
-  /* 🌙 ТЕМНАЯ ТЕМА (Подхватывается автоматически из настроек телефона/ОС) */
+  /* 👩 ☀️ СВЕТЛАЯ ТЕМА - ЖЕНСКАЯ */
+  :root[data-theme="female"] {
+    --bg-main: #fff1f2;       /* rose-50 - легкий розоватый фон */
+    --bg-panel: #ffffff;      /* белый */
+    --color-primary: #f43f5e; /* rose-500 - красивый розово-красный акцент */
+    --color-text: #4c0519;    /* rose-950 - темный текст с бордовым оттенком */
+    --color-muted: #9f1239;   /* rose-900 - приглушенный бордовый */
+    --color-border: #fecdd3;  /* rose-200 - розоватый разделитель */
+  }
+
+  /* 🌙 ТЕМНАЯ ТЕМА (ПОДХВАТЫВАЕТСЯ АВТОМАТИЧЕСКИ ИЗ СИСТЕМЫ) */
   @media (prefers-color-scheme: dark) {
+    
+    /* 👨 🌙 ТЕМНАЯ ТЕМА - МУЖСКАЯ */
     :root {
-      --bg-main: #0f172a;     /* Темный фон приложения (slate-900) */
-      --bg-panel: #1e293b;    /* Фон карточек (slate-800) */
-      --color-primary: #3b82f6; /* Акцентный синий (оставим ярким) */
-      --color-text: #f8fafc;  /* Светлый текст (slate-50) */
-      --color-muted: #94a3b8; /* Приглушенный текст (slate-400) */
-      --color-border: #334155;/* Темный разделитель (slate-700) */
+      --bg-main: #0f172a;       /* slate-900 */
+      --bg-panel: #1e293b;      /* slate-800 */
+      --color-primary: #3b82f6; /* blue-500 */
+      --color-text: #f8fafc;    /* slate-50 */
+      --color-muted: #94a3b8;   /* slate-400 */
+      --color-border: #334155;  /* slate-700 */
+    }
+
+    /* 👩 🌙 ТЕМНАЯ ТЕМА - ЖЕНСКАЯ */
+    :root[data-theme="female"] {
+      --bg-main: #2a0a18;       /* глубокий темный бордовый/фиолетовый фон */
+      --bg-panel: #4c0519;      /* rose-950 - фон карточек */
+      --color-primary: #fb7185; /* rose-400 - яркий розовый акцент для контраста */
+      --color-text: #fff1f2;    /* rose-50 - светлый текст */
+      --color-muted: #fda4af;   /* rose-300 - приглушенный розовый */
+      --color-border: #881337;  /* rose-900 - темный разделитель */
     }
   }
 
+  /* Анимация переходов цветов при смене темы или пола */
   body {
     background-color: var(--bg-main);
     color: var(--color-text);
