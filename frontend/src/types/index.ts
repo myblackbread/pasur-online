@@ -1,3 +1,2 @@
-export * from './user.types';
-export * from './game.types';
-export * from './room.types';
+export * from '../entities/user/model/user.types';
+export * from '../entities/game/model/game.types';

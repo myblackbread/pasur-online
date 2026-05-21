@@ -1,20 +1,31 @@
-'use client';
+"use client";
+import { useAlert } from "../providers/AlertProvider/AlertProvider";
 
-import { useRouter } from 'next/navigation';
+export default function MyComponent() {
+    const { showAlert } = useAlert();
 
-export default function HomePage() {
-  const router = useRouter();
+    const handleDelete = () => {
+        const currentUser = { id: 1, name: "Ivan" };
 
-  const handleGoToProfile = () => {
-    router.push('/profile');
-  };
+        showAlert({
+            title: "Удаление пользователя",
+            message: "Вы уверены, что хотите удалить этот аккаунт? Действие необратимо.",
+            presenting: currentUser,
+            buttons: [
+                {
+                    text: "Удалить",
+                    style: "destructive",
+                    onPress: (user) => {
+                        console.log("Удаляем пользователя:", user?.name);
+                    }
+                },
+                {
+                    text: "Отмена",
+                    style: "cancel",
+                }
+            ]
+        });
+    };
 
-  return (
-    <div>
-      <h1>Главная страница</h1>
-      <button onClick={handleGoToProfile}>
-        Перейти в профиль
-      </button>
-    </div>
-  );
+    return <button onClick={handleDelete}>Удалить</button>;
 }

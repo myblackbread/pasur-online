@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AlertProvider } from "@/components/providers/AlertProvider";
-import { I18nProvider } from "@/components/providers/I18nProvider";
-import { AuthProvider } from "@/components/providers/AuthProvider";
+import { AlertProvider } from "@/app/providers/AlertProvider/AlertProvider";
+import { I18nProvider } from "@/app/providers/I18nProvider";
+import { AuthProvider } from "@/app/providers/AuthProvider";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
