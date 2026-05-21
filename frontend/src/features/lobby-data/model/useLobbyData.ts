@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { realtimeApi } from '@/shared/api/supabase';
-import { GameRoom, UserProfile } from '@/types';
+import { GameRoom } from '@/entities/room/model/room.types';
+import { UserProfile } from '@/entities/user/model/user.types';
 
 export function useLobbyData(user: UserProfile) {
     const [rooms, setRooms] = useState<GameRoom[]>([]);
