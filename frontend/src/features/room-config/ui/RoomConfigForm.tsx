@@ -20,7 +20,9 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
     const betOptions: PickerOption[] = useMemo(() => {
         return GAME_CONFIG.BET_OPTIONS.map(b => ({
             id: String(b),
-            content: <span className="text-lg font-black text-amber-500">{b}</span>,
+            // Задаем text-2xl и truncate, чтобы даже 10000 гарантированно вмещалось в карточку
+            content: <span className="font-black text-amber-500 text-2xl truncate">{b}</span>,
+            thumbnail: <span className="font-bold text-amber-500">{b} 💰</span>, 
             description: `${b} 💰`
         }));
     }, []);
@@ -28,7 +30,10 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
     const speedOptions: PickerOption[] = useMemo(() => {
         return GAME_CONFIG.SPEED_OPTIONS.map(s => ({
             id: String(s.value),
-            content: <span className="text-xl">{s.icon}</span>,
+            // Внутри карусели иконка будет крупной
+            content: <span className="text-4xl">{s.icon}</span>,
+            // В свернутом виде возвращаем старый компактный вариант (только иконка)
+            thumbnail: <span className="text-xl">{s.icon}</span>,
             description: t(s.labelKey)
         }));
     }, [t]);
@@ -83,7 +88,13 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                                 value={config.players}
                                 onChange={v => onChange({ players: v })}
                             />)
-                        },
+                        }
+                    ]}
+                />
+
+                <InfoSection
+                    title={t('modal_rules_label')} // Возможно тут опечатка и должно быть t('modal_game_settings_label')?
+                    items={[
                         {
                             id: '4',
                             interactive: true,
@@ -111,6 +122,7 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                     ]}
                 />
 
+
                 <InfoSection
                     title={t('modal_modifiers')}
                     items={[
@@ -125,19 +137,19 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                                 onChange={v => onChange({ isStrict: v })}
                             />)
                         },
-                        {
+                        config.ruleSet === 'local' ? {
                             id: '7',
                             interactive: true,
                             variant: 'default',
-                            content: (config.ruleSet === 'local' ? (
+                            content: (
                                 <SwitchRow
                                     title={t('modal_sudden_death')}
                                     icon="⚡" iconBg="bg-amber-500"
                                     checked={config.isSuddenDeath}
                                     onChange={v => onChange({ isSuddenDeath: v })}
                                 />
-                            ) : null)
-                        },
+                            )
+                        } : null,
                         {
                             id: '8',
                             interactive: true,

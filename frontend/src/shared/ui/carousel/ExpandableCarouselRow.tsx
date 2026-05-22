@@ -1,8 +1,17 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check } from 'lucide-react';
 import { CarouselPicker, PickerOption } from './CarouselPicker';
-import { InfoRow } from '../lists/InfoRow';
+import { Check } from 'lucide-react';
+
+interface ExpandableCarouselRowProps {
+    label: string | React.ReactNode;
+    options: PickerOption[];
+    value: string;
+    onChange: (id: string) => void;
+    morphId: string;
+    className?: string;
+    renderConfirmButton?: (onConfirm: (e: React.MouseEvent) => void) => React.ReactNode;
+}
 
 export function ExpandableCarouselRow({
     label,
@@ -10,21 +19,19 @@ export function ExpandableCarouselRow({
     value,
     onChange,
     morphId,
-    className = ''
-}: {
-    label: string | React.ReactNode;
-    options: PickerOption[];
-    value: string;
-    onChange: (id: string) => void;
-    morphId: string;
-    className?: string;
-}) {
+    className = '',
+    renderConfirmButton
+}: ExpandableCarouselRowProps) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [tempValue, setTempValue] = React.useState(value);
 
-    React.useEffect(() => {
-        if (isOpen) setTempValue(value);
-    }, [isOpen, value]);
+    // Синхронизируем стейт при открытии без useEffect
+    const handleToggle = () => {
+        if (!isOpen) {
+            setTempValue(value);
+        }
+        setIsOpen(!isOpen);
+    };
 
     const activeId = isOpen ? tempValue : value;
     const activeOption = options.find(o => o.id === activeId) || options[0];
@@ -39,11 +46,15 @@ export function ExpandableCarouselRow({
 
     return (
         <motion.div layout layoutRoot className={`w-full flex flex-col ${className}`}>
+            <div
+                onClick={handleToggle}
+                className="flex items-center justify-between w-full h-fit transition-colors relative cursor-pointer"
+            >
+                <div className="flex-grow">
+                    {label}
+                </div>
 
-            <div onClick={() => setIsOpen(!isOpen)} className={`flex items-center justify-between min-h-12 w-full transition-colors relative`}>
-                {label}
-
-                <AnimatePresence mode='wait'>
+                <AnimatePresence mode="popLayout">
                     {!isOpen ? (
                         <motion.div
                             key="thumbnail"
@@ -51,21 +62,31 @@ export function ExpandableCarouselRow({
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            className="min-w-0 px-4 h-8 flex items-center justify-center bg-theme-panel rounded-full shadow-sm shrink-0 ml-3"
+                            className="shrink-0" // Защита от сжатия длинным текстом
                         >
-                            <span className="text-base leading-none">{activeOption.content}</span>
+                            {/* Если есть отдельная миниатюра — показываем её, иначе основной контент */}
+                            {activeOption.thumbnail || activeOption.content}
                         </motion.div>
                     ) : (
-                        <motion.button
-                            key="confirm-btn"
-                            initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
-                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                            exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
-                            onClick={handleConfirm}
-                            className="w-8 h-8 bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:shadow-lg rounded-full ml-3"
-                        >
-                            <Check className="w-4 h-4 text-white" />
-                        </motion.button>
+                        <div className="shrink-0 p-2 flex items-center justify-center">
+                            {renderConfirmButton ? (
+                                renderConfirmButton(handleConfirm)
+                            ) : (
+                                <motion.button
+                                    key="confirm-btn"
+                                    initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+                                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                    exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
+                                    onClick={handleConfirm}
+                                    className="h-full w-full bg-theme-primary flex items-center justify-center shrink-0 shadow-md hover:shadow-lg rounded-full"
+                                >
+                                    <Check
+                                        className="w-full h-full text-white"
+                                        style={{ transform: `scale(${Math.sqrt(0.5)})` }}
+                                    />
+                                </motion.button>
+                            )}
+                        </div>
                     )}
                 </AnimatePresence>
             </div>

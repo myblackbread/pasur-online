@@ -37,15 +37,9 @@ function InfoRow({
 
     return (
         <motion.div
-            // 1. ЗАМЕНИЛИ items-center на items-stretch (позволяем детям тянуться по высоте)
-            className={`flex items-stretch min-h-16 w-full ${interactiveClasses} ${padding}`}
+            className={`grid min-h-16 ${interactiveClasses} ${padding}`}
         >
-            {/* 2. Добавили flex flex-col justify-center. 
-                - Это выровняет обычный текст по центру (по вертикали).
-                - А компоненты с h-full (как ваш SegmentedControl) наконец-то смогут занять все доступное место. */}
-            <div className="flex-1 w-full flex flex-col justify-center">
-                {content}
-            </div>
+            {content}
         </motion.div>
     );
 }
@@ -81,7 +75,7 @@ export function InfoSection({
                                 interactive={item.interactive}
                                 variant={item.variant}
                             />
-                            {!isLast && <Divider indent={false} />} 
+                            {!isLast && <Divider indent={false} />}
                         </React.Fragment>
                     );
                 })}

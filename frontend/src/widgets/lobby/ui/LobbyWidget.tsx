@@ -16,7 +16,7 @@ import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
 import { useLobbyData } from '../model/useLobbyData';
 import { ActiveRoomsWidget } from './ActiveRoomsWidget';
 import { OpenRoomsWidget } from './OpenRoomsWidget';
-import { RoomConfigForm } from '../../../features/room-config/ui/RoomConfigForm';
+import { RoomConfigForm } from '@/features/room-config/ui/RoomConfigForm';
 
 const DEFAULT_CONFIG = {
     name: '',

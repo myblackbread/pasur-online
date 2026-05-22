@@ -34,7 +34,14 @@ function InfiniteCarouselItem<T>({
         return 1.1 - (0.2 * (distance / 20));
     });
 
-    const opacity = useTransform(x, [-spacing - 30, -spacing, 0, spacing, spacing + 30], [0, 0.4, 1, 0.4, 0]);
+    // Динамический расчет границ затухания вместо жестких 30px
+    const fadeOffset = spacing * 0.3; 
+    const opacity = useTransform(
+        x, 
+        [-spacing - fadeOffset, -spacing, 0, spacing, spacing + fadeOffset], 
+        [0, 0.4, 1, 0.4, 0]
+    );
+    
     const zIndex = useTransform(x, [-spacing, 0, spacing], [5, 10, 5]);
 
     const handleClick = () => {
