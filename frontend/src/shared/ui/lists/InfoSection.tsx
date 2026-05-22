@@ -29,7 +29,7 @@ function InfoRow({
     interactive = false,
     variant = 'default',
 }: Omit<InfoItem, 'id' | 'isLast'>) {
-    const padding = variant === 'default' ? 'px-4' : '';
+    const padding = variant === 'default' ? 'px-3.5' : '';
 
     const interactiveClasses = interactive
         ? 'transition-colors active:bg-theme-main cursor-pointer'
@@ -37,7 +37,7 @@ function InfoRow({
 
     return (
         <motion.div
-            className={`grid min-h-16 ${interactiveClasses} ${padding}`}
+            className={`grid min-h-14 ${interactiveClasses} ${padding}`}
         >
             {content}
         </motion.div>
@@ -55,7 +55,7 @@ export function InfoSection({
     return (
         <motion.div layout transition={springTransition} className={`flex flex-col gap-2 ${className}`}>
             {title && (
-                <motion.h3 layout="position" transition={springTransition} className="uppercase text-[11px] sm:text-xs font-bold text-theme-muted ml-4 tracking-wider">
+                <motion.h3 layout="position" transition={springTransition} className="uppercase text-[10px] sm:text-xs font-bold text-theme-muted ml-4 tracking-wider">
                     {title}
                 </motion.h3>
             )}
@@ -63,7 +63,7 @@ export function InfoSection({
             <motion.div
                 layout
                 transition={sharedSpringTransition}
-                className="bg-theme-panel rounded-4xl flex flex-col overflow-hidden"
+                className="bg-theme-panel rounded-[28px] flex flex-col overflow-hidden"
             >
                 {validItems.map((item, index) => {
                     const isLast = index === validItems.length - 1;
@@ -82,7 +82,7 @@ export function InfoSection({
             </motion.div>
 
             {footer && (
-                <motion.p layout="position" transition={springTransition} className="text-[11px] sm:text-xs text-theme-muted ml-4 font-medium leading-snug">
+                <motion.p layout="position" transition={springTransition} className="text-[10px] sm:text-xs text-theme-muted ml-4 font-medium leading-snug">
                     {footer}
                 </motion.p>
             )}

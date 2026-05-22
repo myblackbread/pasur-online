@@ -256,7 +256,7 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
                                         onClick={() => setView('filter')}
                                         className="w-14 h-14 cursor-pointer shadow-lg bg-theme-panel/80 backdrop-blur-2xl flex items-center justify-center"
                                     >
-                                        <SlidersHorizontal className="w-6 h-6 text-theme-text opacity-80" />
+                                        <SlidersHorizontal className="w- h-6 text-theme-text opacity-80" />
                                     </MorphingCapsule>
                                 </motion.div>
                             </AnimatePresence>

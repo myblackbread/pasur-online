@@ -49,9 +49,9 @@ export function RowLabel({ icon, iconBg = 'bg-theme-primary', title, subtitle }:
     };
 
     return (
-        <div className="min-h-16 flex gap-3 flex-1 min-w-0 items-start py-2">
+        <div className="min-h-14 flex gap-3 flex-1 min-w-0 items-start py-2">
             {icon && (
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white ${iconBg}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white ${iconBg}`}>
                     {/* Увеличен размер текста для красивого отображения эмодзи */}
                     <span className="text-xl leading-none">{icon}</span>
                 </div>
@@ -62,7 +62,7 @@ export function RowLabel({ icon, iconBg = 'bg-theme-primary', title, subtitle }:
               Если контента мало - он идеально центрируется.
               Если текст раскрывается - блок растет вниз, а иконка остается на месте.
             */}
-            <div className="flex flex-col justify-center min-h-[48px] text-left flex-1 min-w-0">
+            <div className="flex flex-col justify-center min-h-10 text-left flex-1 min-w-0">
                 <span className="font-bold text-sm text-theme-text leading-tight break-words">
                     {title}
                 </span>

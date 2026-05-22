@@ -30,10 +30,8 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
     const speedOptions: PickerOption[] = useMemo(() => {
         return GAME_CONFIG.SPEED_OPTIONS.map(s => ({
             id: String(s.value),
-            // Внутри карусели иконка будет крупной
             content: <span className="text-4xl">{s.icon}</span>,
-            // В свернутом виде возвращаем старый компактный вариант (только иконка)
-            thumbnail: <span className="text-xl">{s.icon}</span>,
+            thumbnail: <span className="text-xl mr-1">{s.icon}</span>,
             description: t(s.labelKey)
         }));
     }, [t]);
