@@ -126,7 +126,7 @@ export default function SettingsWidget({
                         content: (<SwitchRow
                             icon="🕵️‍♀️" iconBg="bg-slate-700 dark:bg-slate-500"
                             title={t('settings_incognito')}
-                            subtitle={`${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n${t('settings_incognito_desc')}\n`}
+                            subtitle={t('settings_incognito_desc')}
                             checked={isIncognito}
                             onChange={toggleIncognito}
                         />)
