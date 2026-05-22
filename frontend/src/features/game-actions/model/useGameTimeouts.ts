@@ -1,6 +1,6 @@
 import { useEffect, useCallback, MutableRefObject } from 'react';
-import { gameApi } from '@/entities/room/api/game.api';
-import { GameRoom } from '@/entities/room/model/room.types';
+import { GameRoom, roomApi } from '@/entities/room';
+import { gamePlayApi } from '../api/game-play.api';
 
 export function useGameTimeouts(
     roomId: string,
@@ -14,7 +14,7 @@ export function useGameTimeouts(
     const claimTimeoutVictory = useCallback(async () => {
         if (isProcessing.current) return;
         isProcessing.current = true;
-        try { await gameApi.leaveRoom(roomId, 'timeout'); }
+        try { await roomApi.leaveRoom(roomId, 'timeout'); }
         catch (e: any) { if (!e.message?.includes("ERR_INVALID_MOVE")) console.error(e); }
         finally { setTimeout(() => { isProcessing.current = false; }, 2000); }
     }, [roomId, isProcessing]);
@@ -30,7 +30,7 @@ export function useGameTimeouts(
         }
 
         if (roomData?.status === 'pause_requested' && rawTurnTimeLeft === 0) {
-            gameApi.resolvePauseTimeout(roomId);
+            gamePlayApi.resolvePauseTimeout(roomId);
         }
         return () => { if (timeout) clearTimeout(timeout); if (interval) clearInterval(interval); };
     }, [roomData?.status, isMyTurnSafe, isSpectatorSafe, rawTurnTimeLeft, claimTimeoutVictory, roomId, isProcessing]);
@@ -42,7 +42,7 @@ export function useGameTimeouts(
             const attemptResolve = () => {
                 if (!isProcessing.current) {
                     isProcessing.current = true;
-                    gameApi.resolveReadyTimeout(roomId).finally(() => { setTimeout(() => { isProcessing.current = false; }, 2000); });
+                    gamePlayApi.resolveReadyTimeout(roomId).finally(() => { setTimeout(() => { isProcessing.current = false; }, 2000); });
                 }
             };
             timeout = setTimeout(attemptResolve, 1500);

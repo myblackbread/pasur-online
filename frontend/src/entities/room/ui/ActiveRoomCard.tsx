@@ -4,7 +4,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { GameRoom } from "../model/room.types";
 import { useCountdown } from "@/shared/lib/hooks/useCountdown";
-import { PlayerSquare } from "@/entities/user/ui/PlayerSquare";
 import { TimerBorder } from "@/shared/ui/animations/TimerBorder";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight } from "lucide-react";
@@ -15,7 +14,17 @@ const getCardStyle = (room: GameRoom) => {
     return 'border-theme-border/30 bg-theme-panel shadow-sm';
 };
 
-export const ActiveRoomCard = ({ room, mask, onClick }: { room: GameRoom, mask?: string, onClick: () => void }) => {
+export const ActiveRoomCard = ({
+    room,
+    mask,
+    onClick,
+    playerSlot
+}: {
+    room: GameRoom,
+    mask?: string,
+    onClick: () => void,
+    playerSlot: React.ReactNode
+}) => {
     const { t } = useTranslation();
     const [showSettings, setShowSettings] = React.useState(false);
 
@@ -35,15 +44,15 @@ export const ActiveRoomCard = ({ room, mask, onClick }: { room: GameRoom, mask?:
 
     const me = room.players.find(p => p.id === mask);
     const isMyTurn = isPlaying && room.gameState?.players?.[room.gameState.currentTurnIndex]?.id === mask;
-    
+
     let actionRequired = false;
     let statusLabel = '';
     let timerValue: number | null = null;
-    let maxTime = 60; 
+    let maxTime = 60;
 
     if (isReadyCheck) {
         timerValue = rawReadyTime;
-        maxTime = 30; 
+        maxTime = 30;
         if (me && !me.isReady) {
             actionRequired = true;
             statusLabel = t('game_confirm_ready') || 'Подтвердите готовность';
@@ -77,12 +86,12 @@ export const ActiveRoomCard = ({ room, mask, onClick }: { room: GameRoom, mask?:
         statusLabel = t('status_finished') || 'Матч окончен';
     }
 
-    const progress = (actionRequired && timerValue !== null) 
-        ? Math.max(0, Math.min(1, timerValue / maxTime)) 
+    const progress = (actionRequired && timerValue !== null)
+        ? Math.max(0, Math.min(1, timerValue / maxTime))
         : 0;
 
-    const borderClass = actionRequired 
-        ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]' 
+    const borderClass = actionRequired
+        ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
         : getCardStyle(room);
 
     const carouselVariants = {
@@ -93,19 +102,19 @@ export const ActiveRoomCard = ({ room, mask, onClick }: { room: GameRoom, mask?:
 
     return (
         <div onClick={onClick} className={`p-3 sm:p-4 rounded-2xl hover:shadow-md transition-all duration-300 cursor-pointer active:scale-[0.98] flex items-center gap-3 sm:gap-4 border-2 ${borderClass} overflow-hidden bg-theme-panel`}>
-            
+
             <div className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl">
-                <PlayerSquare players={room.players} maxPlayers={room.maxPlayers} />
+                {playerSlot}
                 {actionRequired && timerValue !== null && timerValue > 0 && (
                     <TimerBorder progress={progress} />
                 )}
             </div>
-            
+
             <div className="flex-1 min-w-0 flex flex-col justify-center text-left">
                 <div className="font-bold text-base sm:text-lg text-theme-text truncate w-full">
                     {room.name || "Игровой стол"}
                 </div>
-                
+
                 <div className="relative h-[22px] w-full mt-0.5 overflow-hidden">
                     <AnimatePresence initial={false}>
                         {!showSettings ? (

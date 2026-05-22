@@ -1,26 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { CarouselPicker, PickerOption } from './CarouselPicker';
 import { InfoRow } from '../lists/InfoRow';
 
-export interface ExpandableCarouselRowProps {
+export function ExpandableCarouselRow({
+    label,
+    options,
+    value,
+    onChange,
+    morphId,
+    className = ''
+}: {
     label: string | React.ReactNode;
     options: PickerOption[];
     value: string;
     onChange: (id: string) => void;
     morphId: string;
-    requireConfirm?: boolean;
     className?: string;
-}
+}) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [tempValue, setTempValue] = React.useState(value);
 
-export function ExpandableCarouselRow({
-    label, options, value, onChange, morphId, className = ''
-}: ExpandableCarouselRowProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [tempValue, setTempValue] = useState(value);
-
-    useEffect(() => {
+    React.useEffect(() => {
         if (isOpen) setTempValue(value);
     }, [isOpen, value]);
 
@@ -36,15 +38,12 @@ export function ExpandableCarouselRow({
     };
 
     return (
-        <motion.div layout className={`w-full flex flex-col ${className}`}>
+        <motion.div layout layoutRoot className={`w-full flex flex-col ${className}`}>
 
-            {/* !!! Зачем здесь z-10? Без него работает */}
-            <InfoRow onClick={() => setIsOpen(!isOpen)} className="relative z-10">
-                <motion.div layout="position" className="flex items-center gap-3 flex-1 min-w-0">
-                    {label}
-                </motion.div>
+            <div onClick={() => setIsOpen(!isOpen)} className={`flex items-center justify-between min-h-12 w-full transition-colors relative`}>
+                {label}
 
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode='wait'>
                     {!isOpen ? (
                         <motion.div
                             key="thumbnail"
@@ -69,7 +68,7 @@ export function ExpandableCarouselRow({
                         </motion.button>
                     )}
                 </AnimatePresence>
-            </InfoRow>
+            </div>
 
             <AnimatePresence>
                 {isOpen && (
@@ -77,11 +76,10 @@ export function ExpandableCarouselRow({
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="w-full overflow-hidden relative z-0"
+                        className="w-full overflow-hidden relative"
                     >
                         <motion.div
                             layoutId={morphId}
-                            className="w-full bg-theme-panel shadow-md rounded-3xl py-4 mt-1 border border-theme-border/30"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <CarouselPicker
@@ -94,7 +92,6 @@ export function ExpandableCarouselRow({
                     </motion.div>
                 )}
             </AnimatePresence>
-
         </motion.div>
     );
 }

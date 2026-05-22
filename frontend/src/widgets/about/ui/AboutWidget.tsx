@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { InfoSection } from '@/shared/ui/lists/InfoSection';
 import { ActionRow } from '@/shared/ui/lists/ActionRow';
@@ -9,15 +9,15 @@ import { Check } from 'lucide-react';
 
 export default function AboutWidget() {
     const { t, i18n } = useTranslation();
-    const [isRulesOpen, setIsRulesOpen] = useState(false);
-    const [rulesMode, setRulesMode] = useState<'classic' | 'local'>('classic');
-    const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
+    const [isRulesOpen, setIsRulesOpen] = React.useState(false);
+    const [rulesMode, setRulesMode] = React.useState<'classic' | 'local'>('classic');
+    const [portalNode, setPortalNode] = React.useState<HTMLElement | null>(null);
 
-    useEffect(() => {
+    React.useEffect(() => {
         setPortalNode(document.getElementById('overlay-root'));
     }, []);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!isRulesOpen) {
             setTimeout(() => setRulesMode('classic'), 300);
         }
@@ -29,32 +29,47 @@ export default function AboutWidget() {
         <div className="flex flex-col w-full">
             <h1 className="text-2xl sm:text-3xl font-black mb-6">{t('about_title')}</h1>
 
-            <InfoSection>
-                <MorphingCapsule
-                    isCapsule={false}
-                    layoutId="rules-modal"
-                    transition={sharedSpringTransition}
-                    className="w-full"
-                >
-                    <ActionRow
-                        icon="📜" iconBg="bg-blue-500"
-                        title={t('profile_rules')}
-                        onClick={() => setIsRulesOpen(true)}
-                    />
-                </MorphingCapsule>
-            </InfoSection>
+            <InfoSection
+                items={[{
+                    id: '1',
+                    interactive: true,
+                    variant: 'default',
+                    content: (
+                        <MorphingCapsule
+                            isCapsule={false}
+                            layoutId="rules-modal"
+                            transition={sharedSpringTransition}
+                            className="w-full"
+                        >
+                            <ActionRow
+                                icon="📜" iconBg="bg-blue-500"
+                                title={t('profile_rules')}
+                                onClick={() => setIsRulesOpen(true)}
+                            />
+                        </MorphingCapsule>
+                    )
+                }]}
+            />
 
-            <InfoSection title={t('about_authors')}>
-                <ActionRow
-                    icon="👨‍💻" iconBg="bg-theme-main text-xl shadow-inner border border-theme-border/30"
-                    title="Ту ту туууу"
-                    subtitle={t('about_developer')}
-                    showArrow={false}
-                />
-                <div className="p-4 text-sm font-medium text-theme-text opacity-70 leading-relaxed">
-                    {t('about_credits_text')}
-                </div>
-            </InfoSection>
+            <InfoSection
+                title={t('about_authors')}
+                items={[{
+                    id: '1',
+                    interactive: true,
+                    variant: 'default',
+                    content: (<>
+                        <ActionRow
+                            icon="👨‍💻" iconBg="bg-theme-main text-xl shadow-inner border border-theme-border/30"
+                            title="Ту ту туууу"
+                            subtitle={t('about_developer')}
+                            showArrow={false}
+                        />
+                        <div className="p-4 text-sm font-medium text-theme-text opacity-70 leading-relaxed">
+                            {t('about_credits_text')}
+                        </div>
+                    </>)
+                }]}
+            />
 
             <div className="flex flex-col items-center justify-center opacity-50 mt-8">
                 <div className="text-4xl mb-2 grayscale">♠️♥️</div>
@@ -86,15 +101,15 @@ export default function AboutWidget() {
                 >
                     {/* ... Контент правил ... */}
                     <div className="flex flex-col px-4 pb-8 text-theme-text mt-4">
-                        
+
                         <div className="flex bg-theme-main p-1 rounded-2xl border border-theme-border/50 shadow-inner mb-6 shrink-0">
-                            <button 
+                            <button
                                 onClick={() => setRulesMode('classic')}
                                 className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-black transition-all ${rulesMode === 'classic' ? 'bg-theme-primary text-white shadow-md' : 'text-theme-text opacity-60 hover:opacity-100'}`}
                             >
                                 🏛️ {t('rule_classic')}
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setRulesMode('local')}
                                 className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-black transition-all ${rulesMode === 'local' ? 'bg-theme-primary text-white shadow-md' : 'text-theme-text opacity-60 hover:opacity-100'}`}
                             >
@@ -103,7 +118,7 @@ export default function AboutWidget() {
                         </div>
 
                         <AnimatePresence mode="wait">
-                            <motion.div 
+                            <motion.div
                                 key={rulesMode}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -115,7 +130,7 @@ export default function AboutWidget() {
                                     <h3 className="text-lg sm:text-xl font-black mb-3 text-theme-primary flex items-center gap-2">🎯 {isRu ? 'Цель игры' : 'Objective'}</h3>
                                     <div className="bg-theme-main p-4 sm:p-5 rounded-2xl shadow-inner font-medium opacity-90 leading-relaxed text-sm sm:text-base border border-theme-border/30">
                                         {rulesMode === 'classic' ? (
-                                            isRu 
+                                            isRu
                                                 ? 'Собрать как можно больше ценных карт. Игра идет несколько раундов, пока одна из команд не наберет 11 очков. Подсчет очков происходит в конце каждого раунда.'
                                                 : 'Collect as many valuable cards as possible. The game spans multiple rounds until a team reaches 11 points. Scores are calculated at the end of each round.'
                                         ) : (
@@ -139,7 +154,7 @@ export default function AboutWidget() {
                                     <h3 className="text-lg sm:text-xl font-black mb-3 text-theme-primary flex items-center gap-2">⭐ {isRu ? 'Сур (Sur)' : 'Sur'}</h3>
                                     <div className="bg-theme-main p-4 sm:p-5 rounded-2xl shadow-inner font-medium opacity-90 leading-relaxed text-sm sm:text-base border border-theme-border/30">
                                         {rulesMode === 'classic' ? (
-                                            isRu 
+                                            isRu
                                                 ? 'Если вы очистили весь стол, вы получаете "Сур" (+5 очков). Валет не может сделать Сур. В классическом режиме Суры противников отменяют друг друга (взаимоуничтожаются).'
                                                 : 'If you clear the entire table, you score a "Sur" (+5 points). Jacks cannot score a Sur. In classic mode, opponent Surs cancel each other out.'
                                         ) : (
@@ -166,7 +181,7 @@ export default function AboutWidget() {
                                         <ul className="space-y-3">
                                             <li className="flex justify-between items-center"><span className="flex items-center gap-2"><span className="text-red-500 text-lg">♦</span> {isRu ? '10 Буби' : '10 of Diamonds'}</span> <span>3 {isRu ? 'очка' : 'pts'}</span></li>
                                             <li className="flex justify-between items-center"><span className="flex items-center gap-2"><span className="text-slate-500 text-lg">♣</span> {isRu ? '2 Трефы' : '2 of Clubs'}</span> <span>2 {isRu ? 'очка' : 'pts'}</span></li>
-                                            
+
                                             {rulesMode === 'classic' && (
                                                 <>
                                                     <li className="flex justify-between items-center"><span>A {isRu ? '(Тузы)' : '(Aces)'}</span> <span>1 {isRu ? 'очко' : 'pt'}</span></li>
@@ -174,9 +189,9 @@ export default function AboutWidget() {
                                                     <li className="flex justify-between items-center text-amber-500"><span className="flex items-center gap-2">⭐ {isRu ? 'Каждый Сур' : 'Each Sur'}</span> <span>5 {isRu ? 'очков' : 'pts'}</span></li>
                                                 </>
                                             )}
-                                            
+
                                             <div className="w-full h-px bg-theme-border/50 my-2"></div>
-                                            
+
                                             {rulesMode === 'classic' ? (
                                                 <li className="flex justify-between items-center text-blue-500"><span className="flex items-center gap-2"><span className="text-slate-500 text-lg">♣</span> {isRu ? 'Больше Треф' : 'Most Clubs'}</span> <span>7 {isRu ? 'очков' : 'pts'}</span></li>
                                             ) : (

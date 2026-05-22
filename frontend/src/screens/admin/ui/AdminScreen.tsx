@@ -1,10 +1,9 @@
 "use client";
 
 import React from 'react';
-import { supabase } from '@/shared/api/supabase';
-import { UserProfile } from '@/entities/user/model/user.types';
-import { useAlert } from '@/app/providers/AlertProvider/AlertProvider';
-import { gameApi } from '@/entities/room/api/game.api';
+import { supabase } from '@/shared/api';
+import { UserProfile, userApi } from '@/entities/user';
+import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 
 export default function AdminScreen() {
@@ -48,7 +47,7 @@ export default function AdminScreen() {
                     style: "destructive",
                     onPress: (user) => async () => {
                         try {
-                            await gameApi.adminDeleteUser(userToKill.uid);
+                            await userApi.adminDeleteUser(userToKill.uid);
 
                             showAlert({
                                 title: `${userToKill.displayName} ${t('admin_user_deleted')}`,

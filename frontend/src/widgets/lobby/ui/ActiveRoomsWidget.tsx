@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trash2, LogOut } from 'lucide-react';
-import { GameRoom } from '@/entities/room/model/room.types';
+import { GameRoom, ActiveRoomCard } from '@/entities/room';
 import { SwipeableActionCard } from '@/shared/ui/animations/SwipeableActionCard';
-import { ActiveRoomCard } from '@/entities/room/ui/ActiveRoomCard';
+import { PlayerSquare } from '@/entities/user';
 
 interface ActiveRoomsListProps {
     rooms: GameRoom[];
@@ -41,7 +41,12 @@ export function ActiveRoomsWidget({ rooms, masks, isSurrendering, onSurrender, o
                                 </div>
                             }
                         >
-                            <ActiveRoomCard room={room} mask={masks[roomId]} onClick={() => onOpenRoom(roomId)} />
+                            <ActiveRoomCard
+                                room={room}
+                                mask={masks[roomId]}
+                                onClick={() => onOpenRoom(roomId)}
+                                playerSlot={<PlayerSquare players={room.players} maxPlayers={room.maxPlayers} />}
+                            />
                         </SwipeableActionCard>
                     );
                 })}

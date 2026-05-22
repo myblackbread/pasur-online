@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, realtimeApi } from '@/shared/api/supabase';
-import { gameApi } from '../api/game.api';
-import { GameRoom } from './room.types';
-import { UserProfile } from '@/entities/user/model/user.types';
+import { supabase } from '@/shared/api';
+import { UserProfile, userRealtimeApi } from '@/entities/user';
+import { roomRealtimeApi } from '@/entities/room';
+import { GameRoom } from '@/entities/room/model/room.types';
 import { useTranslation } from 'react-i18next';
-import { useAlert } from '@/app/providers/AlertProvider/AlertProvider';
+import { useAlert } from '@/app/providers/AlertProvider';
+import { roomApi } from '@/entities/room/api/room.api';
 
 export function useGameRoom(roomId: string) {
     const router = useRouter();
@@ -45,7 +46,7 @@ export function useGameRoom(roomId: string) {
         const setupUser = (currentUser: any) => {
             if (currentUser) {
                 if (!unsubUser) {
-                    unsubUser = realtimeApi.subscribeToUser(currentUser.id, (userData) => {
+                    unsubUser = userRealtimeApi.subscribeToUser(currentUser.id, (userData) => {
                         if (userData) setUser(userData);
                     });
                 }
@@ -69,7 +70,7 @@ export function useGameRoom(roomId: string) {
     useEffect(() => {
         if (!user) return;
         const roomsToFetch = Array.from(new Set([roomId, ...(user.activeRooms || [])]));
-        const unsubRoom = realtimeApi.subscribeToRoomsByIds(roomsToFetch, (rooms) => {
+        const unsubRoom = roomRealtimeApi.subscribeToRoomsByIds(roomsToFetch, (rooms) => {
             setAllActiveRooms(rooms);
             const data = rooms.find(r => r.id === roomId);
             if (!data) { router.push('/dashboard'); return; }
@@ -107,7 +108,7 @@ export function useGameRoom(roomId: string) {
     useEffect(() => {
         if (!myMask && user && roomData && !hasAttemptedFetchMask.current) {
             hasAttemptedFetchMask.current = true;
-            gameApi.getMyMask(roomId).then(mask => {
+            roomApi.getMyMask(roomId).then(mask => {
                 if (mask) { setMyMask(mask); sessionStorage.setItem(`pasur_mask_${roomId}`, mask); }
             }).catch(console.error);
         }
@@ -122,7 +123,7 @@ export function useGameRoom(roomId: string) {
             // Компонент умирает (свайп назад или закрытие). 
             // Если мы сидели за столом и игра не началась -> освобождаем место
             if (mask && (status === 'waiting' || status === 'ready_check')) {
-                gameApi.leaveRoom(roomId, 'leave').catch(() => { });
+                roomApi.leaveRoom(roomId, 'leave').catch(() => { });
                 if (typeof window !== 'undefined') {
                     sessionStorage.removeItem(`pasur_mask_${roomId}`);
                 }

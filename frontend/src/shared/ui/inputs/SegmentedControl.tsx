@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useId } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 
 export interface SegmentOption<T> {
@@ -16,21 +16,19 @@ interface SegmentedControlProps<T> {
 }
 
 export function SegmentedControl<T extends string | number>({ options, value, onChange, className = '' }: SegmentedControlProps<T>) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = useState(false);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = React.useState(false);
     
-    // Уникальный ID для Framer Motion, чтобы анимации разных сегментов не конфликтовали
-    const layoutId = useId();
+    const layoutId = React.useId();
 
     const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
         if (!isDragging || !containerRef.current) return;
         
         const rect = containerRef.current.getBoundingClientRect();
-        // Вычисляем координату касания внутри контейнера
+
         let x = e.clientX - rect.left;
         x = Math.max(0, Math.min(x, rect.width - 1));
         
-        // Вычисляем, над каким вариантом сейчас находится палец
         const segmentWidth = rect.width / options.length;
         const index = Math.floor(x / segmentWidth);
         

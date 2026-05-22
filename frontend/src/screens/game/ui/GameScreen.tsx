@@ -3,20 +3,16 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
-import { gameApi } from '@/entities/room/api/game.api';
-import { Card, GameState } from '@/entities/game/model/game.types';
-import { useAlert } from '@/app/providers/AlertProvider/AlertProvider';
+import { gamePlayApi, useGameAnimations, useGameTimeouts } from '@/features/game-actions';
+import { WaitingRoomCard, roomApi } from '@/entities/room';
+import { useGameRoom } from '../model/useGameRoom';
+import { Card, GameState, PlayingCard } from '@/entities/game';
+import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/shared/ui/overlays/Modal';
 import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
 import { useCountdown } from '@/shared/lib/hooks/useCountdown';
-import { PlayingCard } from '@/entities/game/ui/PlayingCard';
-
-import { useGameRoom } from '@/entities/room/model/useGameRoom';
-import { useGameAnimations } from '@/features/game-actions/model/useGameAnimations';
-import { useGameTimeouts } from '@/features/game-actions/model/useGameTimeouts';
-import { PlayerHub } from '@/entities/user/ui/PlayerHub';
-import { WaitingRoomCard } from '@/entities/room/ui/WaitingRoomCard';
+import { PlayerHub } from '@/entities/user';
 
 export default function GameScreen() {
     const { t } = useTranslation();
@@ -60,7 +56,7 @@ export default function GameScreen() {
                     onPress: async () => {
                         isProcessing.current = true;
                         try {
-                            await gameApi.leaveRoom(roomId, 'surrender');
+                            await roomApi.leaveRoom(roomId, 'surrender');
                             sessionStorage.removeItem(`pasur_mask_${roomId}`);
                             setMyMask(null);
                             router.replace('/dashboard');
@@ -79,7 +75,7 @@ export default function GameScreen() {
     const handleJoinTable = async () => {
         setIsJoining(true);
         try {
-            const mask = await gameApi.joinRoom(roomId);
+            const mask = await roomApi.joinRoom(roomId);
             if (mask) {
                 sessionStorage.setItem(`pasur_mask_${roomId}`, mask);
                 setMyMask(mask);
@@ -104,7 +100,7 @@ export default function GameScreen() {
                     onPress: async () => {
                         setIsJoining(true);
                         try {
-                            await gameApi.leaveRoom(roomId, 'leave');
+                            await roomApi.leaveRoom(roomId, 'leave');
                             sessionStorage.removeItem(`pasur_mask_${roomId}`);
                             setMyMask(null);
                             router.replace('/dashboard');
@@ -145,7 +141,7 @@ export default function GameScreen() {
         setPendingMove({ card, isMe: true });
         isProcessing.current = true;
 
-        try { await gameApi.playCard(roomId, card.id, currentSelection); }
+        try { await gamePlayApi.playCard(roomId, card.id, currentSelection); }
         catch (e: any) {
             showAlert({
                 title: t(e.message),
@@ -166,7 +162,7 @@ export default function GameScreen() {
 
         isProcessing.current = true;
         try {
-            await gameApi.proposePause(roomId);
+            await gamePlayApi.proposePause(roomId);
         } catch (e: any) {
             showAlert({
                 title: t(e.message),
@@ -384,7 +380,7 @@ export default function GameScreen() {
                                     <div className="w-full mt-4 bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black opacity-70">{t('game_waiting_opponent')}</div>
                                 ) : (
                                     <div className="flex flex-col gap-3 mt-4">
-                                        <button onClick={() => gameApi.rematch(roomId)} className="w-full bg-theme-primary text-white py-4 rounded-xl font-black shadow-lg">🔄 {t('game_rematch')} ({roomData.betAmount} 💰)</button>
+                                        <button onClick={() => gamePlayApi.rematch(roomId)} className="w-full bg-theme-primary text-white py-4 rounded-xl font-black shadow-lg">🔄 {t('game_rematch')} ({roomData.betAmount} 💰)</button>
                                         <button onClick={handleLeaveOrSurrender} className="w-full bg-theme-main border-2 border-theme-border text-theme-text py-4 rounded-xl font-black hover:bg-theme-border transition-colors">{t('game_return_lobby')}</button>
                                     </div>
                                 )}
@@ -394,13 +390,13 @@ export default function GameScreen() {
                                 <h2 className="text-2xl sm:text-3xl font-black mb-2 text-theme-text">{t('game_round')} {game.roundNumber} {t('game_completed')}</h2>
                                 <p className="text-theme-primary mb-6 font-mono font-black text-2xl">{t('game_score')} {game.matchScores[me.teamId]} - {game.matchScores[opponent.teamId]}</p>
                                 <div className="flex flex-col gap-3">
-                                    {isPlayer0 ? <button onClick={() => gameApi.nextRound(roomId).catch(e => showAlert({
+                                    {isPlayer0 ? <button onClick={() => gamePlayApi.nextRound(roomId).catch(e => showAlert({
                                         title: t(e.message),
                                         buttons: [{ text: t('alert_ok'), style: "cancel" }]
                                     }))} className="w-full bg-theme-primary text-white py-3 sm:py-4 rounded-xl font-black shadow-lg">{t('game_deal_cards')}</button> : <div className="opacity-70 font-black py-2 text-theme-text">{t('game_wait_deal')}</div>}
                                     {roomData.status === 'playing' && (
                                         <button
-                                            onClick={() => gameApi.proposePause(roomId).catch(e => showAlert({
+                                            onClick={() => gamePlayApi.proposePause(roomId).catch(e => showAlert({
                                                 title: t(e.message),
                                                 buttons: [{ text: t('alert_ok'), style: "cancel" }]
                                             }))}
@@ -426,8 +422,8 @@ export default function GameScreen() {
                             <>
                                 <p className="opacity-80 mb-6 font-bold">{t('game_pause_ask')} ({turnTimeLeft}с)</p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => gameApi.answerPauseRequest(roomId, false)} className="flex-1 bg-theme-main border-2 border-theme-border py-3 rounded-xl font-bold hover:bg-theme-border transition-colors">{t('game_continue')}</button>
-                                    <button onClick={() => gameApi.answerPauseRequest(roomId, true)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">{t('game_agree')}</button>
+                                    <button onClick={() => gamePlayApi.answerPauseRequest(roomId, false)} className="flex-1 bg-theme-main border-2 border-theme-border py-3 rounded-xl font-bold hover:bg-theme-border transition-colors">{t('game_continue')}</button>
+                                    <button onClick={() => gamePlayApi.answerPauseRequest(roomId, true)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">{t('game_agree')}</button>
                                 </div>
                             </>
                         )}
@@ -442,7 +438,7 @@ export default function GameScreen() {
                         {roomData.status === 'ready_check_resume' && <div className="text-6xl font-black mb-6 text-theme-text animate-pulse">{readyTimeLeft}</div>}
                         {!isSpectatorSafe && (
                             <div className="flex flex-col gap-3">
-                                <button onClick={() => gameApi.toggleReady(roomId, true).catch(e => (showAlert({
+                                <button onClick={() => gamePlayApi.toggleReady(roomId, true).catch(e => (showAlert({
                                     title: t(e.message),
                                     buttons: [{ text: t('alert_ok'), style: "cancel" }]
                                 })))} disabled={meLobbyInfo?.isReady} className={`w-full py-4 rounded-xl font-black shadow-lg text-white transition-colors ${meLobbyInfo?.isReady ? 'bg-theme-main text-theme-text opacity-70 cursor-not-allowed border-2 border-theme-border' : 'bg-theme-primary hover:opacity-80'}`}>

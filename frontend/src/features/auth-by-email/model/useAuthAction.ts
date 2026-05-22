@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi } from '@/shared/api/supabase';
-import { useAlert } from '@/app/providers/AlertProvider/AlertProvider';
+import { authApi } from '@/entities/session';
+import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 
 export interface AuthCredentials {

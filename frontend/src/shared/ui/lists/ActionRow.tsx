@@ -16,7 +16,7 @@ interface ActionRowProps {
 
 export function ActionRow({ title, subtitle, icon, iconBg, rightContent, onClick, className = '', showArrow = true }: ActionRowProps) {
     return (
-        <InfoRow onClick={onClick} className={`px-3 ${className}`}>
+        <div onClick={onClick} className='flex items-center justify-between w-full'>
             <RowLabel icon={icon} iconBg={iconBg} title={title} subtitle={subtitle} />
             {(rightContent || (showArrow && onClick)) && (
                 <div className="shrink-0 ml-3 flex items-center pointer-events-none gap-2">
@@ -24,6 +24,6 @@ export function ActionRow({ title, subtitle, icon, iconBg, rightContent, onClick
                     {showArrow && onClick && <ChevronRight className="w-5 h-5 text-theme-text opacity-30 shrink-0" />}
                 </div>
             )}
-        </InfoRow>
+        </div>
     );
 }

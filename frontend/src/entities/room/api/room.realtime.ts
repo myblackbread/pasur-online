@@ -1,19 +1,6 @@
-import { supabase } from './client';
-import { UserProfile } from '@/entities/user/model/user.types';
-import { GameRoom } from '@/entities/room/model/room.types';
-import { GAME_CONFIG } from '@/shared/config/constants';
-
-const mapUser = (data: any): UserProfile => ({
-    uid: data.id,
-    displayName: data.display_name,
-    balance: data.balance,
-    avatarEmoji: data.settings?.avatarEmoji || '😎',
-    gender: data.settings?.gender || 'male',
-    activeRooms: data.active_rooms || [],
-    settings: data.settings || { isIncognito: false, blockedUids: [] },
-    createdAt: data.created_at || Date.now(),
-    lastActive: data.last_active || Date.now()
-});
+import { supabase } from "@/shared/api";
+import { GameRoom } from "../model/room.types";
+import { GAME_CONFIG } from "@/shared/config/constants";
 
 const mapRoom = (data: any): GameRoom => ({
     id: data.id,
@@ -36,68 +23,7 @@ const mapRoom = (data: any): GameRoom => ({
     createdAt: data.created_at
 });
 
-export const realtimeApi = {
-    subscribeToUser(uid: string, callback: (user: UserProfile | null) => void) {
-        let isSubscribed = true; // Защита от гонки данных
-
-        const fetchAndEnsureUser = async () => {
-            const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
-
-            if (error && error.code === 'PGRST116') {
-                const { data: { user: authUser } } = await supabase.auth.getUser();
-
-                const newProfile = {
-                    id: uid,
-                    display_name: authUser?.user_metadata?.name || `Player_${uid.substring(0, 5)}`,
-                    balance: 1000,
-                    active_rooms: [],
-                    settings: {
-                        isIncognito: false,
-                        blockedUids: [],
-                        avatarEmoji: authUser?.is_anonymous ? '👻' : '😎',
-                        gender: 'male'
-                    }
-                };
-
-                const { error: insertErr } = await supabase.from('users').insert(newProfile);
-
-                if (insertErr) {
-                    if (insertErr.code === '23505') {
-                        const { data: existingData } = await supabase.from('users').select('*').eq('id', uid).single();
-                        if (existingData && isSubscribed) callback(mapUser(existingData));
-                        return;
-                    }
-                    console.error("🔥 Ошибка при создании профиля:", insertErr.message);
-                    if (isSubscribed) callback(null);
-                    return;
-                }
-
-                if (isSubscribed) callback(mapUser(newProfile));
-                return;
-            }
-
-            if (isSubscribed) {
-                if (data) callback(mapUser(data));
-                else callback(null);
-            }
-        };
-
-        fetchAndEnsureUser();
-
-        const channelName = `user_changes_${uid}_${Math.random().toString(36).substring(7)}`;
-        const channel = supabase.channel(channelName)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${uid}` }, (payload) => {
-                if (!isSubscribed) return;
-                callback(mapUser(payload.new));
-            })
-            .subscribe();
-
-        return () => { 
-            isSubscribed = false;
-            supabase.removeChannel(channel); 
-        };
-    },
-
+export const roomRealtimeApi = {
     subscribeToPublicRooms(callback: (rooms: GameRoom[]) => void) {
         let isSubscribed = true;
         let currentRooms: GameRoom[] = [];
@@ -137,19 +63,19 @@ export const realtimeApi = {
             })
             .subscribe();
 
-        return () => { 
+        return () => {
             isSubscribed = false;
-            supabase.removeChannel(channel); 
+            supabase.removeChannel(channel);
         };
     },
-
+    
     subscribeToRoomsByIds(roomIds: string[], callback: (rooms: GameRoom[]) => void) {
         let isSubscribed = true;
-        if (!roomIds.length) { 
-            callback([]); 
-            return () => { isSubscribed = false; }; 
+        if (!roomIds.length) {
+            callback([]);
+            return () => { isSubscribed = false; };
         }
-        
+
         let currentRooms: GameRoom[] = [];
 
         const fetchRooms = async () => {
@@ -176,9 +102,9 @@ export const realtimeApi = {
             })
             .subscribe();
 
-        return () => { 
+        return () => {
             isSubscribed = false;
-            supabase.removeChannel(channel); 
+            supabase.removeChannel(channel);
         };
     }
-};
+}

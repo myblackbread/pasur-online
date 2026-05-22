@@ -2,8 +2,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { GameRoom } from '../model/room.types';
 import { useCountdown } from '@/shared/lib/hooks/useCountdown';
-import { gameApi } from '../api/game.api';
-import { useAlert } from '@/app/providers/AlertProvider/AlertProvider';
+import { gamePlayApi } from '@/features/game-actions';
+import { useAlert } from '@/app/providers/AlertProvider';
 
 interface RoomPreviewProps {
     room: GameRoom;
@@ -132,7 +132,7 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
                         </button>
                     ) : (
                         <button
-                            onClick={() => gameApi.toggleReady(room.id!, true).catch(e => showAlert({
+                            onClick={() => gamePlayApi.toggleReady(room.id!, true).catch(e => showAlert({
                                 title: t(e.message),
                                 buttons: [{ text: t('alert_ok'), style: "cancel" }]
                             }))}

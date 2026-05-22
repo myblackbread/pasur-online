@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, GameState } from '@/entities/game/model/game.types';
+import { Card, GameState } from '@/entities/game';
 
 export function useGameAnimations(gameState: GameState | null | undefined) {
     const [visualGame, setVisualGame] = useState<GameState | null>(null);

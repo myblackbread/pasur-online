@@ -1,21 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Check, SlidersHorizontal, ArrowRight } from 'lucide-react';
-import { gameApi } from '@/entities/room/api/game.api';
-import { UserProfile } from '@/entities/user/model/user.types';
-import { RuleSet } from '@/entities/game/model/game.types';
-import { GameRoom } from '@/entities/room/model/room.types';
-import { useAlert } from '@/app/providers/AlertProvider/AlertProvider';
+import { GameRoom, roomApi } from '@/entities/room';
+import { UserProfile } from '@/entities/user';
+import { RuleSet } from '@/entities/game';
+import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 import { MorphingCapsule, sharedSpringTransition } from '@/shared/ui/animations/MorphingCapsule';
 import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
-import { InscribedZone } from '@/shared/ui/layout/InscribedZone';
 
-import { useLobbyData } from '../../../features/lobby-data/model/useLobbyData';
+import { useLobbyData } from '../model/useLobbyData';
 import { ActiveRoomsWidget } from './ActiveRoomsWidget';
 import { OpenRoomsWidget } from './OpenRoomsWidget';
 import { RoomConfigForm } from '../../../features/room-config/ui/RoomConfigForm';
@@ -42,37 +40,37 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
 
     const { activeRooms, openRooms } = useLobbyData(user);
 
-    const [view, setView] = useState<'none' | 'filter' | 'create'>('none');
-    const [privateCode, setPrivateCode] = useState('');
+    const [view, setView] = React.useState<'none' | 'filter' | 'create'>('none');
+    const [privateCode, setPrivateCode] = React.useState('');
 
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [createConfig, setCreateConfig] = useState({ ...DEFAULT_CONFIG });
-    const [searchConfig, setSearchConfig] = useState({ ...DEFAULT_CONFIG });
-    const [defaultRoomName, setDefaultRoomName] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+    const [createConfig, setCreateConfig] = React.useState({ ...DEFAULT_CONFIG });
+    const [searchConfig, setSearchConfig] = React.useState({ ...DEFAULT_CONFIG });
+    const [defaultRoomName, setDefaultRoomName] = React.useState('');
 
-    const [searchResults, setSearchResults] = useState<GameRoom[] | null>(null);
-    const [isSurrendering, setIsSurrendering] = useState(false);
-    const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
-    const [masks, setMasks] = useState<Record<string, string>>({});
+    const [searchResults, setSearchResults] = React.useState<GameRoom[] | null>(null);
+    const [isSurrendering, setIsSurrendering] = React.useState(false);
+    const [portalNode, setPortalNode] = React.useState<HTMLElement | null>(null);
+    const [masks, setMasks] = React.useState<Record<string, string>>({});
 
-    const lastViewRef = useRef<'filter' | 'create'>('filter');
+    const lastViewRef = React.useRef<'filter' | 'create'>('filter');
     if (view === 'filter' || view === 'create') lastViewRef.current = view;
 
-    useEffect(() => { setPortalNode(document.getElementById('overlay-lobby')); }, []);
+    React.useEffect(() => { setPortalNode(document.getElementById('overlay-lobby')); }, []);
 
-    useEffect(() => {
+    React.useEffect(() => {
         document.body.style.overflow = view !== 'none' ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
     }, [view]);
 
-    const fetchedMasks = useRef<Set<string>>(new Set());
+    const fetchedMasks = React.useRef<Set<string>>(new Set());
 
-    useEffect(() => {
+    React.useEffect(() => {
         activeRooms.forEach(r => {
             const roomId = r.id;
             if (roomId && !fetchedMasks.current.has(roomId)) {
                 fetchedMasks.current.add(roomId);
-                gameApi.getMyMask(roomId).then(mask => {
+                roomApi.getMyMask(roomId).then(mask => {
                     if (mask) setMasks(prev => ({ ...prev, [roomId]: mask }));
                 }).catch(() => fetchedMasks.current.delete(roomId));
             }
@@ -102,7 +100,7 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
         });
         try {
             const finalName = createConfig.name.trim() || defaultRoomName;
-            const roomId = await gameApi.createRoom(
+            const roomId = await roomApi.createRoom(
                 user, finalName, createConfig.bet, createConfig.ruleSet,
                 createConfig.isPrivate, createConfig.isStrict,
                 createConfig.isSuddenDeath, createConfig.players, createConfig.speed
@@ -119,7 +117,7 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
 
     const handleJoinPrivate = async () => {
         if (!privateCode.trim()) return;
-        const roomId = await gameApi.findPrivateRoom(privateCode);
+        const roomId = await roomApi.findPrivateRoom(privateCode);
         if (roomId) {
             setView('none');
             router.push(`/game/${roomId}`);
@@ -131,7 +129,7 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
 
     const handleApplyFilters = async () => {
         try {
-            const results = await gameApi.searchRooms({
+            const results = await roomApi.searchRooms({
                 bet: searchConfig.bet,
                 speed: searchConfig.speed,
                 players: searchConfig.players,
@@ -158,7 +156,7 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
                     style: "cancel",
                     onPress: async () => {
                         setIsSurrendering(true);
-                        try { await gameApi.leaveRoom(roomId, 'surrender'); }
+                        try { await roomApi.leaveRoom(roomId, 'surrender'); }
                         catch (e: any) {
                             showAlert({
                                 title: `${t('lobby_error')} ${t(e.message)}`,

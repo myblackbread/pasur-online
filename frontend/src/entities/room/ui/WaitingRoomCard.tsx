@@ -1,6 +1,6 @@
 import React from 'react';
 import { GameRoom } from '../model/room.types';
-import { RoomPreview } from '@/entities/room/ui/RoomPreview';
+import { RoomPreview } from '@/entities/room';
 
 interface WaitingRoomViewProps {
     roomData: GameRoom;

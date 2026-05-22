@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile } from '@/entities/user/model/user.types';
-import { gameApi } from '@/entities/room/api/game.api';
+import { UserProfile, userApi } from '@/entities/user';
 import { useTranslation } from 'react-i18next';
 import { Panel } from '@/shared/ui/layout/Panel';
 import { Button } from '@/shared/ui/buttons/Button';
@@ -23,7 +22,7 @@ export default function ProfileWidget({ user }: { user: UserProfile }) {
 
     const changeEmoji = async (emoji: string) => {
         setIsEditingEmoji(false);
-        await gameApi.updateUserEmoji(user.uid, emoji);
+        await userApi.updateUserEmoji(user.uid, emoji);
     };
 
     return (
@@ -53,7 +52,7 @@ export default function ProfileWidget({ user }: { user: UserProfile }) {
                 <div className="inline-flex items-center gap-3 bg-theme-main px-5 py-3 rounded-2xl shadow-inner">
                     <span className="text-amber-500 font-black text-xl sm:text-2xl">{user.balance} 💰</span>
                     <div className="w-[2px] h-6 bg-theme-panel shadow-sm rounded-full"></div>
-                    <Button size="sm" fullWidth={false} onClick={() => gameApi.addMoney(user.uid, 500)}>
+                    <Button size="sm" fullWidth={false} onClick={() => userApi.addMoney(user.uid, 500)}>
                         + GET
                     </Button>
                 </div>

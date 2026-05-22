@@ -2,14 +2,14 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { realtimeApi, supabase } from '@/shared/api/supabase';
-import { UserProfile } from '@/entities/user/model/user.types';
-import LobbyWidget from '@/widgets/lobby/ui/LobbyWidget';
-import ProfileWidget from '@/widgets/profile/ui/ProfileWidget';
-import SettingsWidget from '@/widgets/profile/ui/SettingsWidget';
+import { supabase } from '@/shared/api';
+import { UserProfile, userRealtimeApi } from '@/entities/user';
+import LobbyWidget from '@/widgets/lobby';
+import { ProfileWidget, SettingsWidget } from '@/widgets/profile';
 import { useTranslation } from 'react-i18next';
 import { HybridScrollView, ScrollScreen } from '@/widgets/hybrid-scrollbar';
-import AboutWidget from '@/widgets/about/ui/AboutWidget';
+import { LanguageSwitcher } from '@/features/language-switcher';
+import AboutWidget from '@/widgets/about';
 
 export default function DashboardScreen() {
     const { t } = useTranslation();
@@ -26,7 +26,7 @@ export default function DashboardScreen() {
                 unsubscribeSnap = undefined;
             }
             if (currentUser) {
-                unsubscribeSnap = realtimeApi.subscribeToUser(currentUser.id, (userData) => {
+                unsubscribeSnap = userRealtimeApi.subscribeToUser(currentUser.id, (userData) => {
                     if (userData?.isDeleted) {
                         supabase.auth.signOut().then(() => router.push('/'));
                     } else if (userData) {
@@ -59,7 +59,7 @@ export default function DashboardScreen() {
         return [
             { id: 'lobby', icon: <span title={t('nav_game')}>🎲</span>, content: <LobbyWidget user={user} />, bgClass: 'bg-theme-main' },
             { id: 'profile', icon: <span title={t('nav_profile')}>👤</span>, content: <ProfileWidget user={user} />, bgClass: 'bg-theme-main' },
-            { id: 'settings', icon: <span title={t('nav_settings')}>⚙️</span>, content: <SettingsWidget user={user} />, bgClass: 'bg-theme-main' },
+            { id: 'settings', icon: <span title={t('nav_settings')}>⚙️</span>, content: <SettingsWidget user={user} languageSlot={<LanguageSwitcher />} />, bgClass: 'bg-theme-main' },
             { id: 'about', icon: <span title={t('nav_about')}>ℹ️</span>, content: <AboutWidget />, bgClass: 'bg-theme-main' } // <--- НОВЫЙ ТАБ
         ];
     }, [user, t]);
@@ -70,8 +70,7 @@ export default function DashboardScreen() {
         <main className="fixed inset-0 bg-theme-main flex flex-col overflow-hidden">
             <HybridScrollView screens={screens} />
             
-            {/* Глобальная точка для всех модалок и летящих элементов */}
-            <div id="overlay-root" className="fixed inset-0 pointer-events-none z-[9999]" />
+            <div id="overlay-root" className="fixed inset-0 pointer-events-none z-9999" />
         </main>
     );
 }

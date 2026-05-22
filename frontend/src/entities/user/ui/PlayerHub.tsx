@@ -1,7 +1,6 @@
 import React from 'react';
-import { PlayerState, Card } from '@/entities/game/model/game.types';
+import { PlayerState, Card, PlayingCard } from '@/entities/game';
 import { TimerBorder } from '@/shared/ui/animations/TimerBorder';
-import { PlayingCard } from '@/entities/game/ui/PlayingCard';
 import { MorphingCapsule } from '@/shared/ui/animations/MorphingCapsule';
 
 interface PlayerHubProps {

@@ -1,4 +1,4 @@
-import { GameState, RuleSet } from '@/entities/game/model/game.types';
+import { GameState, RuleSet } from '@/entities/game';
 
 export type RoomStatus = 'waiting' | 'ready_check' | 'playing' | 'finished' | 'paused' | 'ready_check_resume' | 'pause_requested';
 

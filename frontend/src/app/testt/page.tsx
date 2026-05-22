@@ -1,5 +1,5 @@
 "use client";
-import { useAlert } from "../providers/AlertProvider/AlertProvider";
+import { useAlert } from "../providers/AlertProvider";
 
 export default function MyComponent() {
     const { showAlert } = useAlert();

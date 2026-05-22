@@ -10,7 +10,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             <div className="w-full flex flex-col">
                 <input
                     ref={ref}
-                    className={`w-full h-12 select-text bg-transparent hover:bg-theme-panel focus:bg-theme-panel rounded-full py-0 px-6 outline-none text-theme-text font-bold transition-colors placeholder:opacity-40 disabled:opacity-50 ${
+                    className={`w-full h-12 select-text bg-transparent hover:bg-theme-panel focus:bg-theme-panel outline-none text-theme-text font-bold transition-colors placeholder:opacity-40 disabled:opacity-50 ${
                         error ? 'shadow-[inset_0_0_0_2px_rgba(239,68,68,0.5)]' : ''
                     } ${className}`}
                     {...props}

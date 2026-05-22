@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { realtimeApi } from '@/shared/api/supabase';
-import { GameRoom } from '@/entities/room/model/room.types';
-import { UserProfile } from '@/entities/user/model/user.types';
+import { GameRoom, roomRealtimeApi } from '@/entities/room';
+import { UserProfile } from '@/entities/user';
 
 export function useLobbyData(user: UserProfile) {
     const [rooms, setRooms] = useState<GameRoom[]>([]);
@@ -9,7 +8,7 @@ export function useLobbyData(user: UserProfile) {
 
     // Подписка на публичные столы
     useEffect(() => {
-        const unsub = realtimeApi.subscribeToPublicRooms(setRooms);
+        const unsub = roomRealtimeApi.subscribeToPublicRooms(setRooms);
         return () => unsub();
     }, []);
 
@@ -19,7 +18,7 @@ export function useLobbyData(user: UserProfile) {
             setActiveRooms([]);
             return;
         }
-        const unsub = realtimeApi.subscribeToRoomsByIds(user.activeRooms, setActiveRooms);
+        const unsub = roomRealtimeApi.subscribeToRoomsByIds(user.activeRooms, setActiveRooms);
         return () => unsub();
     }, [user.activeRooms]);
 

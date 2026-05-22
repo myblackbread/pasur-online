@@ -9,10 +9,14 @@ interface DividerProps {
 export function Divider({ indent = false, label, className = '' }: DividerProps) {
     if (label) {
         return (
-            <div className={`flex items-center my-4 ${className}`}>
+            <div className={`flex items-center ${className}`}>
                 <div className="flex-1 h-px bg-theme-border" />
-                <span className="px-4 text-[10px] font-black text-theme-muted uppercase tracking-widest">{label}</span>
-                <div className="flex-1 h-px bg-theme-border" />
+                {label && (
+                    <>
+                        <span className="px-4 text-[10px] font-black text-theme-muted uppercase tracking-widest">{label}</span>
+                        <div className="flex-1 h-px bg-theme-border" />
+                    </>
+                )}
             </div>
         );
     }

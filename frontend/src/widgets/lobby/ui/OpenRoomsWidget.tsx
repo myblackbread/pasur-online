@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { GameRoom } from '@/entities/room/model/room.types';
+import { GameRoom } from '@/entities/room';
 import { ChevronRight } from 'lucide-react';
 
 interface OpenRoomsListProps {

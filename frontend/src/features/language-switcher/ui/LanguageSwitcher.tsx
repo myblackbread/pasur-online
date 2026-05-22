@@ -20,8 +20,7 @@ export default function LanguageSwitcher() {
             label={<RowLabel icon="🌍" iconBg="bg-blue-500" title={t('language')} />}
             options={LANGUAGE_OPTIONS}
             value={i18n.language}
-            onChange={(lng) => i18n.changeLanguage(lng)}
-            requireConfirm={true}
+            onChange={lng => i18n.changeLanguage(lng)}
         />
     );
 }
