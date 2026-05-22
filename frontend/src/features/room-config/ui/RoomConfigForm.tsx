@@ -60,8 +60,8 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                     items={[
                         {
                             id: '2',
-                            interactive: true,
-                            variant: 'default',
+                            interactive: false,
+                            variant: 'none',
                             content: (<SegmentRow
                                 options={[
                                     { value: 'classic', label: '🏛️ ' + t('rule_classic') },
@@ -72,9 +72,9 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                             />)
                         },
                         {
-                            id: '2',
-                            interactive: true,
-                            variant: 'default',
+                            id: '3',
+                            interactive: false,
+                            variant: 'none',
                             content: (<SegmentRow
                                 options={[
                                     { value: 2, label: '👥 2 Игрока' },
@@ -85,7 +85,7 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                             />)
                         },
                         {
-                            id: '3',
+                            id: '4',
                             interactive: true,
                             variant: 'default',
                             content: (<ExpandableCarouselRow
@@ -97,7 +97,7 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                             />)
                         },
                         {
-                            id: '4',
+                            id: '5',
                             interactive: true,
                             variant: 'default',
                             content: (<ExpandableCarouselRow
@@ -115,7 +115,7 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                     title={t('modal_modifiers')}
                     items={[
                         {
-                            id: '5',
+                            id: '6',
                             interactive: true,
                             variant: 'default',
                             content: (<SwitchRow
@@ -126,7 +126,7 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                             />)
                         },
                         {
-                            id: '6',
+                            id: '7',
                             interactive: true,
                             variant: 'default',
                             content: (config.ruleSet === 'local' ? (
@@ -139,7 +139,7 @@ export function RoomConfigForm({ config, onChange, defaultRoomName }: RoomConfig
                             ) : null)
                         },
                         {
-                            id: '7',
+                            id: '8',
                             interactive: true,
                             variant: 'default',
                             content: (<SwitchRow

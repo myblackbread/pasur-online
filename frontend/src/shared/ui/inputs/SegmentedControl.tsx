@@ -41,8 +41,9 @@ export function SegmentedControl<T extends string | number>({ options, value, on
     return (
         <div 
             ref={containerRef}
-            className={`relative flex w-full p-1 bg-theme-panel/50 rounded-full touch-none select-none shadow-inner ${className}`}
-            // Обработчики касаний
+            // Заменили flex на grid. 
+            // auto-cols-fr + grid-flow-col создают равные колонки для всех элементов.
+            className={`relative grid auto-cols-fr grid-flow-col w-full h-full p-1 bg-theme-panel/50 rounded-full touch-none select-none shadow-inner ${className}`}
             onPointerDown={(e) => {
                 e.stopPropagation();
                 setIsDragging(true);
@@ -58,7 +59,6 @@ export function SegmentedControl<T extends string | number>({ options, value, on
                     onChange(clickedValue);
                 }
                 
-                // Захватываем фокус пальца, чтобы свайп не прерывался при выходе за границы элемента
                 e.currentTarget.setPointerCapture(e.pointerId);
             }}
             onPointerMove={handlePointerMove}
@@ -78,7 +78,9 @@ export function SegmentedControl<T extends string | number>({ options, value, on
                 return (
                     <div
                         key={String(opt.value)}
-                        className="relative flex-1 h-10 flex items-center justify-center cursor-pointer"
+                        // Добавили w-full и h-full, чтобы элемент заполнял всю ячейку грида.
+                        // Оставили flex внутри ячейки исключительно для центрирования текста по вертикали и горизонтали.
+                        className="relative w-full h-full flex items-center justify-center cursor-pointer"
                     >
                         {/* Плавающая плашка */}
                         {isActive && (
