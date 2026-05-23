@@ -12,7 +12,7 @@ interface PlayerHubProps {
     avatarEmoji: string;
     animationState: { phase: string; action: any };
     onClick?: () => void;
-    avatarType?: 'me' | 'opponent'; // Указатель для анимации
+    avatarType?: string;
 }
 
 export const PlayerHub = ({

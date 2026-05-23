@@ -3,7 +3,8 @@ export const GAME_CONFIG = {
     SPEED_OPTIONS: [
         { value: 15000, labelKey: 'speed_fast', icon: '⚡' },
         { value: 30000, labelKey: 'speed_normal', icon: '⏱' },
-        { value: 60000, labelKey: 'speed_slow', icon: '☕' }
+        { value: 60000, labelKey: 'speed_slow', icon: '☕' },
+        { value: 3600000, labelKey: 'speed_test', icon: '🧪' }
     ],
     DEFAULT_TURN_DURATION: 60000
 } as const;

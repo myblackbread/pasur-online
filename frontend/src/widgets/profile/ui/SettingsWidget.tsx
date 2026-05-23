@@ -123,6 +123,12 @@ export default function SettingsWidget({
                         id: '2',
                         interactive: true,
                         variant: 'default',
+                        content: languageSlot
+                    },
+                    {
+                        id: '3',
+                        interactive: true,
+                        variant: 'default',
                         content: (<SwitchRow
                             icon="🕵️‍♀️" iconBg="bg-slate-700 dark:bg-slate-500"
                             title={t('settings_incognito')}
@@ -132,7 +138,7 @@ export default function SettingsWidget({
                         />)
                     },
                     {
-                        id: '3',
+                        id: '4',
                         interactive: true,
                         variant: 'default',
                         content: (<SwitchRow
@@ -148,7 +154,7 @@ export default function SettingsWidget({
             <InfoSection
                 title={t('settings_section_danger')}
                 items={[{
-                    id: '4',
+                    id: '5',
                     interactive: true,
                     variant: 'default',
                     content: (<ActionRow

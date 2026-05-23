@@ -100,7 +100,7 @@ export function OpenRoomsWidget({ rooms, onOpenRoom, title, onClear }: OpenRooms
                                         {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('rule_sudden_death')}>⚡</span>}
                                         {room.isPrivate && <span className="bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('modal_private_table')}>🔒</span>}
                                         <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm text-[10px] sm:text-xs opacity-70 font-medium shrink-0">
-                                            {room.turnDuration === 15000 ? '⚡ 15с' : room.turnDuration === 60000 ? '☕ 60с' : '⏱ 30с'}
+                                            {room.turnDuration === 15000 ? '⚡ 15с' : room.turnDuration === 60000 ? '☕ 60с' : room.turnDuration === 3600000 ? '🧪 1ч' : '⏱ 30с'}
                                         </span>
                                     </div>
                                 </div>

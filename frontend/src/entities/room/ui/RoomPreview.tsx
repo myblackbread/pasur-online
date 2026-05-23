@@ -45,9 +45,11 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
 
                     {/* Скорость игры */}
                     <div className="bg-theme-main rounded-2xl p-3 shadow-sm flex flex-col items-center justify-center text-center">
-                        <span className="text-xl sm:text-2xl mb-1">{room.turnDuration === 15000 ? '⚡' : room.turnDuration === 60000 ? '☕' : '⏱'}</span>
+                        <span className="text-xl sm:text-2xl mb-1">
+                            {room.turnDuration === 15000 ? '⚡' : room.turnDuration === 60000 ? '☕' : room.turnDuration === 3600000 ? '🧪' : '⏱'}
+                        </span>
                         <span className="text-[10px] sm:text-xs font-bold text-theme-text opacity-90">
-                            {room.turnDuration === 15000 ? '15с' : room.turnDuration === 60000 ? '60с' : '30с'}
+                            {room.turnDuration === 15000 ? '15с' : room.turnDuration === 60000 ? '60с' : room.turnDuration === 3600000 ? '1ч' : '30с'}
                         </span>
                     </div>
 
@@ -139,8 +141,8 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
                             // 🟢 ИСПРАВЛЕНИЕ ЗДЕСЬ: убрано "|| isReadyCheck", теперь кнопка блокируется только если ВЫ УЖЕ нажали готов.
                             disabled={meInfo?.isReady}
                             className={`w-full py-4 rounded-2xl font-black transition-all text-lg ${meInfo?.isReady
-                                    ? 'bg-theme-main text-theme-text opacity-60 cursor-not-allowed shadow-inner'
-                                    : 'bg-theme-primary text-white shadow-md hover:shadow-lg active:scale-[0.98]'
+                                ? 'bg-theme-main text-theme-text opacity-60 cursor-not-allowed shadow-inner'
+                                : 'bg-theme-primary text-white shadow-md hover:shadow-lg active:scale-[0.98]'
                                 }`}
                         >
                             {/* 🟢 ИСПРАВЛЕНИЕ ЗДЕСЬ: текст меняется только в зависимости от вашей готовности */}

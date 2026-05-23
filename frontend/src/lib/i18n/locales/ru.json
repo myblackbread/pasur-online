@@ -186,5 +186,7 @@
   "modal_players_count": "Игрока",
   "speed_fast": "Блиц 15с",
   "speed_normal": "Стандарт 30с",
-  "speed_slow": "Релакс 60с"
+  "speed_slow": "Релакс 60с",
+  "speed_slow": "Релакс 60с",
+  "speed_test": "Тест 1ч"
 }

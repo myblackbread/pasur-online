@@ -186,5 +186,7 @@
   "modal_players_count": "Oyunçu",
   "speed_fast": "Blits 15s",
   "speed_normal": "Standart 30s",
-  "speed_slow": "Relaks 60s"
+  "speed_slow": "Relaks 60s",
+  "speed_slow": "Relax 60s",
+  "speed_test": "Test 1h"
 }

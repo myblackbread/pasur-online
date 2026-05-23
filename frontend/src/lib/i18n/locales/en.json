@@ -186,5 +186,7 @@
   "modal_players_count": "Players",
   "speed_fast": "Blitz 15s",
   "speed_normal": "Standard 30s",
-  "speed_slow": "Relax 60s"
+  "speed_slow": "Relax 60s",
+  "speed_slow": "Relax 60s",
+  "speed_test": "Test 1h"
 }
