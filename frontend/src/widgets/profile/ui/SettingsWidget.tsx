@@ -68,7 +68,7 @@ export default function SettingsWidget({
         setIsIncognito(newValue);
         try {
             const newSettings = { ...user.settings, isIncognito: newValue };
-            await supabase.from('users').update({ settings: newSettings }).eq('id', user.uid);
+            await supabase.from('users').update({ settings: newSettings }).eq('id', user.id); // <-- Изменено тут
         } catch (error) {
             setIsIncognito(!newValue);
             showAlert({

@@ -45,7 +45,7 @@ export function ActiveRoomsWidget({ rooms, masks, isSurrendering, onSurrender, o
                                 room={room}
                                 mask={masks[roomId]}
                                 onClick={() => onOpenRoom(roomId)}
-                                playerSlot={<PlayerSquare players={room.players} maxPlayers={room.maxPlayers} />}
+                                playerSlot={<PlayerSquare players={room.players} maxPlayers={room.requiredPlayers} />}
                             />
                         </SwipeableActionCard>
                     );

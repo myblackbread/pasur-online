@@ -1,18 +1,27 @@
 import { callApi, supabase } from '@/shared/api';
 import { UserProfile } from '@/entities/user';
-import { RuleSet } from '@/entities/game';
+import { RuleSetDTO } from '@/shared/api/contracts/dto';
 import { GameRoom } from '../model/room.types';
 
 export const roomApi = {
-    async createRoom(creator: UserProfile, name: string, bet: number, ruleSet: RuleSet, isPrivate: boolean, isStrict: boolean, isSuddenDeath: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
+    async createRoom(creator: UserProfile, name: string, bet: number, ruleSet: RuleSetDTO, isPrivate: boolean, isStrict: boolean, isSuddenDeath: boolean, maxPlayers: number, turnDuration: number): Promise<string> {
         if (creator.balance < bet) throw new Error("ERR_NOT_ENOUGH_MONEY");
-        const data = await callApi('secureCreateRoom', { name, betAmount: bet, ruleSet, isPrivate, isStrict, isSuddenDeath, maxPlayers, turnDuration });
+        const data = await callApi('secureCreateRoom', {
+            name,
+            betAmount: bet,
+            ruleSet,
+            isPrivate,
+            isStrict,
+            isSuddenDeath,
+            requiredPlayers: maxPlayers,
+            turnDuration: turnDuration
+        });
         if (typeof window !== 'undefined') sessionStorage.setItem(`pasur_mask_${data.roomId}`, data.publicUid);
         return data.roomId;
     },
 
-    async joinRoom(roomId: string): Promise<string> {
-        const data = await callApi('secureJoinRoom', { roomId });
+    async joinRoom(roomId: string, joinCode?: string): Promise<string> {
+        const data = await callApi('secureJoinRoom', { roomId, joinCode }); // <-- Добавлен joinCode
         if (typeof window !== 'undefined') sessionStorage.setItem(`pasur_mask_${roomId}`, data.publicUid);
         return data.publicUid;
     },
@@ -32,7 +41,8 @@ export const roomApi = {
         return data?.mask || null;
     },
 
-    async leaveRoom(roomId: string, reason: 'leave' | 'surrender' | 'timeout'): Promise<void> {
-        await callApi('secureLeaveRoom', { roomId, reason });
+    async leaveRoom(roomId: string): Promise<void> {
+        // <-- Убран фейковый reason, бэкенд решает сам
+        await callApi('secureLeaveRoom', { roomId }); 
     }
 };

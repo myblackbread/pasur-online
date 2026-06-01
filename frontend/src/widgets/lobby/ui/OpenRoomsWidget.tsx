@@ -85,7 +85,7 @@ export function OpenRoomsWidget({ rooms, onOpenRoom, title, onClear }: OpenRooms
                                 onClick={() => onOpenRoom(roomId)}
                                 className={`p-3 sm:p-4 rounded-2xl hover:shadow-md transition-all duration-300 cursor-pointer active:scale-[0.98] flex items-center gap-3 sm:gap-4 border ${getCardStyle(room)} overflow-hidden`}
                             >
-                                <PlayerSquare players={room.players} maxPlayers={room.maxPlayers} />
+                                <PlayerSquare players={room.players} maxPlayers={room.requiredPlayers} />
                                 
                                 <div className="flex-1 min-w-0 flex flex-col justify-center text-left">
                                     <div className="font-bold text-base sm:text-lg text-theme-text truncate w-full flex items-center gap-2">
@@ -98,7 +98,7 @@ export function OpenRoomsWidget({ rooms, onOpenRoom, title, onClear }: OpenRooms
                                         </span>
                                         {room.isStrict && <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('rule_strict')}>⚖️</span>}
                                         {room.isSuddenDeath && <span className="bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('rule_sudden_death')}>⚡</span>}
-                                        {room.isPrivate && <span className="bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('modal_private_table')}>🔒</span>}
+                                        {room.joinCode && <span className="bg-slate-500/10 text-slate-500 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold shrink-0" title={t('modal_private_table')}>🔒</span>}
                                         <span className="bg-theme-main px-2 py-0.5 rounded-md shadow-sm text-[10px] sm:text-xs opacity-70 font-medium shrink-0">
                                             {room.turnDuration === 15000 ? '⚡ 15с' : room.turnDuration === 60000 ? '☕ 60с' : room.turnDuration === 3600000 ? '🧪 1ч' : '⏱ 30с'}
                                         </span>

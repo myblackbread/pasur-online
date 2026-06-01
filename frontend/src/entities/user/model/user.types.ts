@@ -1,15 +1,5 @@
-export interface UserProfile {
-    uid: string;
-    displayName: string;
-    balance: number;
-    createdAt: number;
-    lastActive: number;
-    avatarEmoji?: string;
-    isDeleted?: boolean; 
-    gender: 'male' | 'female';
-    activeRooms?: string[];
-    settings?: {
-        isIncognito?: boolean;
-        blockedUids?: string[];
-    };
-}
+import { UserDTO, UserSettingsDTO } from '@/shared/api/contracts/dto';
+
+// Наследуем интерфейсы от DTO
+export type UserProfile = UserDTO;
+export type UserSettings = UserSettingsDTO;

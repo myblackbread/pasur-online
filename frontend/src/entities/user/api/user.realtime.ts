@@ -1,17 +1,5 @@
-import { supabase } from "@/shared/api";
+import { supabase, mapUserFromDB } from "@/shared/api";
 import { UserProfile } from "../model/user.types";
-
-const mapUser = (data: any): UserProfile => ({
-    uid: data.id,
-    displayName: data.display_name,
-    balance: data.balance,
-    avatarEmoji: data.settings?.avatarEmoji || '😎',
-    gender: data.settings?.gender || 'male',
-    activeRooms: data.active_rooms || [],
-    settings: data.settings || { isIncognito: false, blockedUids: [] },
-    createdAt: data.created_at || Date.now(),
-    lastActive: data.last_active || Date.now()
-});
 
 export const userRealtimeApi = {
     subscribeToUser(uid: string, callback: (user: UserProfile | null) => void) {
@@ -28,6 +16,8 @@ export const userRealtimeApi = {
                     display_name: authUser?.user_metadata?.name || `Player_${uid.substring(0, 5)}`,
                     balance: 1000,
                     active_rooms: [],
+                    is_admin: false,
+                    is_deleted: false,
                     settings: {
                         isIncognito: false,
                         blockedUids: [],
@@ -41,7 +31,7 @@ export const userRealtimeApi = {
                 if (insertErr) {
                     if (insertErr.code === '23505') {
                         const { data: existingData } = await supabase.from('users').select('*').eq('id', uid).single();
-                        if (existingData && isSubscribed) callback(mapUser(existingData));
+                        if (existingData && isSubscribed) callback(mapUserFromDB(existingData));
                         return;
                     }
                     console.error("🔥 Ошибка при создании профиля:", insertErr.message);
@@ -49,12 +39,12 @@ export const userRealtimeApi = {
                     return;
                 }
 
-                if (isSubscribed) callback(mapUser(newProfile));
+                if (isSubscribed) callback(mapUserFromDB(newProfile));
                 return;
             }
 
             if (isSubscribed) {
-                if (data) callback(mapUser(data));
+                if (data) callback(mapUserFromDB(data));
                 else callback(null);
             }
         };
@@ -65,7 +55,7 @@ export const userRealtimeApi = {
         const channel = supabase.channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${uid}` }, (payload) => {
                 if (!isSubscribed) return;
-                callback(mapUser(payload.new));
+                callback(mapUserFromDB(payload.new));
             })
             .subscribe();
 

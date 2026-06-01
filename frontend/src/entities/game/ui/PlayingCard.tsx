@@ -1,14 +1,14 @@
 "use client";
 
 import React from 'react';
-import { Card } from '../model/game.types';
 import { motion } from 'framer-motion';
+import { GameCard } from '@/shared/types/api-contract';
 
 interface PlayingCardProps {
-    card: Card;
-    onClick?: (card: Card) => void;
+    card: GameCard;
+    onClick?: (card: GameCard) => void;
     disabled?: boolean;
-    isPending?: boolean; // Оставляем проп только для блокировки двойных кликов
+    isPending?: boolean;
     isSelected?: boolean;
     isCapturedTarget?: boolean;
 }
@@ -16,8 +16,6 @@ interface PlayingCardProps {
 export const PlayingCard = ({ card, onClick, disabled, isPending, isSelected, isCapturedTarget }: PlayingCardProps) => {
     const isRed = card.suit === '♥' || card.suit === '♦';
 
-    // 1. Убраны ВСЕ бордеры, прозрачности и затемнения.
-    // Выделение теперь работает ИСКЛЮЧИТЕЛЬНО через красивое свечение (shadow).
     const baseClasses = `relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-xl flex flex-col justify-between p-1.5 sm:p-2 font-bold select-none transition-shadow
     ${isRed ? 'text-red-600 bg-red-50' : 'text-slate-900 bg-white'}
     ${isSelected ? 'shadow-[0_0_20px_rgba(251,191,36,0.8)]' : 'shadow-md'}

@@ -1,43 +1,37 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import "@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "@supabase/supabase-js";
 
-import { secureCreateRoom, devAddMoney } from "./api/roomCreation.ts";
-import { secureJoinRoom, secureToggleReady, secureResolveReadyTimeout, secureRematch, secureSearchRooms } from "./api/roomLobby.ts";
-import { secureProposePause, secureAnswerPauseRequest, secureResolvePauseTimeout, securePlayCard, secureLeaveRoom, secureNextRound, secureGetMyMask, secureSendReaction } from "./api/roomGameplay.ts";
-import { adminDeleteUser } from "./api/admin.ts";
-import { runGlobalCleanup } from "./api/cron.ts";
-import { GameError, ErrorCode } from "./errors.ts";
+// Импортируем наши новые, строго типизированные экшены
+import { createRoomAction, joinRoomAction, toggleReadyAction, searchRoomsAction, devAddMoneyAction, rematchAction, resolveReadyTimeoutAction } from "./actions/lobby.action.ts";
+import { playCardAction, leaveRoomAction, reportAfkAction, getMyMaskAction, sendReactionAction } from "./actions/gameplay.action.ts";
+import { adminDeleteUserAction, runGlobalCleanupAction } from "./actions/admin.action.ts";
+
+import { GameError, ErrorCode } from "./utils/errors.ts";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const apiRoutes: Record<string, Function> = {
-    devAddMoney, secureCreateRoom, secureJoinRoom, secureToggleReady,
-    secureResolveReadyTimeout, secureProposePause, secureAnswerPauseRequest,
-    secureResolvePauseTimeout, securePlayCard, secureLeaveRoom, secureNextRound,
-    secureGetMyMask, secureSendReaction, secureRematch, adminDeleteUser, 
-    runGlobalCleanup, secureSearchRooms // 🟢 Регистрируем новый роут
-};
+function extractToken(req: Request): string {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new GameError(ErrorCode.UNAUTHORIZED);
+    return authHeader.replace('Bearer ', '').trim();
+}
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+    // Обработка CORS preflight-запросов
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+    let action = 'unknown'; // <-- ВЫНЕСЛИ ПЕРЕМЕННУЮ СЮДА
+
     try {
-        const { action, data } = await req.json();
-        const authHeader = req.headers.get('Authorization');
+        const token = extractToken(req);
         
-        if (!authHeader) throw new GameError(ErrorCode.UNAUTHORIZED);
+        const body = await req.json();
+        action = body.action as string; // <-- ПЕРЕОПРЕДЕЛЯЕМ ЗДЕСЬ
+        const data = body.data || {};
 
-        const token = authHeader.replace('Bearer ', '').trim();
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-
-        if (!apiRoutes[action]) {
-            throw new Error(`Неизвестное действие: ${action}`); 
-        }
-
         const adminDb = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             serviceRoleKey
@@ -45,32 +39,94 @@ serve(async (req) => {
 
         let result;
 
+        // ==========================================
+        // 🤖 CRON & SYSTEM ACTIONS (Без юзера)
+        // ==========================================
         if (action === 'runGlobalCleanup') {
-            if (token !== serviceRoleKey) {
-                throw new GameError(ErrorCode.UNAUTHORIZED);
-            }
-            result = await apiRoutes[action](adminDb);
-        } 
-        else {
-            const supabaseAuthClient = createClient(
-                Deno.env.get('SUPABASE_URL') ?? '',
-                Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-            );
+            if (token !== serviceRoleKey) throw new GameError(ErrorCode.UNAUTHORIZED);
+            result = await runGlobalCleanupAction({ db: adminDb });
+            return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+        }
 
-            const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser(token);
-            if (authError || !user) throw new GameError(ErrorCode.UNAUTHORIZED, authError?.message);
+        // ==========================================
+        // 👤 USER ACTIONS (Требуют валидного юзера)
+        // ==========================================
+        const supabaseAuthClient = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+        );
 
-            result = await apiRoutes[action](data, user, adminDb);
+        const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser(token);
+        if (authError || !user) throw new GameError(ErrorCode.UNAUTHORIZED);
+
+        const userId = user.id;
+
+        // Маршрутизация с жесткой типизацией на границе
+        switch (action) {
+            // --- ЛОББИ И ПОДГОТОВКА ---
+            case 'devAddMoney':
+                result = await devAddMoneyAction({ db: adminDb, userId });
+                break;
+            case 'secureCreateRoom':
+                result = await createRoomAction({ db: adminDb, userId, payload: data });
+                break;
+            case 'secureJoinRoom':
+                result = await joinRoomAction({ db: adminDb, userId, roomId: data.roomId, joinCode: data.joinCode });
+                break;
+            case 'secureToggleReady':
+                result = await toggleReadyAction({ db: adminDb, userId, roomId: data.roomId, isReady: data.isReady });
+                break;
+            case 'secureSearchRooms':
+                result = await searchRoomsAction({ db: adminDb, filters: data });
+                break;
+            case 'secureRematch':
+                result = await rematchAction({ db: adminDb, userId, roomId: data.roomId });
+                break;
+            case 'secureResolveReadyTimeout':
+                result = await resolveReadyTimeoutAction({ db: adminDb, userId, roomId: data.roomId });
+                break;
+
+            // --- ГЕЙМПЛЕЙ ---
+            case 'securePlayCard':
+                result = await playCardAction({ db: adminDb, userId, roomId: data.roomId, cardId: data.cardId, targetCardIds: data.targetCardIds || [] });
+                break;
+            case 'secureLeaveRoom':
+                result = await leaveRoomAction({ db: adminDb, userId, roomId: data.roomId });
+                break;
+            case 'reportAfk': 
+                result = await reportAfkAction({ db: adminDb, userId, roomId: data.roomId });
+                break;
+            case 'secureGetMyMask':
+                result = await getMyMaskAction({ db: adminDb, userId, roomId: data.roomId });
+                break;
+            case 'secureSendReaction':
+                result = await sendReactionAction({ db: adminDb, userId, roomId: data.roomId });
+                break;
+                
+            // --- АДМИНКА ---
+            case 'adminDeleteUser':
+                result = await adminDeleteUserAction({ db: adminDb, userId, uidToKill: data.uidToKill });
+                break;
+
+            default:
+                throw new GameError(ErrorCode.UNSUPPORTED_ACTION);
         }
 
         return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
-        
+
     } catch (err: any) {
         if (err instanceof GameError) {
-            return new Response(JSON.stringify({ error: err.code }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+            return new Response(
+                JSON.stringify({ error: err.code, message: err.message }), 
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+            );
         }
-        
-        console.error("🔥 Системная ошибка:", err);
-        return new Response(JSON.stringify({ error: ErrorCode.INTERNAL_SERVER_ERROR }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+
+        // Теперь action доступен здесь
+        console.error(`[System] Unhandled exception in action '${action}':`, err);
+        return new Response(
+            JSON.stringify({ error: ErrorCode.INTERNAL_SERVER_ERROR }), 
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
     }
 });

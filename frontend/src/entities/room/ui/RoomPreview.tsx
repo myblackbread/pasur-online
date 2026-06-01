@@ -19,7 +19,7 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
     const readyTimeLeft = useCountdown(room.readyDeadline);
 
     const isSpectator = !room.players.some(p => p.id === safeMyId);
-    const isFull = room.players.length === room.maxPlayers;
+    const isFull = room.players.length === room.required_players;
     const meInfo = room.players.find(p => p.id === safeMyId);
     const isReadyCheck = room.status === 'ready_check' || room.status === 'ready_check_resume';
 
@@ -86,16 +86,16 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
 
             {/* Список игроков за столом */}
             <div className="space-y-3 mb-6 text-left">
-                {Array.from({ length: room.maxPlayers }).map((_, i) => {
+                {Array.from({ length: room.required_players }).map((_, i) => {
                     const p = room.players[i];
                     return (
                         <div key={i} className={`flex items-center gap-3 p-3 rounded-2xl transition-all ${p ? 'bg-theme-main shadow-md' : 'bg-theme-main/50 shadow-inner opacity-70'}`}>
                             <div className={`w-12 h-12 rounded-xl bg-theme-panel flex items-center justify-center text-2xl shrink-0 ${p ? 'shadow-sm' : 'shadow-inner'}`}>
-                                {p ? (p.avatarEmoji || '👤') : ''}
+                                {p ? '👤' : ''}
                             </div>
                             <div className="flex-1 text-left min-w-0">
                                 <div className="font-bold text-theme-text truncate text-base">
-                                    {p ? (p.name === '__INCOGNITO__' ? t('unknown_player') : p.name) : t('game_waiting_player')}
+                                    {p ? (p.id.startsWith('anon_') ? t('unknown_player') : `Player_${p.id.substring(0, 4).toUpperCase()}`) : t('game_waiting_player')}
                                     {p?.id === safeMyId && <span className="opacity-50 text-xs ml-2 font-medium bg-theme-text/10 px-2 py-0.5 rounded-md">{t('game_you_label')}</span>}
                                 </div>
                                 {p && (

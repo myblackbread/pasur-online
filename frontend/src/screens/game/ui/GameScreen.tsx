@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { gamePlayApi, useGameAnimations, useGameTimeouts } from '@/features/game-actions';
 import { WaitingRoomCard, roomApi } from '@/entities/room';
 import { useGameRoom } from '../model/useGameRoom';
-import { Card, GameState, PlayingCard, PlayerState } from '@/entities/game';
+import { GameCard, PublicGameState } from '@/shared/types/api-contract';
+import { PlayingCard, PlayerState } from '@/entities/game';
 import { useAlert } from '@/app/providers/AlertProvider';
 import { Modal } from '@/shared/ui/overlays/Modal';
 import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
@@ -130,7 +131,7 @@ function GameBoard(props: any) {
         return opponent ? [opponent] : [];
     }, [props.visualGame.players, meIndex, me.teamId]);
 
-    const handlePlayerMove = async (card: Card) => {
+    const handlePlayerMove = async (card: GameCard) => {
         if (!props.roomData || props.isProcessing.current || props.animationState.phase !== 'idle') return;
 
         const currentSelection = [...selectedTableCards];
@@ -177,7 +178,7 @@ function GameBoard(props: any) {
             {/* Стол */}
             <div className="flex-1 w-full relative flex flex-col overflow-y-auto p-4 z-10">
                 <div className="flex flex-wrap gap-2 sm:gap-4 justify-center content-center flex-1 z-10 relative">
-                    {props.visualGame.table.map((card: Card) => (
+                    {props.visualGame.table.map((card: GameCard) => (
                         <PlayingCard
                             key={card.id}
                             card={card}
@@ -212,7 +213,7 @@ function GameBoard(props: any) {
 
                     <div className="flex-1 flex justify-center w-full mt-2 sm:mt-4">
                         <div className="flex justify-center -space-x-2 sm:-space-x-1 md:space-x-2 w-full">
-                            {me.hand.map((card: Card) => (
+                            {me.hand.map((card: GameCard) => (
                                 <PlayingCard
                                     key={card.id}
                                     card={card}
@@ -285,7 +286,7 @@ function OpponentWidget({ player, isTurn, hasSurs, turnDurationSec, turnTimeLeft
             
             {/* Веер карт (подныривает под аватарку) */}
             <div className="flex justify-center -space-x-4 sm:-space-x-5 relative z-0 -mt-3 sm:-mt-5">
-                {player.hand.map((card: Card, i: number) => {
+                {player.hand.map((card: GameCard, i: number) => {
                     const offset = i - (player.hand.length - 1) / 2;
                     
                     // Идеальная физика веера оппонента (свисает вниз)
@@ -318,7 +319,7 @@ function OpponentWidget({ player, isTurn, hasSurs, turnDurationSec, turnTimeLeft
 // 4. Компоненты интерфейса
 // ==========================================
 
-function DeckArea({ game }: { game: GameState }) {
+function DeckArea({ game }: { game: PublicGameState }) {
     const { t } = useTranslation();
     const deckCount = game.deckCount ?? game.deck?.length ?? 0;
     const hasCards = deckCount > 0;

@@ -9,8 +9,8 @@ export const userApi = {
         }
     },
 
-    async addMoney(uid: string, amount: number): Promise<void> {
-        await callApi('devAddMoney');
+    async addMoney(): Promise<void> {
+        await callApi('devAddMoney', {});
     },
 
     async adminDeleteUser(uidToKill: string): Promise<void> {

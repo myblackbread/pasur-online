@@ -18,8 +18,13 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@backend-types/*": ["../backend/supabase/functions/game-api/types/*"],
+      "@backend-utils/*": ["../backend/supabase/functions/game-api/utils/*"],
+      "@backend-config/*": ["../backend/supabase/functions/game-api/config/*"],
+      "@backend-core/*": ["../backend/supabase/functions/game-api/core/*"],
     }
   },
   "include": [
@@ -30,5 +35,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "supabase"]
+  "exclude": ["node_modules", "../backend"]
 }

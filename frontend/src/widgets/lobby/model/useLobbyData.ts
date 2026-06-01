@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { GameRoom, roomRealtimeApi } from '@/entities/room';
 import { UserProfile } from '@/entities/user';
 
 export function useLobbyData(user: UserProfile) {
-    const [rooms, setRooms] = useState<GameRoom[]>([]);
-    const [activeRooms, setActiveRooms] = useState<GameRoom[]>([]);
+    const [rooms, setRooms] = React.useState<GameRoom[]>([]);
+    const [activeRooms, setActiveRooms] = React.useState<GameRoom[]>([]);
 
     // Подписка на публичные столы
-    useEffect(() => {
+    React.useEffect(() => {
         const unsub = roomRealtimeApi.subscribeToPublicRooms(setRooms);
         return () => unsub();
     }, []);
 
     // Подписка на МОИ активные столы
-    useEffect(() => {
+    React.useEffect(() => {
         if (!user.activeRooms?.length) {
             setActiveRooms([]);
             return;
@@ -23,8 +23,9 @@ export function useLobbyData(user: UserProfile) {
     }, [user.activeRooms]);
 
     // Исключаем из общих столов те, в которых мы уже сидим
-    const openRooms = rooms.filter(r => !activeRooms.some(ar => ar.id === r.id));
-    
+    const activeIds = new Set(activeRooms.map(ar => ar.id));
+    const openRooms = rooms.filter(r => !activeIds.has(r.id));
+
     return {
         rooms,
         activeRooms,

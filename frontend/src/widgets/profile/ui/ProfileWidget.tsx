@@ -13,7 +13,7 @@ import EmojiPicker, { Theme, EmojiStyle, SkinTones } from 'emoji-picker-react';
 export default function ProfileWidget({ user }: { user: UserProfile }) {
     const { t } = useTranslation();
     const [isEditingEmoji, setIsEditingEmoji] = useState(false);
-    const [tempEmoji, setTempEmoji] = useState(user.avatarEmoji || '😎');
+    const [tempEmoji, setTempEmoji] = useState(user.settings?.avatarEmoji || '😎');
     const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 
     useEffect(() => {
@@ -22,7 +22,7 @@ export default function ProfileWidget({ user }: { user: UserProfile }) {
 
     const changeEmoji = async (emoji: string) => {
         setIsEditingEmoji(false);
-        await userApi.updateUserEmoji(user.uid, emoji);
+        await userApi.updateUserEmoji(user.id, emoji); // <-- user.id
     };
 
     return (
@@ -36,23 +36,24 @@ export default function ProfileWidget({ user }: { user: UserProfile }) {
                     layoutId="avatar-editor"
                     transition={sharedSpringTransition}
                     onClick={() => {
-                        setTempEmoji(user.avatarEmoji || '😎');
+                        setTempEmoji(user.settings?.avatarEmoji || '😎');
                         setIsEditingEmoji(true);
                     }}
                     className="w-24 h-24 sm:w-32 sm:h-32 mx-auto bg-theme-main rounded-full cursor-pointer shadow-lg relative hover:shadow-xl transition-shadow"
                 >
                     <InscribedZone>
-                        <span className="text-5xl sm:text-6xl leading-none">{user.avatarEmoji || '😎'}</span>
+                        <span className="text-5xl sm:text-6xl leading-none">{user.settings?.avatarEmoji || '😎'}</span>
                     </InscribedZone>
                 </MorphingCapsule>
 
                 <h2 className="text-2xl sm:text-3xl font-black mt-6 mb-2">{user.displayName}</h2>
-                <div className="text-theme-text opacity-50 font-bold font-mono text-xs mb-6">ID: {user.uid.substring(0, 8)}</div>
+                <div className="text-theme-text opacity-50 font-bold font-mono text-xs mb-6">ID: {user.id.substring(0, 8)}</div>
                 
                 <div className="inline-flex items-center gap-3 bg-theme-main px-5 py-3 rounded-2xl shadow-inner">
                     <span className="text-amber-500 font-black text-xl sm:text-2xl">{user.balance} 💰</span>
                     <div className="w-[2px] h-6 bg-theme-panel shadow-sm rounded-full"></div>
-                    <Button size="sm" fullWidth={false} onClick={() => userApi.addMoney(user.uid, 500)}>
+                    {/* addMoney теперь не требует аргументов */}
+                    <Button size="sm" fullWidth={false} onClick={() => userApi.addMoney()}>
                         + GET
                     </Button>
                 </div>

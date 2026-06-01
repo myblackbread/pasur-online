@@ -1,32 +1,5 @@
-import { GameState, RuleSet } from '@/entities/game';
+import { RoomDTO, RoomPlayerDTO, RoomStatusDTO } from '@/shared/api/contracts/dto';
 
-export type RoomStatus = 'waiting' | 'ready_check' | 'playing' | 'finished' | 'paused' | 'ready_check_resume' | 'pause_requested';
-
-export interface PlayerInfo {
-    id: string;
-    name: string;
-    isReady: boolean;
-    avatarEmoji?: string;
-}
-
-export interface GameRoom {
-    id?: string;
-    name?: string;
-    players: PlayerInfo[];
-    maxPlayers: number;
-    betAmount: number;
-    ruleSet: RuleSet;
-    isStrict: boolean;
-    isSuddenDeath?: boolean;
-    turnDuration?: number;
-    status: RoomStatus;
-    createdAt: number;
-    readyDeadline?: number | null;
-    turnDeadline?: number | null;
-    gameState?: GameState | null;    
-    adminMessage?: string | null;
-    isPrivate?: boolean;
-    joinCode?: string | null;
-    pauseProposals?: string[];
-    lastReaction?: { emoji: string; senderId: string; timestamp: number; } | null;
-}
+export type GameRoom = RoomDTO;
+export type PlayerInfo = RoomPlayerDTO;
+export type RoomStatus = RoomStatusDTO;
