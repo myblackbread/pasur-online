@@ -122,8 +122,8 @@ export function useGameRoom(roomId: string) {
 
             // Компонент умирает (свайп назад или закрытие). 
             // Если мы сидели за столом и игра не началась -> освобождаем место
-            if (mask && (status === 'waiting' || status === 'ready_check')) {
-                roomApi.leaveRoom(roomId, 'leave').catch(() => { });
+            if (mask && status === 'waiting') {
+                roomApi.leaveRoom(roomId).catch(() => { });
                 if (typeof window !== 'undefined') {
                     sessionStorage.removeItem(`pasur_mask_${roomId}`);
                 }

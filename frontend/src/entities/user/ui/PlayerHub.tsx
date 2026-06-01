@@ -1,26 +1,38 @@
 import React from 'react';
-import { PlayerState, Card, PlayingCard } from '@/entities/game';
+import { PlayerDTO } from '@/shared/api/contracts/dto';
 import { TimerBorder } from '@/shared/ui/animations/TimerBorder';
 import { MorphingCapsule } from '@/shared/ui/animations/MorphingCapsule';
 
+// Вытаскиваем тип публичного игрока (без массива hand, но с handCount), 
+// точно так же, как он приходит в PublicGameStateDTO
+type PublicPlayer = Omit<PlayerDTO, 'hand'> & { handCount: number };
+
 interface PlayerHubProps {
-    player: PlayerState;
+    player: PublicPlayer;
     isTurn: boolean;
-    hasSurs: boolean;
-    turnDurationSec: number;
-    turnTimeLeft: number;
+    turnDurationMs: number; // Принимаем миллисекунды из DTO
+    turnTimeLeft: number; // Оставшееся время (в секундах, например, из useCountdown)
     avatarEmoji: string;
-    animationState: { phase: string; action: any };
     onClick?: () => void;
     avatarType?: string;
 }
 
 export const PlayerHub = ({
-    player, isTurn, hasSurs, turnDurationSec, turnTimeLeft, avatarEmoji, animationState, onClick, avatarType
+    player, 
+    isTurn, 
+    turnDurationMs, 
+    turnTimeLeft, 
+    avatarEmoji, 
+    onClick, 
+    avatarType
 }: PlayerHubProps) => {
     const captureCount = player.captured.length;
     const hasCaptures = captureCount > 0;
-    const progress = turnDurationSec > 0 ? turnTimeLeft / turnDurationSec : 0;
+    const hasSurs = player.surs > 0;
+    
+    // Считаем прогресс (защита от деления на ноль)
+    const maxTimeSec = turnDurationMs / 1000;
+    const progress = maxTimeSec > 0 ? turnTimeLeft / maxTimeSec : 0;
 
     const innerContent = (
         <div className={`absolute inset-0 rounded-xl flex flex-col select-none transition-all duration-300
@@ -49,6 +61,8 @@ export const PlayerHub = ({
 
     return (
         <div 
+            // 🎯 ID обязателен! По нему глобальный аниматор будет вычислять, куда отправлять карты при взятке ('capture')
+            id={`player-hub-${player.id}`} 
             className={`relative flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28 ${onClick ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
             onClick={onClick}
         >
@@ -68,15 +82,6 @@ export const PlayerHub = ({
             )}
 
             {isTurn && <TimerBorder progress={progress} />}
-
-            {animationState.phase === 'flying' && animationState.action?.playerId === player.id && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
-                    <div className="absolute"><PlayingCard card={animationState.action.playedCard} disabled /></div>
-                    {animationState.action.capturedCards.map((c: Card) => (
-                        <div className="absolute" key={c.id}><PlayingCard card={c} disabled /></div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };

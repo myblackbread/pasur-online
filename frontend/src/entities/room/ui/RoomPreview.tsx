@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { GameRoom } from '../model/room.types';
+import { RoomDTO } from '@/shared/api/contracts/dto';
+import { UI_CONFIG } from '@/shared/config/constants';
 import { useCountdown } from '@/shared/lib/hooks/useCountdown';
 import { gamePlayApi } from '@/features/game-actions';
 import { useAlert } from '@/app/providers/AlertProvider';
 
 interface RoomPreviewProps {
-    room: GameRoom;
+    room: RoomDTO;
     safeMyId: string;
     isJoining: boolean;
     onJoin: (roomId: string) => void;
@@ -16,12 +17,20 @@ interface RoomPreviewProps {
 export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: RoomPreviewProps) {
     const { t } = useTranslation();
     const { showAlert } = useAlert();
-    const readyTimeLeft = useCountdown(room.readyDeadline);
+    
+    // Единый таймер активного действия (в данном случае - время на нажатие "Готов")
+    const activeTimeLeft = useCountdown(room.activeDeadline);
 
     const isSpectator = !room.players.some(p => p.id === safeMyId);
-    const isFull = room.players.length === room.required_players;
+    const isFull = room.players.length === room.requiredPlayers;
     const meInfo = room.players.find(p => p.id === safeMyId);
-    const isReadyCheck = room.status === 'ready_check' || room.status === 'ready_check_resume';
+    
+    // Новая логика: фаза "готовности" - это когда комната ждет (или на паузе) и запущен таймер
+    const isReadyPhase = (room.status === 'waiting' || room.status === 'paused') && !!room.activeDeadline;
+    const isPrivate = !!room.joinCode;
+
+    const speedUI = UI_CONFIG.SPEED_UI[room.turnDuration as keyof typeof UI_CONFIG.SPEED_UI] || UI_CONFIG.SPEED_UI[60000];
+    const speedLabel = room.turnDuration === 3600000 ? '1ч' : `${room.turnDuration / 1000}с`;
 
     return (
         <div className="flex flex-col">
@@ -46,10 +55,10 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
                     {/* Скорость игры */}
                     <div className="bg-theme-main rounded-2xl p-3 shadow-sm flex flex-col items-center justify-center text-center">
                         <span className="text-xl sm:text-2xl mb-1">
-                            {room.turnDuration === 15000 ? '⚡' : room.turnDuration === 60000 ? '☕' : room.turnDuration === 3600000 ? '🧪' : '⏱'}
+                            {speedUI.icon}
                         </span>
                         <span className="text-[10px] sm:text-xs font-bold text-theme-text opacity-90">
-                            {room.turnDuration === 15000 ? '15с' : room.turnDuration === 60000 ? '60с' : room.turnDuration === 3600000 ? '1ч' : '30с'}
+                            {speedLabel}
                         </span>
                     </div>
 
@@ -66,7 +75,7 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
                             <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider">{t('rule_sudden_death')}</span>
                         </div>
                     )}
-                    {room.isPrivate && (
+                    {isPrivate && (
                         <div className="bg-slate-500/10 text-slate-500 rounded-2xl p-2 shadow-sm flex flex-col items-center justify-center text-center">
                             <span className="text-lg sm:text-xl mb-1">🔒</span>
                             <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider">{t('modal_private_table')}</span>
@@ -86,7 +95,7 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
 
             {/* Список игроков за столом */}
             <div className="space-y-3 mb-6 text-left">
-                {Array.from({ length: room.required_players }).map((_, i) => {
+                {Array.from({ length: room.requiredPlayers }).map((_, i) => {
                     const p = room.players[i];
                     return (
                         <div key={i} className={`flex items-center gap-3 p-3 rounded-2xl transition-all ${p ? 'bg-theme-main shadow-md' : 'bg-theme-main/50 shadow-inner opacity-70'}`}>
@@ -118,10 +127,10 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
             </div>
 
             {/* Таймер старта (если все нажали готов) */}
-            {isReadyCheck && (
+            {isReadyPhase && (
                 <div className="mb-6 animate-pulse text-center">
                     <div className="text-sm text-theme-primary font-black uppercase tracking-widest mb-1">{t('game_starts_in')}</div>
-                    <div className="text-6xl font-black text-theme-text drop-shadow-md">{readyTimeLeft}</div>
+                    <div className="text-6xl font-black text-theme-text drop-shadow-md">{activeTimeLeft}</div>
                 </div>
             )}
 
@@ -134,31 +143,29 @@ export function RoomPreview({ room, safeMyId, isJoining, onJoin, onLeave }: Room
                         </button>
                     ) : (
                         <button
-                            onClick={() => gamePlayApi.toggleReady(room.id!, true).catch(e => showAlert({
+                            onClick={() => gamePlayApi.toggleReady(room.id, true).catch(e => showAlert({
                                 title: t(e.message),
                                 buttons: [{ text: t('alert_ok'), style: "cancel" }]
                             }))}
-                            // 🟢 ИСПРАВЛЕНИЕ ЗДЕСЬ: убрано "|| isReadyCheck", теперь кнопка блокируется только если ВЫ УЖЕ нажали готов.
                             disabled={meInfo?.isReady}
                             className={`w-full py-4 rounded-2xl font-black transition-all text-lg ${meInfo?.isReady
                                 ? 'bg-theme-main text-theme-text opacity-60 cursor-not-allowed shadow-inner'
                                 : 'bg-theme-primary text-white shadow-md hover:shadow-lg active:scale-[0.98]'
                                 }`}
                         >
-                            {/* 🟢 ИСПРАВЛЕНИЕ ЗДЕСЬ: текст меняется только в зависимости от вашей готовности */}
                             {meInfo?.isReady ? t('game_waiting_opponent') : t('game_i_am_ready')}
                         </button>
                     )}
 
                     {/* Скрываем кнопку выхода, если запущен таймер начала игры */}
-                    {!isReadyCheck && (
-                        <button onClick={() => onLeave(room.id!)} disabled={isJoining} className="text-red-500 hover:text-red-600 text-sm py-3 font-bold transition-colors">
+                    {!isReadyPhase && (
+                        <button onClick={() => onLeave(room.id)} disabled={isJoining} className="text-red-500 hover:text-red-600 text-sm py-3 font-bold transition-colors">
                             {isJoining ? t('game_leaving') : t('game_leave_table')}
                         </button>
                     )}
                 </div>
             ) : (
-                <button onClick={() => onJoin(room.id!)} disabled={isJoining || isFull} className="w-full bg-theme-primary text-white hover:opacity-90 py-4 rounded-2xl font-black disabled:opacity-50 shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-lg">
+                <button onClick={() => onJoin(room.id)} disabled={isJoining || isFull} className="w-full bg-theme-primary text-white hover:opacity-90 py-4 rounded-2xl font-black disabled:opacity-50 shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-lg">
                     {isFull ? t('game_table_full') : (isJoining ? t('game_sitting') : t('game_sit_table'))}
                 </button>
             )}

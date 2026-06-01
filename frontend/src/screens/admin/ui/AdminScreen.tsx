@@ -1,26 +1,23 @@
 "use client";
 
 import React from 'react';
-import { supabase } from '@/shared/api';
-import { UserProfile, userApi } from '@/entities/user';
+import { supabase, mapUserFromDB } from '@/shared/api'; // <-- Импортируем наш маппер
+import { UserDTO } from '@/shared/api/contracts/dto'; // <-- Используем новый DTO
+import { userApi } from '@/entities/user';
 import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 
 export default function AdminScreen() {
-    const [users, setUsers] = React.useState<UserProfile[]>([]);
+    // 1. Меняем стейт на UserDTO
+    const [users, setUsers] = React.useState<UserDTO[]>([]);
     const { showAlert } = useAlert();
     const { t } = useTranslation();
 
     const fetchUsers = async () => {
         const { data } = await supabase.from('users').select('*').eq('is_deleted', false);
         if (data) {
-            // Маппим snake_case в camelCase
-            const mappedUsers = data.map((u: any) => ({
-                uid: u.id,
-                displayName: u.display_name,
-                balance: u.balance,
-                isDeleted: u.is_deleted
-            })) as UserProfile[];
+            // 2. Изящно пропускаем сырые данные через наш централизованный маппер
+            const mappedUsers = data.map(mapUserFromDB);
             setUsers(mappedUsers);
         }
     };
@@ -38,16 +35,19 @@ export default function AdminScreen() {
         return () => { supabase.removeChannel(channel); };
     }, []);
 
-    const handleDeleteUser = (userToKill: UserProfile) => {
+    // 3. Здесь тоже принимаем UserDTO
+    const handleDeleteUser = (userToKill: UserDTO) => {
         showAlert({
             title: `${t('admin_confirm_delete')} ${userToKill.displayName}?`,
             buttons: [
                 {
                     text: "Удалить",
                     style: "destructive",
-                    onPress: (user) => async () => {
+                    // Обрати внимание: убрал неиспользуемый аргумент (user) из onPress
+                    onPress: () => async () => {
                         try {
-                            await userApi.adminDeleteUser(userToKill.uid);
+                            // 4. Используем .id вместо .uid
+                            await userApi.adminDeleteUser(userToKill.id);
 
                             showAlert({
                                 title: `${userToKill.displayName} ${t('admin_user_deleted')}`,
@@ -85,8 +85,8 @@ export default function AdminScreen() {
                         </thead>
                         <tbody>
                             {users.map(user => (
-                                <tr key={user.uid} className="border-b border-theme-border/50 hover:bg-slate-700/30">
-                                    <td className="p-4 font-mono text-xs text-slate-400">{user.uid}</td>
+                                <tr key={user.id} className="border-b border-theme-border/50 hover:bg-slate-700/30">
+                                    <td className="p-4 font-mono text-xs text-slate-400">{user.id}</td>
                                     <td className="p-4 font-bold">{user.displayName}</td>
                                     <td className="p-4 text-amber-400">{user.balance} 💰</td>
                                     <td className="p-4">

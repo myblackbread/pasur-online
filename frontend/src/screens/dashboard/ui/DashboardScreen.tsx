@@ -3,7 +3,9 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/shared/api';
-import { UserProfile, userRealtimeApi } from '@/entities/user';
+// Импортируем новый UserDTO
+import { UserDTO } from '@/shared/api/contracts/dto';
+import { userRealtimeApi } from '@/entities/user';
 import LobbyWidget from '@/widgets/lobby';
 import { ProfileWidget, SettingsWidget } from '@/widgets/profile';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +16,8 @@ import AboutWidget from '@/widgets/about';
 export default function DashboardScreen() {
     const { t } = useTranslation();
     const router = useRouter();
-    const [user, setUser] = React.useState<UserProfile | null>(null);
+    // 1. Меняем стейт на UserDTO
+    const [user, setUser] = React.useState<UserDTO | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
 
     React.useEffect(() => {
@@ -30,7 +33,9 @@ export default function DashboardScreen() {
                     if (userData?.isDeleted) {
                         supabase.auth.signOut().then(() => router.push('/'));
                     } else if (userData) {
-                        setUser(userData);
+                        // Предполагается, что subscribeToUser уже отдает данные, 
+                        // прогнанные через наш маппер mapUserFromDB, и возвращает UserDTO
+                        setUser(userData as UserDTO);
                         setIsLoading(false);
                     }
                 });
@@ -49,10 +54,14 @@ export default function DashboardScreen() {
         };
     }, [router]);
 
+    // 2. Идем за гендером внутрь settings
     React.useEffect(() => {
-        if (user?.gender) document.documentElement.setAttribute('data-theme', user.gender);
-        else document.documentElement.removeAttribute('data-theme');
-    }, [user?.gender]);
+        if (user?.settings?.gender) {
+            document.documentElement.setAttribute('data-theme', user.settings.gender);
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+    }, [user?.settings?.gender]);
 
     const screens = React.useMemo<ScrollScreen[]>(() => {
         if (!user) return [];
@@ -60,7 +69,7 @@ export default function DashboardScreen() {
             { id: 'lobby', icon: <span title={t('nav_game')}>🎲</span>, content: <LobbyWidget user={user} />, bgClass: 'bg-theme-main' },
             { id: 'profile', icon: <span title={t('nav_profile')}>👤</span>, content: <ProfileWidget user={user} />, bgClass: 'bg-theme-main' },
             { id: 'settings', icon: <span title={t('nav_settings')}>⚙️</span>, content: <SettingsWidget user={user} languageSlot={<LanguageSwitcher />} />, bgClass: 'bg-theme-main' },
-            { id: 'about', icon: <span title={t('nav_about')}>ℹ️</span>, content: <AboutWidget />, bgClass: 'bg-theme-main' } // <--- НОВЫЙ ТАБ
+            { id: 'about', icon: <span title={t('nav_about')}>ℹ️</span>, content: <AboutWidget />, bgClass: 'bg-theme-main' }
         ];
     }, [user, t]);
 
@@ -70,7 +79,7 @@ export default function DashboardScreen() {
         <main className="fixed inset-0 bg-theme-main flex flex-col overflow-hidden">
             <HybridScrollView screens={screens} />
             
-            <div id="overlay-root" className="fixed inset-0 pointer-events-none z-9999" />
+            <div id="overlay-root" className="fixed inset-0 pointer-events-none z-[9999]" />
         </main>
     );
 }

@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { GameCard } from '@/shared/types/api-contract';
+import { GameCardDTO } from '@/shared/api/contracts/dto';
 
 interface PlayingCardProps {
-    card: GameCard;
-    onClick?: (card: GameCard) => void;
+    card: GameCardDTO;
+    onClick?: (card: GameCardDTO) => void;
     disabled?: boolean;
     isPending?: boolean;
     isSelected?: boolean;

@@ -2,14 +2,17 @@
 
 import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
-import { UserProfile } from '@/entities/user';
+// 1. Меняем импорт типа пользователя
+import { UserDTO } from '@/shared/api/contracts/dto';
 
-export function useIncognitoCheck(user: UserProfile) {
+// 2. Указываем новый тип
+export function useIncognitoCheck(user: UserDTO) {
     const { showAlert } = useAlert();
     const { t } = useTranslation();
 
     const requireIncognitoCheck = (action: () => void) => {
-        if (user.gender === 'female' && !user.settings?.isIncognito) {
+        // 3. Обращаемся к гендеру через settings
+        if (user.settings?.gender === 'female' && !user.settings?.isIncognito) {
             showAlert({
                 title: t('incognito_warn'),
                 buttons: [
@@ -31,16 +34,14 @@ import React, { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useMotionValue, animate, useTransform } from 'framer-motion';
 import { Search, Plus, Check, ArrowRight } from 'lucide-react';
-// import { useTranslation } from 'react-i18next';
 
-import { roomApi, GameRoom } from '@/entities/room';
-// import { UserProfile } from '@/entities/user';
+import { roomApi } from '@/entities/room';
+// 4. Импортируем новый RoomDTO вместо GameRoom
+import { RoomDTO } from '@/shared/api/contracts/dto';
 import { CreateRoomPayload } from '@/shared/api/contracts/payloads';
-// import { useAlert } from '@/app/providers/AlertProvider';
 import { MorphingCapsule, sharedSpringTransition } from '@/shared/ui/animations/MorphingCapsule';
 import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
 import { RoomConfigForm } from '@/features/room-config/ui/RoomConfigForm';
-// import { useIncognitoCheck } from './useIncognitoCheck';
 
 const DEFAULT_CONFIG: CreateRoomPayload = {
     name: '', betAmount: 100, turnDuration: 30000, requiredPlayers: 2,
@@ -56,10 +57,12 @@ function generateRandomRoomName() {
 }
 
 export interface LobbyFloatingUIProps {
-    user: UserProfile;
+    // 5. Меняем тип на UserDTO
+    user: UserDTO;
     searchQuery: string;
     onSearchQueryChange: (query: string) => void;
-    onSearchResults: (rooms: GameRoom[] | null) => void;
+    // 6. Меняем тип на RoomDTO
+    onSearchResults: (rooms: RoomDTO[] | null) => void;
     activeTab: 'my' | 'open';
     onTabChange: (tab: 'my' | 'open') => void;
     onSwipeProgress: (progress: number) => void;
@@ -111,13 +114,12 @@ export function LobbyFloatingUI({
     const handlePanStart = () => {
         clearFilterTimer();
         setIsDraggingTab(true);
-        startProgress.current = progress.get(); // Запоминаем точку старта
+        startProgress.current = progress.get();
     };
 
     const handlePan = (e: any, info: any) => {
-        // Жестко задаем комфортную длину свайпа в 120 пикселей, а не привязываемся к ширине экрана
         const SWIPE_WIDTH = 120;
-        const deltaProgress = -info.offset.x / SWIPE_WIDTH; // Влево = стремимся к 1
+        const deltaProgress = -info.offset.x / SWIPE_WIDTH;
 
         let next = startProgress.current + deltaProgress;
         progress.set(Math.max(0, Math.min(1, next)));
@@ -130,10 +132,8 @@ export function LobbyFloatingUI({
         const v = -info.velocity.x;
         let target = current;
 
-        // Если дернули сильно — переключаем в сторону рывка
         if (v > 300) target = 1;
         else if (v < -300) target = 0;
-        // Если протащили палец больше чем на 50% (60px) — переключаем
         else target = current > 0.5 ? 1 : 0;
 
         animate(progress, target, {
@@ -161,18 +161,25 @@ export function LobbyFloatingUI({
         }
     };
 
-    // Опущенные для чистоты кода ваши методы API
     const handleCreateRoom = async () => {
         if (user.balance < createConfig.betAmount) {
             return showAlert({ title: t('lobby_not_enough_money'), buttons: [{ text: t('alert_ok'), style: "cancel" }] });
         }
         try {
             const finalName = (createConfig.name || '').trim() || defaultRoomName;
-            const roomId = await roomApi.createRoom(
-                user, finalName, createConfig.betAmount, createConfig.ruleSet || 'local',
-                !!createConfig.isPrivate, !!createConfig.isStrict, !!createConfig.isSuddenDeath,
-                createConfig.requiredPlayers || 2, createConfig.turnDuration || 60000
-            );
+            
+            const roomId = await roomApi.createRoom({
+                name: finalName, 
+                betAmount: createConfig.betAmount, 
+                ruleSet: createConfig.ruleSet || 'local',
+                isPrivate: !!createConfig.isPrivate, 
+                isStrict: !!createConfig.isStrict, 
+                isSuddenDeath: !!createConfig.isSuddenDeath,
+                requiredPlayers: createConfig.requiredPlayers || 2, 
+                turnDuration: createConfig.turnDuration || 60000,
+                isJacksDealerReserved: !!createConfig.isJacksDealerReserved,
+                allowPauses: createConfig.allowPauses ?? true
+            });
             setView('none');
             router.push(`/game/${roomId}`);
         } catch (e: any) {
@@ -194,9 +201,12 @@ export function LobbyFloatingUI({
     const handleApplyFilters = async () => {
         try {
             const results = await roomApi.searchRooms({
-                bet: searchConfig.betAmount, speed: searchConfig.turnDuration,
-                players: searchConfig.requiredPlayers, ruleSet: searchConfig.ruleSet,
-                isStrict: searchConfig.isStrict, isSuddenDeath: searchConfig.ruleSet === 'local' ? searchConfig.isSuddenDeath : undefined
+                bet: searchConfig.betAmount, 
+                speed: searchConfig.turnDuration,
+                players: searchConfig.requiredPlayers, 
+                ruleSet: searchConfig.ruleSet,
+                isStrict: searchConfig.isStrict, 
+                isSuddenDeath: searchConfig.ruleSet === 'local' ? searchConfig.isSuddenDeath : undefined
             });
             onSearchResults(results);
             setView('none');
@@ -246,7 +256,7 @@ export function LobbyFloatingUI({
             </CapsuleModal>
 
             {view === 'none' && (
-                <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none px-4 z-80">
+                <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none px-4 z-[80]">
 
                     <AnimatePresence mode="popLayout">
                         <div className="flex justify-center gap-3 w-full max-w-md pointer-events-auto h-14 items-center">
@@ -285,7 +295,6 @@ export function LobbyFloatingUI({
                                     exit={{ opacity: 0, y: 30 }}
                                     transition={sharedSpringTransition}
                                     style={{ borderRadius: 9999 }}
-                                    // Убран внутренний отступ (p-1.5), он перенесен внутрь
                                     className="flex-1 w-full overflow-hidden relative bg-theme-panel/80 backdrop-blur-2xl shadow-lg h-14 cursor-pointer touch-none select-none"
                                     onPointerDown={handlePointerDown}
                                     onPointerUp={clearFilterTimer}
@@ -295,21 +304,14 @@ export function LobbyFloatingUI({
                                     onPan={handlePan}
                                     onPanEnd={handlePanEnd}
                                 >
-                                    {/* ВНУТРЕННИЙ ЖЕСТКИЙ КОНТЕЙНЕР
-                                        168px = ширина боковых кнопок (112) + отступы и gap (56).
-                                        Он не дает текстам и лупе растянуться, когда фоновая капсула расширяется
-                                    */}
                                     <div className="relative mx-auto h-full w-[calc(100vw-168px)] max-w-[280px]">
 
-                                        {/* Анимированная лупа (вложенная капсула) */}
                                         <motion.div
-                                            // При свайпе отступы сверху/снизу становятся 0, заполняя высоту
                                             animate={{ top: isDraggingTab ? 0 : 6, bottom: isDraggingTab ? 0 : 6 }}
                                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                             className="absolute left-1/4 right-1/4 bg-theme-primary/20 rounded-full z-0 pointer-events-none"
                                         />
 
-                                        {/* Подвижная лента с текстами */}
                                         <motion.div
                                             style={{ x: trackX }}
                                             className="absolute inset-y-0 w-full flex z-10 pointer-events-none"
@@ -375,19 +377,12 @@ export function LobbyFloatingUI({
 
 // import React from 'react';
 import { createPortal } from 'react-dom';
-// import { useRouter } from 'next/navigation';
-// import { GameRoom, roomApi } from '@/entities/room';
-// import { UserProfile } from '@/entities/user';
-// import { useAlert } from '@/app/providers/AlertProvider';
-// import { useTranslation } from 'react-i18next';
-
 import { useLobbyData } from '../model/useLobbyData';
 import { ActiveRoomsWidget } from './ActiveRoomsWidget';
 import { OpenRoomsWidget } from './OpenRoomsWidget';
-// import { LobbyFloatingUI } from './LobbyFloatingUI';
-// import { useIncognitoCheck } from './useIncognitoCheck';
 
-export default function LobbyWidget({ user }: { user: UserProfile }) {
+// 8. Меняем тип пропса
+export default function LobbyWidget({ user }: { user: UserDTO }) {
     const router = useRouter();
     const { showAlert } = useAlert();
     const { t } = useTranslation();
@@ -396,7 +391,8 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
     const { activeRooms, openRooms } = useLobbyData(user);
 
     const [searchQuery, setSearchQuery] = React.useState('');
-    const [searchResults, setSearchResults] = React.useState<GameRoom[] | null>(null);
+    // 9. Снова RoomDTO вместо GameRoom
+    const [searchResults, setSearchResults] = React.useState<RoomDTO[] | null>(null);
     const [isSurrendering, setIsSurrendering] = React.useState(false);
 
     const [portalNode, setPortalNode] = React.useState<HTMLElement | null>(null);
@@ -444,7 +440,7 @@ export default function LobbyWidget({ user }: { user: UserProfile }) {
 
     const handleClearSearch = () => {
         setSearchResults(null);
-        setSearchQuery(''); // Это автоматически очистит инпут в LobbyFloatingUI
+        setSearchQuery('');
     };
 
     const filteredOpenRooms = openRooms.filter(r => {
