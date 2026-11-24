@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { RoomDTO } from '@/shared/api/contracts/dto';
-import { UI_CONFIG } from '@/shared/config/constants';
-import { useCountdown } from '@/shared/lib/hooks/useCountdown';
+import { RoomDTO } from '@/shared1/api/contracts/dto';
+import { UI_CONFIG } from '@/shared1/config/constants';
+import { useCountdown } from '@/shared1/lib/hooks/useCountdown';
 import { gamePlayApi } from '@/features/game-actions';
 import { useAlert } from '@/app/providers/AlertProvider';
 

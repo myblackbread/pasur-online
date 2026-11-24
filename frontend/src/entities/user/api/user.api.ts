@@ -1,4 +1,4 @@
-import { callApi, supabase } from '@/shared/api';
+import { callApi, supabase } from '@/shared1/api';
 
 export const userApi = {
     async updateUserEmoji(uid: string, emoji: string) {

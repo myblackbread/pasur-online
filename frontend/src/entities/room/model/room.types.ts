@@ -1,4 +1,4 @@
-import { RoomDTO, RoomPlayerDTO, RoomStatusDTO } from '@/shared/api/contracts/dto';
+import { RoomDTO, RoomPlayerDTO, RoomStatusDTO } from '@/shared1/api/contracts/dto';
 
 export type GameRoom = RoomDTO;
 export type PlayerInfo = RoomPlayerDTO;

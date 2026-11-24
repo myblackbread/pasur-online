@@ -1,17 +1,14 @@
 {
   "folders": [
-    {
-      "name": "Frontend",
-      "path": "frontend"
-    },
-    {
-      "name": "Backend",
-      "path": "backend"
-    },
-    // {
-    //     "name": "Mobile App",
-    //     "path": "mobile"
-    // }
+    { "name": "🌐 Frontend", "path": "frontend" },
+    { "name": "⚙️ Backend", "path": "backend" },
+    { "name": "📱 iOS (SwiftUI)", "path": "mobile-ios" }
   ],
-  "settings": {}
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/*.xcworkspace": true
+    }
+  }
 }

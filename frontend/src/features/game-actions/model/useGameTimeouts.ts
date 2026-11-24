@@ -1,5 +1,5 @@
 import { useEffect, MutableRefObject } from 'react';
-import { RoomStatusDTO } from '@/shared/api/contracts/dto';
+import { RoomStatusDTO } from '@/shared1/api/contracts/dto';
 import { gamePlayApi } from '../api/game-play.api';
 
 export function useGameTimeouts(

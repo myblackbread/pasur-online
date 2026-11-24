@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExpandableCarouselRow, PickerOption } from '@/shared/ui/carousel';
-import { RowLabel } from '@/shared/ui/lists/RowLabel';
+import { ExpandableCarouselRow, PickerOption } from '@/shared1/ui/carousel';
+import { RowLabel } from '@/shared1/ui/lists/RowLabel';
 
 const LANGUAGE_OPTIONS: PickerOption[] = [
     {

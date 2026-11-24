@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AlertProvider, AuthProvider, I18nProvider } from '@/app/providers'
-
+import { AlertProvider, AuthProvider, I18nProvider } from '@/app/providers';
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
@@ -26,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <I18nProvider>
                     <AlertProvider>
                         <AuthProvider>
+                            
                             <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
                                 <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue-500/10 rounded-full blur-[100px]"></div>
                                 <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-rose-500/10 rounded-full blur-[100px]"></div>

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/entities/user';
-import { supabase } from '@/shared/api';
+import { supabase } from '@/shared1/api';
 import { authApi } from '@/entities/session';
 import { User } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/app/providers/AlertProvider';
 
-import { InfoSection } from '@/shared/ui/lists/InfoSection';
-import { SwitchRow } from '@/shared/ui/lists/SwitchRow';
-import { ActionRow } from '@/shared/ui/lists/ActionRow';
+import { InfoSection } from '@/shared1/ui/lists/InfoSection';
+import { SwitchRow } from '@/shared1/ui/lists/SwitchRow';
+import { ActionRow } from '@/shared1/ui/lists/ActionRow';
 
 export default function SettingsWidget({
     user,

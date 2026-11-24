@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/shared/ui/buttons/Button';
-import { Divider } from '@/shared/ui/layout/Divider';
-import { Input } from '@/shared/ui/inputs/Input';
-import { SegmentedControl } from '@/shared/ui/inputs/SegmentedControl';
-import { InfoSection } from '@/shared/ui/lists/InfoSection';
+import { Button } from '@/shared1/ui/buttons/Button';
+import { Divider } from '@/shared1/ui/layout/Divider';
+import { Input } from '@/shared1/ui/inputs/Input';
+import { SegmentedControl } from '@/shared1/ui/inputs/SegmentedControl';
+import { InfoSection } from '@/shared1/ui/lists/InfoSection';
 import { AuthCredentials, AuthProviderType } from '../model/useAuthAction';
 
 export function AuthForm({

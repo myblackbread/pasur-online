@@ -8,15 +8,15 @@ import { useTranslation } from 'react-i18next';
 import { gamePlayApi, useGameAnimations, useGameTimeouts } from '@/features/game-actions';
 import { WaitingRoomCard, roomApi } from '@/entities/room';
 import { useGameRoom } from '../model/useGameRoom';
-import { GameCardDTO, PublicGameStateDTO, PlayerDTO } from '@/shared/api/contracts/dto';
+import { GameCardDTO, PublicGameStateDTO, PlayerDTO } from '@/shared1/api/contracts/dto';
 import { PlayingCard } from '@/entities/game';
 import { useAlert } from '@/app/providers/AlertProvider';
-import { Modal } from '@/shared/ui/overlays/Modal';
-import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
-import { useCountdown } from '@/shared/lib/hooks/useCountdown';
+import { Modal } from '@/shared1/ui/overlays/Modal';
+import { CapsuleModal } from '@/shared1/ui/overlays/CapsuleModal';
+import { useCountdown } from '@/shared1/lib/hooks/useCountdown';
 import { PlayerHub } from '@/entities/user';
-import { InfoSection } from '@/shared/ui/lists/InfoSection';
-import { RowLabel } from '@/shared/ui/lists/RowLabel';
+import { InfoSection } from '@/shared1/ui/lists/InfoSection';
+import { RowLabel } from '@/shared1/ui/lists/RowLabel';
 
 // ==========================================
 // 1. Главный контейнер

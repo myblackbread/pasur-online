@@ -1,4 +1,4 @@
-import { supabase, mapUserFromDB } from "@/shared/api";
+import { supabase, mapUserFromDB } from "@/shared1/api";
 import { UserProfile } from "../model/user.types";
 
 export const userRealtimeApi = {

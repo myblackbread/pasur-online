@@ -1,7 +1,7 @@
 import React from 'react';
-import { PlayerDTO } from '@/shared/api/contracts/dto';
-import { TimerBorder } from '@/shared/ui/animations/TimerBorder';
-import { MorphingCapsule } from '@/shared/ui/animations/MorphingCapsule';
+import { PlayerDTO } from '@/shared1/api/contracts/dto';
+import { TimerBorder } from '@/shared1/ui/animations/TimerBorder';
+import { MorphingCapsule } from '@/shared1/ui/animations/MorphingCapsule';
 
 // Вытаскиваем тип публичного игрока (без массива hand, но с handCount), 
 // точно так же, как он приходит в PublicGameStateDTO

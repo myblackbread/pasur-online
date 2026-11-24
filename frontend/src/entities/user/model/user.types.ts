@@ -1,4 +1,4 @@
-import { UserDTO, UserSettingsDTO } from '@/shared/api/contracts/dto';
+import { UserDTO, UserSettingsDTO } from '@/shared1/api/contracts/dto';
 
 // Наследуем интерфейсы от DTO
 export type UserProfile = UserDTO;

@@ -1,4 +1,4 @@
-import { supabase, mapRoomFromDB } from "@/shared/api";
+import { supabase, mapRoomFromDB } from "@/shared1/api";
 import { GameRoom } from "../model/room.types";
 import { v4 as uuidv4 } from 'uuid';
 

@@ -1,6 +1,0 @@
-{
-  "imports": {
-    "@std/http": "jsr:@std/http@0.224.5",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
-  }
-}

@@ -1,4 +1,4 @@
-import { supabase } from '../../../shared/api/supabase/client';
+import { supabase } from '../../../shared1/api/supabase/client';
 
 export const authApi = {
     async login(provider: 'google' | 'email' | 'guest', email?: string, password?: string, gender?: 'male' | 'female'): Promise<string> {

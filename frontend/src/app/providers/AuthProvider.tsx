@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/shared/api';
+import { supabase } from '@/shared1/api';
 import { Session } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 

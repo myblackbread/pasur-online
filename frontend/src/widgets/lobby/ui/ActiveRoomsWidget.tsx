@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trash2, LogOut } from 'lucide-react';
 import { GameRoom, ActiveRoomCard } from '@/entities/room';
-import { SwipeableActionCard } from '@/shared/ui/animations/SwipeableActionCard';
+import { SwipeableActionCard } from '@/shared1/ui/animations/SwipeableActionCard';
 import { PlayerSquare } from '@/entities/user';
 
 interface ActiveRoomsListProps {

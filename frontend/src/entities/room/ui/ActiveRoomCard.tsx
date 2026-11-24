@@ -2,10 +2,10 @@
 
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { RoomDTO } from "@/shared/api/contracts/dto";
-import { GAME_CONFIG, UI_CONFIG } from "@/shared/config/constants";
-import { useCountdown } from "@/shared/lib/hooks/useCountdown";
-import { TimerBorder } from "@/shared/ui/animations/TimerBorder";
+import { RoomDTO } from "@/shared1/api/contracts/dto";
+import { GAME_CONFIG, UI_CONFIG } from "@/shared1/config/constants";
+import { useCountdown } from "@/shared1/lib/hooks/useCountdown";
+import { TimerBorder } from "@/shared1/ui/animations/TimerBorder";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 

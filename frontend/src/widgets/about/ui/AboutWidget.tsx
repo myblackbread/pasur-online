@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { InfoSection } from '@/shared/ui/lists/InfoSection';
-import { ActionRow } from '@/shared/ui/lists/ActionRow';
-import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
-import { MorphingCapsule, sharedSpringTransition } from '@/shared/ui/animations/MorphingCapsule';
+import { InfoSection } from '@/shared1/ui/lists/InfoSection';
+import { ActionRow } from '@/shared1/ui/lists/ActionRow';
+import { CapsuleModal } from '@/shared1/ui/overlays/CapsuleModal';
+import { MorphingCapsule, sharedSpringTransition } from '@/shared1/ui/animations/MorphingCapsule';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 

@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/shared/api';
+import { supabase } from '@/shared1/api';
 // Импортируем новый UserDTO
-import { UserDTO } from '@/shared/api/contracts/dto';
+import { UserDTO } from '@/shared1/api/contracts/dto';
 import { userRealtimeApi } from '@/entities/user';
 import LobbyWidget from '@/widgets/lobby';
 import { ProfileWidget, SettingsWidget } from '@/widgets/profile';

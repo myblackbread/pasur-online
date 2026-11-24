@@ -1,0 +1,16 @@
+export type GameApiAction = 
+    | 'devAddMoney'
+    | 'secureCreateRoom'
+    | 'secureJoinRoom'
+    | 'secureToggleReady'
+    | 'secureSearchRooms'
+    | 'secureReturnToLobby'
+    | 'secureResolveReadyTimeout'
+    | 'securePlayCard'
+    | 'secureLeaveRoom'
+    | 'reportAfk'
+    | 'secureGetMyMask'
+    | 'secureSendReaction'
+    | 'secureGetGameState'
+    | 'adminDeleteUser'
+    | 'runGlobalCleanup';

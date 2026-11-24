@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PublicGameStateDTO, GameCardDTO } from '@/shared/api/contracts/dto';
+import { PublicGameStateDTO, GameCardDTO } from '@/shared1/api/contracts/dto';
 
 export type PendingMove = {
     card: GameCardDTO;

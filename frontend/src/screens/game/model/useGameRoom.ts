@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/shared/api';
+import { supabase } from '@/shared1/api';
 import { UserProfile, userRealtimeApi } from '@/entities/user';
 import { roomRealtimeApi } from '@/entities/room';
 import { GameRoom } from '@/entities/room/model/room.types';

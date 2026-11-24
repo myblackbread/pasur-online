@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { AlertModal, AlertOptions } from '@/shared/ui/overlays/AlertModal';
+import { AlertModal, AlertOptions } from '@/shared1/ui/overlays/AlertModal';
 
 
 interface AlertContextType {

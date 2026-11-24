@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, userApi } from '@/entities/user';
 import { useTranslation } from 'react-i18next';
-import { Panel } from '@/shared/ui/layout/Panel';
-import { Button } from '@/shared/ui/buttons/Button';
-import { InscribedZone } from '@/shared/ui/layout/InscribedZone';
-import { MorphingCapsule, sharedSpringTransition } from '@/shared/ui/animations/MorphingCapsule';
-import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
+import { Panel } from '@/shared1/ui/layout/Panel';
+import { Button } from '@/shared1/ui/buttons/Button';
+import { InscribedZone } from '@/shared1/ui/layout/InscribedZone';
+import { MorphingCapsule, sharedSpringTransition } from '@/shared1/ui/animations/MorphingCapsule';
+import { CapsuleModal } from '@/shared1/ui/overlays/CapsuleModal';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import EmojiPicker, { Theme, EmojiStyle, SkinTones } from 'emoji-picker-react';

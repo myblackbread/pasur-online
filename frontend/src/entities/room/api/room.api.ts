@@ -1,6 +1,6 @@
-import { callApi, supabase } from '@/shared/api';
-import { RoomDTO } from '@/shared/api/contracts/dto';
-import { CreateRoomPayload, SearchRoomsFiltersPayload } from '@/shared/api/contracts/payloads';
+import { callApi, supabase } from '@/shared1/api';
+import { RoomDTO } from '@/shared1/api/contracts/dto';
+import { CreateRoomPayload, SearchRoomsFiltersPayload } from '@/shared1/api/contracts/payloads';
 
 export const roomApi = {
     async createRoom(payload: CreateRoomPayload): Promise<string> {

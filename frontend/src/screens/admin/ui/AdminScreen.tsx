@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { supabase, mapUserFromDB } from '@/shared/api'; // <-- Импортируем наш маппер
-import { UserDTO } from '@/shared/api/contracts/dto'; // <-- Используем новый DTO
+import { supabase, mapUserFromDB } from '@/shared1/api'; // <-- Импортируем наш маппер
+import { UserDTO } from '@/shared1/api/contracts/dto'; // <-- Используем новый DTO
 import { userApi } from '@/entities/user';
 import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';

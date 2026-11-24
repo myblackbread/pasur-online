@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "dev": "deno run --watch --env --allow-net --allow-read --allow-write --allow-env src/main.ts",
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env src/main.ts",
+    "update-types": "npx supabase gen types typescript --project-id fgnwpacuwgxulqsdkotb > src/types/database.types.ts"
+  },
+  "imports": {
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2",
+    "postgres": "npm:postgres@^3.4.4"
+  }
+}

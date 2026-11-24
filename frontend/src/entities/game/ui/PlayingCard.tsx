@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { GameCardDTO } from '@/shared/api/contracts/dto';
+import { GameCardDTO } from '@/shared1/api/contracts/dto';
 
 interface PlayingCardProps {
     card: GameCardDTO;

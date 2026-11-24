@@ -3,7 +3,7 @@
 import { useAlert } from '@/app/providers/AlertProvider';
 import { useTranslation } from 'react-i18next';
 // 1. Меняем импорт типа пользователя
-import { UserDTO } from '@/shared/api/contracts/dto';
+import { UserDTO } from '@/shared1/api/contracts/dto';
 
 // 2. Указываем новый тип
 export function useIncognitoCheck(user: UserDTO) {
@@ -37,10 +37,10 @@ import { Search, Plus, Check, ArrowRight } from 'lucide-react';
 
 import { roomApi } from '@/entities/room';
 // 4. Импортируем новый RoomDTO вместо GameRoom
-import { RoomDTO } from '@/shared/api/contracts/dto';
-import { CreateRoomPayload } from '@/shared/api/contracts/payloads';
-import { MorphingCapsule, sharedSpringTransition } from '@/shared/ui/animations/MorphingCapsule';
-import { CapsuleModal } from '@/shared/ui/overlays/CapsuleModal';
+import { RoomDTO } from '@/shared1/api/contracts/dto';
+import { CreateRoomPayload } from '@/shared1/api/contracts/payloads';
+import { MorphingCapsule, sharedSpringTransition } from '@/shared1/ui/animations/MorphingCapsule';
+import { CapsuleModal } from '@/shared1/ui/overlays/CapsuleModal';
 import { RoomConfigForm } from '@/features/room-config/ui/RoomConfigForm';
 
 const DEFAULT_CONFIG: CreateRoomPayload = {

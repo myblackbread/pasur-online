@@ -1,22 +1,21 @@
-import React, { memo, ReactNode } from 'react';
+import React from 'react';
 
 export interface HybridScrollScreenProps {
-  children?: ReactNode;
+  children?: React.ReactNode;
   bg?: string;
   className?: string;
   id?: string;
 }
 
-export const HybridScrollScreen = memo(({ 
-  children, 
-  bg = 'bg-theme-main', // 🟢 Изменено с bg-zinc-900 
+export const HybridScrollScreen = React.memo(({
+  children,
+  bg = 'bg-theme-main',
   className = '',
   id
 }: HybridScrollScreenProps) => (
   <div 
     id={id}
-    className={`h-full w-full snap-start flex flex-col relative ${bg} ${className}`}
-    style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 100vh' }}
+    className={`min-h-full w-full flex flex-col relative ${bg} ${className}`}
   >
     {children}
   </div>

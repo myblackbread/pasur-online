@@ -1,13 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { GAME_CONFIG, UI_CONFIG } from '@/shared/config/constants';
-import { ExpandableCarouselRow, PickerOption } from '@/shared/ui/carousel';
-import { SegmentRow } from '@/shared/ui/inputs/SegmentRow';
-import { SwitchRow } from '@/shared/ui/lists/SwitchRow';
-import { InfoSection } from '@/shared/ui/lists/InfoSection';
-import { RowLabel } from '@/shared/ui/lists/RowLabel';
-import { InputRow } from '@/shared/ui/inputs/InputRow';
-import { CreateRoomPayload } from '@/shared/api/contracts/payloads';
+import { GAME_CONFIG, UI_CONFIG } from '@/shared1/config/constants';
+import { ExpandableCarouselRow, PickerOption } from '@/shared1/ui/carousel';
+import { SegmentRow } from '@/shared1/ui/inputs/SegmentRow';
+import { SwitchRow } from '@/shared1/ui/lists/SwitchRow';
+import { InfoSection } from '@/shared1/ui/lists/InfoSection';
+import { RowLabel } from '@/shared1/ui/lists/RowLabel';
+import { InputRow } from '@/shared1/ui/inputs/InputRow';
+import { CreateRoomPayload } from '@/shared1/api/contracts/payloads';
 
 interface RoomConfigFormProps {
     config: Partial<CreateRoomPayload>;

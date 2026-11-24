@@ -1,4 +1,4 @@
-import { callApi } from '@/shared/api';
+import { callApi } from '@/shared1/api';
 
 export const gamePlayApi = {
     async toggleReady(roomId: string, isReady: boolean): Promise<void> {
