@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, User, RefreshCw } from 'lucide-react';
-import { HybridScrollView, type ScrollScreen } from './hybrid-scrollbar';
+import { HybridScrollView, type ScrollScreen } from "@/app/hybrid-scrollbar";
 import { chatService } from '@/services/chatService';
 import { ChatHub } from '@/components/chat/ChatHub';
 
