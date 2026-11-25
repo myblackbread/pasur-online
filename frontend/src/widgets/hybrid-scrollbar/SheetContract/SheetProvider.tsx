@@ -33,9 +33,9 @@ export const SheetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const open = useCallback(<TType extends string, TData>(params: OpenSheetParams<TType, TData>) => {
         const { contract, options } = params;
         const data = (params as any).data;
-        
+
         const newId = `sheet-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        
+
         const entry: SheetEntry = {
             id: newId,
             // ВОТ ОНО: Если sourceId не передан явно, ВСЕГДА используем 'more-sheet'
@@ -66,7 +66,7 @@ export const SheetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     });
 
-    const ctxValue = useMemo(() => ({ open, close, hasActiveSheet, activeSheet, windowHeight }), 
+    const ctxValue = useMemo(() => ({ open, close, hasActiveSheet, activeSheet, windowHeight }),
         [open, close, hasActiveSheet, activeSheet, windowHeight]);
 
     return (

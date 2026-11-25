@@ -1,4 +1,3 @@
-// File: src/widgets/hybrid-scrollbar/HubNotificationOverlay.tsx
 'use client';
 
 import React, { useState } from 'react';

@@ -14,4 +14,6 @@ export interface SheetEntry extends SheetOptions {
 
 export type OpenSheetParams<TType extends string, TData> = [TData] extends [void]
     ? { contract: Contract<TType, void>; options?: SheetOptions }
+    : void extends TData
+    ? { contract: Contract<TType, TData>; data?: TData; options?: SheetOptions }
     : { contract: Contract<TType, TData>; data: TData; options?: SheetOptions };

@@ -6,6 +6,7 @@ export interface MYCapsuleActionRequest {
     id: string;
     screenId: string;
     icon?: React.ElementType;
+    label?: string;
     onAction: (morphId?: string) => void;
 }
 

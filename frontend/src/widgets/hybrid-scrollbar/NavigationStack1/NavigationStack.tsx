@@ -30,6 +30,22 @@ interface NavigationStackInnerProps extends NavigationStackProps {
     cornerRadius: number;
 }
 
+const generateLocalId = (): string => {
+    if (typeof crypto !== 'undefined') {
+        if (typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        if (typeof crypto.getRandomValues === 'function') {
+            const buf = new Uint8Array(16);
+            crypto.getRandomValues(buf);
+            buf[6] = (buf[6] & 0x0f) | 0x40;
+            buf[8] = (buf[8] & 0x3f) | 0x80;
+            return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+        }
+    }
+    return `screen-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
 const RouteRenderer = ({ entry }: { entry: StackEntry }) => {
     const renderFn = useActiveRenderer({ type: entry.envelope.type });
 
@@ -74,9 +90,7 @@ const NavigationStackInner = ({
         const { contract, options } = params;
         const data = (params as any).data;
 
-        const newId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-            ? crypto.randomUUID()
-            : `screen-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const newId = generateLocalId();
 
         setNavAction('push');
         setPath((prev) => [
@@ -112,7 +126,7 @@ const NavigationStackInner = ({
         <NavigationActionsContext.Provider value={actionsValue}>
             <NavigationStateContext.Provider value={stateValue}>
                 <PopOptionsContext.Provider value={popCustomOptionsRef}>
-                    <div className="relative w-full h-full overflow-hidden select-none bg-background">
+                    <div className="relative w-full h-full overflow-hidden select-none">
                         <ScreenLayer
                             isActive={isRoot}
                             zIndex={0}

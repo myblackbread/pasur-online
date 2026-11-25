@@ -2,9 +2,9 @@ import { createContext, useContext } from 'react';
 import type { NavigationActions, NavigationState, TransitionOptions } from './types';
 
 export const NOOP_ACTIONS: NavigationActions = Object.freeze({
-    push: () => {},
-    pop: () => {},
-    popToRoot: () => {},
+    push: () => { },
+    pop: () => { },
+    popToRoot: () => { },
 });
 
 export const DEFAULT_STATE: NavigationState = Object.freeze({

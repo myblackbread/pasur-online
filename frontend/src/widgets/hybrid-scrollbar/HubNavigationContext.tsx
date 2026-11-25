@@ -4,9 +4,9 @@ import React from 'react';
 import { HybridHistoryManager } from './HybridHistoryManager';
 
 export interface HubBackAction {
-  canGoBack: boolean;
-  action: (params?: { options?: { animated?: boolean } }) => void;
-  title?: string;
+    canGoBack: boolean;
+    action: (params?: { options?: { animated?: boolean } }) => void;
+    title?: string;
 }
 
 export interface SetHubOptions {
@@ -48,7 +48,7 @@ export const HubNavigationProvider: React.FC<{
 
     const setActiveHubId = React.useCallback((id: string, options?: SetHubOptions) => {
         const recordHistory = options?.recordHistory ?? true;
-        
+
         if (recordHistory) {
             // Вызываем ДО изменения стейта (моментальная реакция URL)
             HybridHistoryManager.pushHub(id);

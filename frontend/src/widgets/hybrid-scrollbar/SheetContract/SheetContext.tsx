@@ -20,8 +20,8 @@ export function useSheet(): SheetContextType {
             console.warn('useSheet called outside of SheetProvider.');
         }
         return {
-            open: () => {},
-            close: () => {},
+            open: () => { },
+            close: () => { },
             hasActiveSheet: false,
             activeSheet: null,
             windowHeight: 0,

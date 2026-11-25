@@ -3,126 +3,132 @@
 import React, { forwardRef, useLayoutEffect } from 'react';
 import { useMorphEngine } from './useMorphEngine';
 import { useActiveMorphParams } from './MorphRegistry';
-import type { MorphItemBase } from './types';
+import type { MorphDirection, MorphItemBase } from './types';
 
-const MorphItem = forwardRef<HTMLDivElement, { 
-  item: MorphItemBase; 
-  renderItem: (item: any) => React.ReactNode 
+const MorphItem = forwardRef<HTMLDivElement, {
+    item: MorphItemBase;
+    renderItem: (item: any) => React.ReactNode;
 }>(({ item, renderItem }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className="overflow-hidden"
-      style={{ willChange: 'transform, opacity' }}
-    >
-      <div 
-        className="w-full h-max" 
-        data-morph-id={String(item.id)}
-      >
-        {renderItem(item)}
-      </div>
-    </div>
-  );
+    return (
+        <div
+            ref={ref}
+            className="overflow-hidden"
+            style={{ willChange: 'transform, opacity' }}
+        >
+            <div
+                className="w-full h-max"
+                data-morph-id={String(item.id)}
+            >
+                {renderItem(item)}
+            </div>
+        </div>
+    );
 });
 MorphItem.displayName = 'MorphItem';
 
 export interface MorphHostProps<T extends MorphItemBase = MorphItemBase> {
-  activeContractType: string;
-  items: T[];
-  paddingTop?: number;
-  paddingBottom?: number;
-  paddingHorizontal?: number;
-  estimatedItemHeight?: number;
+    activeContractType: string;
+    items: T[];
+    direction?: MorphDirection;
+    paddingTop?: number;
+    paddingBottom?: number;
+    paddingHorizontal?: number;
+    estimatedItemHeight?: number;
 }
 
-export const MorphHost = <T extends MorphItemBase>({ 
-  activeContractType, 
-  items,
-  paddingTop = 16,
-  paddingBottom = 16,
-  paddingHorizontal = 16,
-  estimatedItemHeight = 140
-}: MorphHostProps<T>) => {
-  const destination = useActiveMorphParams(activeContractType);
-  
-  const { 
-    containerRef, 
-    scrollContentRef, 
-    cardsRef, 
-    visibleItems,
-    calculateMorphing 
-  } = useMorphEngine({
-    anchor: destination?.anchorConfig,
+export const MorphHost = <T extends MorphItemBase>({
+    activeContractType,
     items,
-    paddingTop,
-    paddingBottom,
-    paddingHorizontal,
-    estimatedItemHeight
-  });
+    direction,
+    paddingTop = 16,
+    paddingBottom = 16,
+    paddingHorizontal = 16,
+    estimatedItemHeight = 140
+}: MorphHostProps<T>) => {
+    const destination = useActiveMorphParams(activeContractType);
 
-  // Моментальная стилизация нод перед paint-фазой браузера при смене среза
-  useLayoutEffect(() => {
-    calculateMorphing();
-  }, [visibleItems, calculateMorphing]);
+    const resolvedDirection = direction ?? destination?.direction ?? destination?.anchorConfig.direction ?? 'bottom';
+    const isTop = resolvedDirection === 'top' || resolvedDirection === 'from-top';
 
-  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const scroller = containerRef.current;
-    if (!scroller) return;
-    scroller.style.pointerEvents = 'none';
-    const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
-    scroller.style.pointerEvents = 'auto';
+    const {
+        containerRef,
+        scrollContentRef,
+        cardsRef,
+        visibleItems,
+        calculateMorphing
+    } = useMorphEngine({
+        anchor: destination?.anchorConfig,
+        direction: resolvedDirection,
+        items,
+        paddingTop,
+        paddingBottom,
+        paddingHorizontal,
+        estimatedItemHeight
+    });
 
-    if (target && target !== scroller && target !== document.body) {
-      target.click();
-    }
-  };
+    useLayoutEffect(() => {
+        calculateMorphing();
+    }, [visibleItems, calculateMorphing]);
 
-  if (!destination) return null;
+    const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const scroller = containerRef.current;
+        if (!scroller) return;
+        scroller.style.pointerEvents = 'none';
+        const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+        scroller.style.pointerEvents = 'auto';
 
-  return (
-    <div className="absolute inset-0 z-[100] pointer-events-none">
-      
-      {/* 1. Кнопка-якорь */}
-      <div 
-        className="absolute z-[110] pointer-events-auto"
-        style={{
-          width: destination.anchorConfig.width,
-          height: destination.anchorConfig.height,
-          right: destination.anchorConfig.right,
-          bottom: destination.anchorConfig.bottom
-        }}
-      >
-        {destination.renderAnchor()}
-      </div>
+        if (target && target !== scroller && target !== document.body) {
+            target.click();
+        }
+    };
 
-      {/* 2. Слой визуализации карточек: Рендерит строго 10–15 карточек виртуального среза */}
-      <div className="absolute inset-0 overflow-hidden z-[105] pointer-events-none">
-        {destination.renderItem && visibleItems.map((item) => (
-          <MorphItem
-            key={item.id}
-            ref={(el) => {
-              if (el) {
-                cardsRef.current.set(item.id, el);
-              } else {
-                cardsRef.current.delete(item.id);
-              }
-            }}
-            item={item}
-            renderItem={destination.renderItem!}
-          />
-        ))}
-      </div>
+    if (!destination) return null;
 
-      {/* 3. Невидимый нативный скроллер-привод */}
-      <div 
-        ref={containerRef}
-        onClick={handleContainerClick}
-        className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-none z-[106] pointer-events-auto"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        <div ref={scrollContentRef} className="w-full pointer-events-none" />
-      </div>
+    return (
+        <div className="absolute inset-0 z-[100] pointer-events-none">
 
-    </div>
-  );
+            {/* 1. Кнопка-якорь */}
+            <div
+                className="absolute z-[110] pointer-events-auto"
+                style={{
+                    width: destination.anchorConfig.width,
+                    height: destination.anchorConfig.height,
+                    right: destination.anchorConfig.right ?? 16,
+                    top: isTop ? (destination.anchorConfig.top ?? 0) : undefined,
+                    bottom: !isTop ? (destination.anchorConfig.bottom ?? 0) : undefined
+                }}
+            >
+                {destination.renderAnchor()}
+            </div>
+
+            {/* 2. Слой визуализации карточек */}
+            <div className="absolute inset-0 overflow-hidden z-[105] pointer-events-none">
+                {destination.renderItem && visibleItems.map((item) => (
+                    <MorphItem
+                        key={item.id}
+                        ref={(el) => {
+                            if (el) {
+                                cardsRef.current.set(item.id, el);
+                            } else {
+                                cardsRef.current.delete(item.id);
+                            }
+                        }}
+                        item={item}
+                        renderItem={destination.renderItem!}
+                    />
+                ))}
+            </div>
+
+            {/* 3. Невидимый нативный скроллер-привод */}
+            <div
+                ref={containerRef}
+                onClick={handleContainerClick}
+                className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-none z-[106] pointer-events-auto"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+                <div ref={scrollContentRef} className="w-full pointer-events-none" />
+            </div>
+
+        </div>
+    );
 };

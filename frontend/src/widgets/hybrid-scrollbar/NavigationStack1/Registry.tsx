@@ -59,7 +59,7 @@ export function NavigationDestination<TType extends string, TData>({
     destination,
 }: {
     // ВАЖНО: Теперь TypeScript видит жесткую связь между контрактом и TData
-    contract: Contract<TType, TData>; 
+    contract: Contract<TType, TData>;
     destination: (data: TData) => React.ReactNode;
 }) {
     const api = useContext(RegistryApiContext);
@@ -71,7 +71,7 @@ export function NavigationDestination<TType extends string, TData>({
     useEffect(() => {
         if (!api) return;
         const renderFn: RenderFunction = (payload) => destRef.current(payload);
-        
+
         api.register({ type: contract.type, id: registrarId, fn: renderFn });
         return () => api.unregister({ type: contract.type, id: registrarId });
     }, [contract.type, registrarId, api]);

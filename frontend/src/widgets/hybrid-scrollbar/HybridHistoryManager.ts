@@ -22,7 +22,7 @@ class HistoryManager {
         this.isInitialized = true;
 
         this.hubHistory = [initialHub];
-        
+
         const state = window.history.state || {};
         if (typeof state.__idx === 'number') {
             this.currentIndex = state.__idx;
@@ -42,7 +42,7 @@ class HistoryManager {
 
     pushHub(hubId: string) {
         if (!this.isInitialized) return;
-        
+
         const current = this.hubHistory[this.hubHistory.length - 1];
         if (current === hubId) return;
 
@@ -61,10 +61,10 @@ class HistoryManager {
     pushToken(): string {
         this.currentIndex++;
         const id = Math.random().toString(36).substring(2, 10);
-        
+
         this.tokenStack.length = this.currentIndex;
         this.tokenStack.push(id);
-        
+
         window.history.pushState({ __idx: this.currentIndex, __id: id }, '');
         return id;
     }
@@ -88,21 +88,21 @@ class HistoryManager {
 
         // Запоминаем хаб, с которого начали жест
         this.transactionOriginHub = this.hubHistory[this.hubHistory.length - 1];
-        
+
         // ДОБАВЛЯЕМ ДО (pushState в самом начале)
         this.currentIndex++;
         const id = Math.random().toString(36).substring(2, 10);
-        
+
         this.tokenStack.length = this.currentIndex;
         this.tokenStack.push(id);
         this.activeTransactionToken = id;
-        
+
         window.history.pushState({ __idx: this.currentIndex, __id: id }, '');
     }
 
     commitTransaction(finalHubId: string) {
         if (!this.isInitialized) return;
-        
+
         if (!this.activeTransactionToken) {
             // Если транзакции не было, делаем обычный push
             this.pushHub(finalHubId);

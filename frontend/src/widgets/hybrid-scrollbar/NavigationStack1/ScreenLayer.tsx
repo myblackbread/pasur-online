@@ -30,113 +30,102 @@ export const ScreenLayer: React.FC<ScreenLayerProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const popOptionsRef = useContext(PopOptionsContext);
 
-    // Откладываем фокус, чтобы браузер не пытался проскроллить 
-    // страницу к элементу, который еще находится за пределами экрана
+    // Фокусируем только дочерние экраны при переходе вглубь (!isRoot)
+    // и строго с preventScroll: true, чтобы браузер не прокручивал внешние контейнеры
     useEffect(() => {
-        if (isActive && containerRef.current) {
+        if (isActive && !isRoot && containerRef.current) {
             const timer = setTimeout(() => {
-                containerRef.current?.focus();
-            }, 400); 
+                containerRef.current?.focus({ preventScroll: true });
+            }, 400);
             return () => clearTimeout(timer);
         }
-    }, [isActive]);
+    }, [isActive, isRoot]);
 
     const currentTransition = isActionAnimated ? stackSpring : instantTransition;
-    
-    // Формируем строку с пикселями для безопасной анимации
     const radiusPx = `${cornerRadius}px`;
 
-    // 1. Стандартная анимация с масштабированием
+    // 1. Стандартная анимация со скейлом (Android / Desktop)
     const scaleVariants = {
-        initial: { 
-            scale: 1.08, 
-            opacity: 0, 
-            borderBottomLeftRadius: radiusPx, 
-            borderBottomRightRadius: radiusPx 
+        initial: {
+            scale: 1.08,
+            opacity: 0,
+            borderBottomLeftRadius: radiusPx,
+            borderBottomRightRadius: radiusPx
         },
-        active: { 
-            scale: 1, 
-            opacity: 1, 
-            // Во время анимации держим скругления
-            borderBottomLeftRadius: radiusPx, 
+        active: {
+            scale: 1,
+            opacity: 1,
+            borderBottomLeftRadius: radiusPx,
             borderBottomRightRadius: radiusPx,
             visibility: 'visible' as const,
             contentVisibility: 'visible' as const,
             transitionEnd: {
-                // Мгновенно отключаем скругления после завершения анимации
-                borderBottomLeftRadius: '0px', 
+                borderBottomLeftRadius: '0px',
                 borderBottomRightRadius: '0px',
             },
-            transition: currentTransition 
+            transition: currentTransition
         },
-        inactive: { 
-            scale: 0.92, 
-            opacity: 0, 
-            borderBottomLeftRadius: radiusPx, 
-            borderBottomRightRadius: radiusPx, // Возвращаем радиус при уходе назад
-            transitionEnd: { 
-                // Выключаем рендер нижних слоев только после того, как они скрылись
+        inactive: {
+            scale: 0.92,
+            opacity: 0,
+            borderBottomLeftRadius: radiusPx,
+            borderBottomRightRadius: radiusPx,
+            transitionEnd: {
                 visibility: 'hidden' as const,
                 contentVisibility: 'hidden' as const
             },
-            transition: currentTransition 
+            transition: currentTransition
         },
         exit: (customPopOptionsRef?: React.MutableRefObject<TransitionOptions | undefined>) => {
             const isPopAnimated = customPopOptionsRef?.current?.animated ?? globalAnimatePop;
             return {
-                scale: 1.08, 
+                scale: 1.08,
                 opacity: 0,
-                borderBottomLeftRadius: radiusPx, 
+                borderBottomLeftRadius: radiusPx,
                 borderBottomRightRadius: radiusPx,
                 transition: isPopAnimated ? stackSpring : instantTransition,
             };
         },
     };
 
-    // 2. iOS-подобная анимация наложения (Slide)
+    // 2. iOS-подобная анимация наложения (Slide) БЕЗ GPU-фильтров
     const slideVariants = {
-        initial: { 
-            x: '100%', 
-            opacity: 1, 
-            borderBottomLeftRadius: radiusPx, 
-            borderBottomRightRadius: radiusPx 
+        initial: {
+            x: '100%',
+            opacity: 1,
+            borderBottomLeftRadius: radiusPx,
+            borderBottomRightRadius: radiusPx
         },
-        active: { 
-            x: '0%', 
-            opacity: 1, 
-            filter: 'brightness(1)',
-            // Во время анимации держим скругления
-            borderBottomLeftRadius: radiusPx, 
+        active: {
+            x: '0%',
+            opacity: 1,
+            borderBottomLeftRadius: radiusPx,
             borderBottomRightRadius: radiusPx,
             visibility: 'visible' as const,
             contentVisibility: 'visible' as const,
             transitionEnd: {
-                // Мгновенно отключаем скругления после завершения анимации
-                borderBottomLeftRadius: '0px', 
+                borderBottomLeftRadius: '0px',
                 borderBottomRightRadius: '0px',
             },
-            transition: currentTransition 
+            transition: currentTransition
         },
-        inactive: { 
-            x: '-30%', 
-            opacity: 0.8, 
-            filter: 'brightness(0.6)', 
-            borderBottomLeftRadius: radiusPx, 
+        inactive: {
+            x: '-25%',
+            opacity: 0.6,
+            borderBottomLeftRadius: radiusPx,
             borderBottomRightRadius: radiusPx,
-            transitionEnd: { 
-                // Выключаем рендер нижних слоев только после того, как они скрылись
+            transitionEnd: {
                 visibility: 'hidden' as const,
                 contentVisibility: 'hidden' as const
             },
-            transition: currentTransition 
+            transition: currentTransition
         },
         exit: (customPopOptionsRef?: React.MutableRefObject<TransitionOptions | undefined>) => {
             const isPopAnimated = customPopOptionsRef?.current?.animated ?? globalAnimatePop;
             return {
-                x: '100%', 
-                opacity: 1, 
-                filter: 'brightness(1)',
-                borderBottomLeftRadius: radiusPx, 
+                x: '100%',
+                opacity: 1,
+                borderBottomLeftRadius: radiusPx,
                 borderBottomRightRadius: radiusPx,
                 transition: isPopAnimated ? stackSpring : instantTransition,
             };
@@ -154,17 +143,17 @@ export const ScreenLayer: React.FC<ScreenLayerProps> = ({
             initial={isRoot ? false : 'initial'}
             animate={isActive ? 'active' : 'inactive'}
             exit="exit"
-            custom={popOptionsRef} 
+            custom={popOptionsRef}
             aria-hidden={!isActive}
             data-scroller={isActive ? 'true' : undefined}
-            className="absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden outline-none [&::-webkit-scrollbar]:hidden bg-background"
+            className="absolute inset-0 w-full h-full overflow-y-auto overflow-x-hidden outline-none [&::-webkit-scrollbar]:hidden"
             style={{
                 zIndex,
                 WebkitOverflowScrolling: 'touch',
-                // Убрано невалидное свойство border-radius
-                willChange: 'transform, opacity, filter', 
-                boxShadow: transitionType === 'slide' && !isRoot 
-                    ? '-10px 0 30px rgba(0,0,0,0.15)' 
+                contain: 'paint',
+                willChange: isRoot && isActive ? 'auto' : 'transform, opacity',
+                boxShadow: transitionType === 'slide' && !isRoot
+                    ? '-10px 0 30px rgba(0,0,0,0.4)'
                     : undefined
             }}
         >

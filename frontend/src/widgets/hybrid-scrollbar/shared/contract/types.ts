@@ -17,8 +17,8 @@ export type AnyEnvelope = Envelope<string, any>;
 export type ContractCreator<TType extends string, TData> = [TData] extends [void]
     ? () => Envelope<TType, void>
     : [undefined] extends [TData]
-        ? (data?: TData) => Envelope<TType, TData>
-        : (data: TData) => Envelope<TType, TData>;
+    ? (data?: TData) => Envelope<TType, TData>
+    : (data: TData) => Envelope<TType, TData>;
 
 /**
  * Дескриптор контракта.

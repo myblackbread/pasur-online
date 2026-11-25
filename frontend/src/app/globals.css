@@ -1,81 +1,44 @@
 @import "tailwindcss";
 
-/* 🛠️ РЕГИСТРИРУЕМ ЦВЕТА ДЛЯ TAILWIND V4 */
 @theme {
+  /* Палитра: British Apothecary & Muted Brass */
+  --color-bg: #0C100E;
+  --color-card: #141C19;
+  --color-input: #0F1513;
+  
+  --color-text: #F0F4F2;
+  --color-muted: #83968E;
+  --color-subtle: #566861;
+  
+  --color-accent: #C8A97E;
+  --color-accent-hover: #D5BC95;
+  --color-accent-text: #141C19;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
-  --color-theme-main: var(--bg-main);
-  --color-theme-panel: var(--bg-panel);
-  --color-theme-primary: var(--color-primary);
-  --color-theme-text: var(--color-text);
-  --color-theme-muted: var(--color-muted);
-  --color-theme-border: var(--color-border);
 }
 
-@layer base {
-  /* 👨 ☀️ СВЕТЛАЯ ТЕМА - МУЖСКАЯ (ПО УМОЛЧАНИЮ) */
-  :root {
-    --bg-main: #f1f5f9;       /* slate-100 */
-    --bg-panel: #ffffff;      /* белый */
-    --color-primary: #3b82f6; /* blue-500 */
-    --color-text: #0f172a;    /* slate-900 */
-    --color-muted: #64748b;   /* slate-500 */
-    --color-border: #e2e8f0;  /* slate-200 */
-
-    --safe-top: max(env(safe-area-inset-top), 1rem);
-    --safe-bottom: max(env(safe-area-inset-bottom), 1rem);
-    --safe-left: max(env(safe-area-inset-left), 1rem);
-    --safe-right: max(env(safe-area-inset-right), 1rem);
-  }
-
-  /* 👩 ☀️ СВЕТЛАЯ ТЕМА - ЖЕНСКАЯ */
-  :root[data-theme="female"] {
-    --bg-main: #fff1f2;       /* rose-50 - легкий розоватый фон */
-    --bg-panel: #ffffff;      /* белый */
-    --color-primary: #f43f5e; /* rose-500 - красивый розово-красный акцент */
-    --color-text: #4c0519;    /* rose-950 - темный текст с бордовым оттенком */
-    --color-muted: #9f1239;   /* rose-900 - приглушенный бордовый */
-    --color-border: #fecdd3;  /* rose-200 - розоватый разделитель */
-  }
-
-  /* 🌙 ТЕМНАЯ ТЕМА (ПОДХВАТЫВАЕТСЯ АВТОМАТИЧЕСКИ ИЗ СИСТЕМЫ) */
-  @media (prefers-color-scheme: dark) {
-    
-    /* 👨 🌙 ТЕМНАЯ ТЕМА - МУЖСКАЯ */
-    :root {
-      --bg-main: #0f172a;       /* slate-900 */
-      --bg-panel: #1e293b;      /* slate-800 */
-      --color-primary: #3b82f6; /* blue-500 */
-      --color-text: #f8fafc;    /* slate-50 */
-      --color-muted: #94a3b8;   /* slate-400 */
-      --color-border: #334155;  /* slate-700 */
-    }
-
-    /* 👩 🌙 ТЕМНАЯ ТЕМА - ЖЕНСКАЯ */
-    :root[data-theme="female"] {
-      --bg-main: #2a0a18;       /* глубокий темный бордовый/фиолетовый фон */
-      --bg-panel: #4c0519;      /* rose-950 - фон карточек */
-      --color-primary: #fb7185; /* rose-400 - яркий розовый акцент для контраста */
-      --color-text: #fff1f2;    /* rose-50 - светлый текст */
-      --color-muted: #fda4af;   /* rose-300 - приглушенный розовый */
-      --color-border: #881337;  /* rose-900 - темный разделитель */
-    }
-  }
-
-  /* Анимация переходов цветов при смене темы или пола */
-  body {
-    background-color: var(--bg-main);
-    color: var(--color-text);
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-  }
+:root {
+  color-scheme: dark;
 }
 
-@layer utilities {
-  .safe-padding {
-    padding-top: var(--safe-top);
-    padding-bottom: var(--safe-bottom);
-    padding-left: var(--safe-left);
-    padding-right: var(--safe-right);
-  }
+html, body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+/* Деликатное свечение латуни для главных кнопок */
+.brass-glow {
+  box-shadow: 0 4px 20px -2px rgba(200, 169, 126, 0.22);
 }

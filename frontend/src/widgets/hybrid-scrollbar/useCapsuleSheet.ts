@@ -6,24 +6,34 @@ import type { Contract } from './shared/contract';
 
 export type UseCapsuleSheetParams<TType extends string, TData> = [TData] extends [void]
     ? {
-          icon?: React.ElementType;
-          contract: Contract<TType, void>;
-          options?: SheetOptions;
-      }
+        icon?: React.ElementType;
+        label?: string;
+        contract: Contract<TType, void>;
+        options?: SheetOptions;
+    }
+    : void extends TData
+    ? {
+        icon?: React.ElementType;
+        label?: string;
+        contract: Contract<TType, TData>;
+        data?: TData;
+        options?: SheetOptions;
+    }
     : {
-          icon?: React.ElementType;
-          contract: Contract<TType, TData>;
-          data: TData;
-          options?: SheetOptions;
-      };
+        icon?: React.ElementType;
+        label?: string;
+        contract: Contract<TType, TData>;
+        data: TData;
+        options?: SheetOptions;
+    };
 
 export function useCapsuleSheet<TType extends string, TData>(params: UseCapsuleSheetParams<TType, TData>) {
     const { open } = useSheet();
 
     useCapsuleAction({
         icon: params.icon,
+        label: params.label,
         onAction: (morphId) => {
-            // Вся грязная работа с передачей morphId происходит здесь, внутри библиотеки
             open({
                 contract: params.contract,
                 data: (params as any).data,

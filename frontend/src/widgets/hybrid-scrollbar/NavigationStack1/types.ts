@@ -25,6 +25,8 @@ export interface NavigationState {
 
 export type PushParams<TType extends string, TData> = [TData] extends [void]
     ? { contract: Contract<TType, void>; options?: NavigationOptions }
+    : void extends TData
+    ? { contract: Contract<TType, TData>; data?: TData; options?: NavigationOptions }
     : { contract: Contract<TType, TData>; data: TData; options?: NavigationOptions };
 
 export interface NavigationActions {

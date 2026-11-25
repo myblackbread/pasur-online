@@ -67,7 +67,7 @@ export function SheetDestination<TType extends string, TData>({
     useEffect(() => {
         if (!api) return;
         const renderFn: SheetRenderFunction = (payload) => destRef.current(payload);
-        
+
         api.register({ type: contract.type, id: registrarId, fn: renderFn });
         return () => api.unregister({ type: contract.type, id: registrarId });
     }, [contract.type, registrarId, api]);

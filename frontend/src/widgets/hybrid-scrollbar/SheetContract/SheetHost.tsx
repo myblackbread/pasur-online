@@ -8,12 +8,12 @@ import { useActiveSheetRenderer } from './SheetRegistry';
 import { MYHubBottomSheetRenderer } from '../HubBottomSheet';
 import type { SheetEntry } from './types';
 
-const SheetRouteRenderer = ({ 
-    entry, 
+const SheetRouteRenderer = ({
+    entry,
     windowHeight,
     onClose
-}: { 
-    entry: SheetEntry; 
+}: {
+    entry: SheetEntry;
     windowHeight: number;
     onClose: () => void;
 }) => {
@@ -22,7 +22,7 @@ const SheetRouteRenderer = ({
     const content = renderFn ? renderFn(entry.envelope.data) : (
         <div className="flex flex-col items-center justify-center w-full h-full min-h-[200px] bg-neutral-900 rounded-[inherit]">
             <AlertTriangle size={48} className="text-yellow-500 mb-4" />
-            <p className="text-white text-center">Шторка не зарегистрирована<br/><span className="text-neutral-500 text-sm mt-1">{entry.envelope.type}</span></p>
+            <p className="text-white text-center">Шторка не зарегистрирована<br /><span className="text-neutral-500 text-sm mt-1">{entry.envelope.type}</span></p>
         </div>
     );
 
@@ -52,10 +52,10 @@ export const SheetHost: React.FC = () => {
     return (
         <AnimatePresence mode="wait">
             {activeSheet && (
-                <SheetRouteRenderer 
-                    key={activeSheet.id} 
-                    entry={activeSheet} 
-                    windowHeight={windowHeight} 
+                <SheetRouteRenderer
+                    key={activeSheet.id}
+                    entry={activeSheet}
+                    windowHeight={windowHeight}
                     onClose={() => close(activeSheet.id)}
                 />
             )}
