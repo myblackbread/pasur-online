@@ -67,12 +67,12 @@ export default function PwaAppPage() {
 
     return (
         <main className="w-full h-dvh overflow-hidden font-sans bg-bg select-none flex flex-col relative">
-            <div
+            {/* <div
                 className="sticky top-0 z-50 w-full bg-bg shrink-0 pointer-events-none"
                 style={{
                     height: 'calc(env(safe-area-inset-top, 0px) + 5px)',
                 }}
-            />
+            /> */}
 
             <div className="flex-1 w-full min-h-0 overflow-hidden relative">
                 <HybridScrollView screens={screens} initialHubId="chats" />
