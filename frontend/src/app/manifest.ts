@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Game App',
     short_name: 'Game App',
     description: 'Карточная игра и приватные зашифрованные чаты',
-    start_url: '/app',
+    start_url: '/',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
